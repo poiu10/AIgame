@@ -150,14 +150,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private publishHud(): void {
-    const remainingEnemies = this.gameState.enemies.filter(
-      (enemy) => enemy.alive,
-    ).length;
     const hudState: HudState = {
       health: this.gameState.player.health,
       maxHealth: this.gameState.player.maxHealth,
-      remainingEnemies,
-      status: this.gameState.status,
       debugVisible: this.debugVisible,
     };
     const signature = JSON.stringify(hudState);

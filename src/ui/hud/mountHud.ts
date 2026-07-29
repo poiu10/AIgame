@@ -1,12 +1,8 @@
-import type { SessionStatus } from "../../game/simulation/state";
-
 export const GAME_HUD_EVENT = "aigame:hud";
 
 export interface HudState {
   health: number;
   maxHealth: number;
-  remainingEnemies: number;
-  status: SessionStatus;
   debugVisible: boolean;
 }
 
@@ -18,43 +14,26 @@ export function mountHud(container: HTMLDivElement | null): void {
   const panel = document.createElement("section");
   panel.className = "hud-panel";
   panel.innerHTML = `
-    <div class="hud-brand">ECHOBOUND <span>첫 번째 메아리</span></div>
     <div class="hud-stats">
       <span class="hud-health" aria-label="체력"></span>
-      <span class="hud-enemies"></span>
     </div>
-    <div class="hud-message"></div>
-    <div class="hud-debug">개발 도구 · P 강제 음파 · F3 충돌체</div>
+    <div class="hud-debug">개발 도구 · P 강제 음파 · F3 충돌체 · R 리셋</div>
   `;
   container.replaceChildren(panel);
 
   const health = panel.querySelector<HTMLElement>(".hud-health");
-  const enemies = panel.querySelector<HTMLElement>(".hud-enemies");
-  const message = panel.querySelector<HTMLElement>(".hud-message");
   const debug = panel.querySelector<HTMLElement>(".hud-debug");
 
   window.addEventListener(GAME_HUD_EVENT, (rawEvent) => {
     const event = rawEvent as CustomEvent<HudState>;
     const state = event.detail;
-    if (!health || !enemies || !message || !debug) {
+    if (!health || !debug) {
       return;
     }
 
     health.textContent = `${"◆".repeat(state.health)}${"◇".repeat(
       state.maxHealth - state.health,
     )}`;
-    enemies.textContent = `남은 적 ${state.remainingEnemies}`;
     debug.classList.toggle("is-active", state.debugVisible);
-
-    if (state.status === "completed") {
-      message.textContent = "모든 메아리가 멎었다 · R로 다시 시작";
-      message.className = "hud-message is-complete";
-    } else if (state.status === "failed") {
-      message.textContent = "어둠에 쓰러졌다 · R로 다시 시작";
-      message.className = "hud-message is-failed";
-    } else {
-      message.textContent = "";
-      message.className = "hud-message is-hidden";
-    }
   });
 }

@@ -57,26 +57,10 @@ body {
   text-shadow: 0 0 1rem rgb(92 227 255 / 45%);
 }
 
-.hud-brand {
-  color: #eaffff;
-  font-size: clamp(0.78rem, 1.5vw, 1rem);
-  font-weight: 800;
-  letter-spacing: 0.2em;
-}
-
-.hud-brand span {
-  margin-left: 0.45rem;
-  color: rgb(185 238 247 / 56%);
-  font-size: 0.68em;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-}
-
 .hud-stats {
   display: flex;
   gap: 1.25rem;
   align-items: center;
-  margin-top: 0.55rem;
   color: #a8eaf4;
   font-size: clamp(0.72rem, 1.3vw, 0.9rem);
 }
@@ -84,36 +68,6 @@ body {
 .hud-health {
   color: #76efff;
   letter-spacing: 0.16em;
-}
-
-.hud-message {
-  position: absolute;
-  top: clamp(0.85rem, 2.2vw, 1.5rem);
-  left: 50%;
-  max-width: 48vw;
-  padding: 0.48rem 0.75rem;
-  transform: translateX(-50%);
-  border: 1px solid rgb(103 221 240 / 14%);
-  border-radius: 999px;
-  color: rgb(214 249 255 / 62%);
-  background: rgb(3 9 13 / 58%);
-  font-size: clamp(0.64rem, 1.1vw, 0.78rem);
-  text-align: center;
-  backdrop-filter: blur(7px);
-}
-
-.hud-message.is-complete {
-  color: #b8fff0;
-  border-color: rgb(107 255 216 / 42%);
-}
-
-.hud-message.is-failed {
-  color: #ff9eb7;
-  border-color: rgb(255 86 128 / 36%);
-}
-
-.hud-message.is-hidden {
-  display: none;
 }
 
 .hud-debug {
@@ -129,11 +83,6 @@ body {
 }
 
 @media (max-width: 720px) {
-  .hud-message {
-    top: 3.8rem;
-    max-width: 88vw;
-  }
-
   .hud-debug {
     display: none;
   }
