@@ -1,0 +1,53 @@
+export const FIXED_STEP_SECONDS = 1 / 120;
+
+export const PLAYER_CONFIG = {
+  width: 30,
+  height: 52,
+  maxHealth: 4,
+  acceleration: 1900,
+  airAcceleration: 1050,
+  maxSpeed: 250,
+  groundDrag: 2100,
+  gravity: 1750,
+  maxFallSpeed: 850,
+  jumpSpeed: 650,
+  coyoteSeconds: 0.11,
+  jumpBufferSeconds: 0.12,
+  rollSpeed: 450,
+  rollSeconds: 0.27,
+  rollCooldownSeconds: 0.68,
+  attackSeconds: 0.31,
+  attackActiveStart: 0.08,
+  attackActiveEnd: 0.18,
+  hurtSeconds: 0.3,
+  damageInvulnerabilitySeconds: 0.8,
+  footstepDistance: 92,
+} as const;
+
+export const ENEMY_CONFIG = {
+  width: 34,
+  height: 48,
+  maxHealth: 3,
+  patrolSpeed: 72,
+  gravity: 1750,
+  maxFallSpeed: 850,
+  attackRangeX: 82,
+  attackRangeY: 62,
+  attackSeconds: 0.58,
+  attackHitTime: 0.29,
+  attackCooldownSeconds: 1.15,
+  hurtSeconds: 0.24,
+  footstepDistance: 64,
+} as const;
+
+export const SOUND_CONFIG = {
+  speed: 650,
+  rayCount: 96,
+  reflectionDistanceRetention: 0.64,
+  reflectionIntensityRetention: 0.7,
+  minimumRemainingDistance: 30,
+  raySurfaceOffset: 0.75,
+  echoSeconds: 0.68,
+  enemyEchoSeconds: 0.48,
+  maximumEchoMarks: 720,
+} as const;
