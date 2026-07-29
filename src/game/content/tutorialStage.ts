@@ -94,7 +94,7 @@ export const TUTORIAL_STAGE: WorldDefinition = {
     {
       id: "trial",
       startX: 2040,
-      prompt: "A / D · Space · Shift · J",
+      prompt: "",
       requiresEnemyDefeated: "lesson-sentinel",
     },
   ],
