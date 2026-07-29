@@ -4,15 +4,18 @@ import { TUTORIAL_STAGE } from "../src/game/content/tutorialStage";
 import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
 import { raycastAabb } from "../src/game/simulation/collision/aabb";
 import {
+  ENEMY_CONFIG,
   FIXED_STEP_SECONDS,
   PLAYER_CONFIG,
 } from "../src/game/simulation/rules/config";
 import { getPlayerAttackBounds } from "../src/game/simulation/rules/combat";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
+import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
 import {
   createEchoMark,
   emitSound,
+  PLAYER_SOUND_SOURCE_ID,
   updateSoundPropagation,
 } from "../src/game/simulation/systems/sound";
 
@@ -238,6 +241,41 @@ describe("sound propagation", () => {
     expect(state.enemies[0].echoTime).toBeGreaterThan(0);
   });
 
+  it("moves an enemy toward the side a player wave arrived from", () => {
+    const enemyWorld: WorldDefinition = {
+      ...flatWorld,
+      enemies: [
+        {
+          id: "listener",
+          position: { x: 250, y: 326 },
+          patrolMinX: 150,
+          patrolMaxX: 350,
+        },
+      ],
+    };
+    const state = createInitialGameState(enemyWorld);
+    const enemy = state.enemies[0];
+    enemy.facing = 1;
+    enemy.grounded = true;
+    emitSound(
+      state,
+      "terrain-step",
+      { x: 100, y: 326 },
+      240,
+      1,
+      PLAYER_SOUND_SOURCE_ID,
+    );
+
+    for (let index = 0; index < 35; index += 1) {
+      updateSoundPropagation(state, enemyWorld, FIXED_STEP_SECONDS);
+    }
+
+    expect(enemy.facing).toBe(-1);
+    const positionBeforeMovement = enemy.position.x;
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyWorld);
+    expect(enemy.position.x).toBeLessThan(positionBeforeMovement);
+  });
+
   it("adds collision rays as the expanding wavefront spacing grows", () => {
     const openWorld: WorldDefinition = {
       width: 2_000,
@@ -316,11 +354,34 @@ describe("combat loop", () => {
     return state;
   }
 
-  it("damages the player as soon as an enemy attack hitbox overlaps", () => {
+  function advanceEnemyAlert(state: ReturnType<typeof createInitialGameState>) {
+    const stepsBeforeAttack =
+      Math.ceil(ENEMY_CONFIG.alertSeconds / FIXED_STEP_SECONDS) - 1;
+    for (let index = 0; index < stepsBeforeAttack; index += 1) {
+      stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
+    }
+  }
+
+  it("emits a small red warning wave and attacks after 0.3 seconds", () => {
     const state = createOverlappingEnemyAttackState();
 
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
 
+    expect(state.enemies[0].action).toBe("alert");
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+    const warningWave = state.soundWaves.find(
+      (wave) => wave.kind === "enemy-alert",
+    );
+    expect(warningWave).toBeDefined();
+    expect(
+      Math.max(...warningWave!.rays.map((ray) => ray.remainingDistance)),
+    ).toBeLessThan(ENEMY_CONFIG.alertWaveDistance);
+
+    advanceEnemyAlert(state);
+    expect(state.enemies[0].action).toBe("alert");
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
     expect(state.enemies[0].action).toBe("attack");
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
     expect(state.player.action).toBe("hurt");
@@ -332,6 +393,11 @@ describe("combat loop", () => {
 
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
 
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+    expect(state.enemies[0].action).toBe("alert");
+
+    advanceEnemyAlert(state);
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
     expect(state.enemies[0].action).toBe("attack");
 
@@ -374,6 +440,42 @@ describe("combat loop", () => {
     expect(state.enemies[0].alive).toBe(false);
     expect(state.status).toBe("completed");
     expect(state.soundWaves.some((wave) => wave.kind === "death")).toBe(true);
+  });
+
+  it("damages enemies on player-damaging terrain without frame-by-frame repeats", () => {
+    const hazardWorld: WorldDefinition = {
+      ...flatWorld,
+      enemies: [
+        {
+          id: "hazard-target",
+          position: { x: 200, y: 326 },
+          patrolMinX: 200,
+          patrolMaxX: 200,
+          health: 2,
+        },
+      ],
+      hazards: [
+        {
+          id: "test-hazard",
+          bounds: { x: 180, y: 280, width: 40, height: 70 },
+        },
+      ],
+    };
+    const state = createInitialGameState(hazardWorld);
+    const enemy = state.enemies[0];
+
+    updateWorldEnvironment(state, hazardWorld, FIXED_STEP_SECONDS);
+    expect(enemy.health).toBe(1);
+    expect(enemy.action).toBe("hurt");
+    expect(enemy.hazardInvulnerabilityTime).toBeGreaterThan(0);
+
+    updateWorldEnvironment(state, hazardWorld, FIXED_STEP_SECONDS);
+    expect(enemy.health).toBe(1);
+
+    enemy.hazardInvulnerabilityTime = 0;
+    updateWorldEnvironment(state, hazardWorld, FIXED_STEP_SECONDS);
+    expect(enemy.alive).toBe(false);
+    expect(state.status).toBe("completed");
   });
 });
 

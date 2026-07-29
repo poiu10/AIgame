@@ -2,8 +2,8 @@ import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
 import { getPlayerAttackBounds } from "../rules/combat";
-import type { GameState } from "../state";
-import { emitSound } from "./sound";
+import type { EnemyState, Facing, GameState } from "../state";
+import { emitSound, PLAYER_SOUND_SOURCE_ID } from "./sound";
 
 export function damagePlayer(
   state: GameState,
@@ -31,23 +31,56 @@ export function damagePlayer(
     player.velocity.x = 0;
     player.velocity.y = 0;
     state.status = "failed";
-    emitSound(state, "death", player.position, 360, 1);
+    emitSound(state, "death", player.position, 360, 1, PLAYER_SOUND_SOURCE_ID);
   } else {
     player.action = "hurt";
-    emitSound(state, "hurt", player.position, 250, 0.86);
+    emitSound(state, "hurt", player.position, 250, 0.86, PLAYER_SOUND_SOURCE_ID);
   }
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
   return true;
 }
 
-function defeatEnemy(state: GameState, enemyIndex: number): void {
-  const enemy = state.enemies[enemyIndex];
+function defeatEnemy(state: GameState, enemy: EnemyState): void {
   enemy.health = 0;
   enemy.alive = false;
   enemy.action = "dead";
   enemy.echoTime = 1;
   enemy.echoDuration = 1;
   emitSound(state, "death", enemy.position, 360, 1, enemy.id);
+  if (
+    state.status === "playing" &&
+    state.enemies.every((candidate) => !candidate.alive)
+  ) {
+    state.status = "completed";
+  }
+}
+
+export function damageEnemy(
+  state: GameState,
+  enemy: EnemyState,
+  knockbackDirection: Facing,
+): boolean {
+  if (!enemy.alive) {
+    return false;
+  }
+
+  enemy.health -= 1;
+  enemy.action = "hurt";
+  enemy.actionTime = 0;
+  enemy.velocity.x = knockbackDirection * 240;
+  enemy.velocity.y = -120;
+  enemy.echoTime = 0.72;
+  enemy.echoDuration = 0.72;
+  state.events.push({
+    type: "impact",
+    position: { ...enemy.position },
+    strength: 0.8,
+  });
+
+  if (enemy.health <= 0) {
+    defeatEnemy(state, enemy);
+  }
+  return true;
 }
 
 export function updatePlayerCombat(
@@ -65,7 +98,7 @@ export function updatePlayerCombat(
 
   const hitbox = getPlayerAttackBounds(player);
 
-  state.enemies.forEach((enemy, enemyIndex) => {
+  state.enemies.forEach((enemy) => {
     if (
       !enemy.alive ||
       player.attackHitIds.includes(enemy.id) ||
@@ -78,23 +111,15 @@ export function updatePlayerCombat(
     }
 
     player.attackHitIds.push(enemy.id);
-    enemy.health -= 1;
-    enemy.action = "hurt";
-    enemy.actionTime = 0;
-    enemy.velocity.x = player.facing * 240;
-    enemy.velocity.y = -120;
-    enemy.echoTime = 0.72;
-    enemy.echoDuration = 0.72;
-    emitSound(state, "attack-hit", enemy.position, 260, 0.9, enemy.id);
-    state.events.push({
-      type: "impact",
-      position: { ...enemy.position },
-      strength: 0.8,
-    });
-
-    if (enemy.health <= 0) {
-      defeatEnemy(state, enemyIndex);
-    }
+    damageEnemy(state, enemy, player.facing);
+    emitSound(
+      state,
+      "attack-hit",
+      enemy.position,
+      260,
+      0.9,
+      PLAYER_SOUND_SOURCE_ID,
+    );
   });
 
   for (const block of world.terrain) {
@@ -117,7 +142,14 @@ export function updatePlayerCombat(
         block.bounds.y + block.bounds.height,
       ),
     };
-    emitSound(state, "attack-hit", hitPosition, 230, 0.76);
+    emitSound(
+      state,
+      "attack-hit",
+      hitPosition,
+      230,
+      0.76,
+      PLAYER_SOUND_SOURCE_ID,
+    );
     state.events.push({ type: "impact", position: hitPosition, strength: 0.45 });
   }
 

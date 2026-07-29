@@ -7,7 +7,11 @@ import { updatePlayerCombat } from "./combat";
 import { updateEnemies } from "./enemies";
 import { updateTutorialProgress, updateWorldEnvironment } from "./environment";
 import { updatePlayerMovement } from "./movement";
-import { emitSound, updateSoundPropagation } from "./sound";
+import {
+  emitSound,
+  PLAYER_SOUND_SOURCE_ID,
+  updateSoundPropagation,
+} from "./sound";
 
 export function stepSimulation(
   state: GameState,
@@ -34,7 +38,7 @@ export function stepSimulation(
       sound.position,
       sound.distance,
       sound.intensity,
-      sound.sourceId,
+      sound.sourceId ?? PLAYER_SOUND_SOURCE_ID,
     );
   }
 
@@ -47,7 +51,14 @@ export function stepSimulation(
     state.player.velocity.x = 0;
     state.player.velocity.y = 0;
     state.status = "failed";
-    emitSound(state, "death", state.player.position, 360, 1);
+    emitSound(
+      state,
+      "death",
+      state.player.position,
+      360,
+      1,
+      PLAYER_SOUND_SOURCE_ID,
+    );
   }
 
   updateEnemies(state, world, deltaSeconds);
@@ -56,7 +67,14 @@ export function stepSimulation(
   updateTutorialProgress(state, world);
 
   if (input.debugPulsePressed) {
-    emitSound(state, "debug", state.player.position, 400, 1);
+    emitSound(
+      state,
+      "debug",
+      state.player.position,
+      400,
+      1,
+      PLAYER_SOUND_SOURCE_ID,
+    );
   }
 
   updateSoundPropagation(state, world, deltaSeconds);

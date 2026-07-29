@@ -1,8 +1,8 @@
 import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
-import { PLAYER_CONFIG } from "../rules/config";
+import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
 import type { GameState } from "../state";
-import { damagePlayer } from "./combat";
+import { damageEnemy, damagePlayer } from "./combat";
 import { emitSound } from "./sound";
 
 const HAZARD_REVEAL_SECONDS = 0.62;
@@ -70,6 +70,32 @@ export function updateWorldEnvironment(
         ? hazard.bounds.x - PLAYER_CONFIG.width / 2
         : hazard.bounds.x + hazard.bounds.width + PLAYER_CONFIG.width / 2;
     state.player.velocity.x = rejectionDirection * 330;
+  }
+
+  for (const enemy of state.enemies) {
+    if (!enemy.alive || enemy.hazardInvulnerabilityTime > 0) {
+      continue;
+    }
+    const enemyBounds = centerRect(
+      enemy.position,
+      ENEMY_CONFIG.width,
+      ENEMY_CONFIG.height,
+    );
+    for (const hazard of world.hazards ?? []) {
+      if (!rectanglesOverlap(enemyBounds, hazard.bounds)) {
+        continue;
+      }
+      const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
+      const rejectionDirection = enemy.position.x < hazardCenterX ? -1 : 1;
+      if (damageEnemy(state, enemy, rejectionDirection)) {
+        enemy.hazardInvulnerabilityTime =
+          ENEMY_CONFIG.hazardDamageCooldownSeconds;
+        if (enemy.alive) {
+          emitSound(state, "hurt", enemy.position, 250, 0.86, enemy.id);
+        }
+      }
+      break;
+    }
   }
 }
 

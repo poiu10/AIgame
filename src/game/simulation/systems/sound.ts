@@ -3,11 +3,14 @@ import { centerRect, raycastAabb, segmentIntersectsAabb } from "../collision/aab
 import { ENEMY_CONFIG, SOUND_CONFIG } from "../rules/config";
 import type {
   EchoMarkState,
+  Facing,
   GameState,
   SoundKind,
   SoundRayState,
   Vector2State,
 } from "../state";
+
+export const PLAYER_SOUND_SOURCE_ID = "player";
 
 export function emitSound(
   state: GameState,
@@ -38,6 +41,7 @@ export function emitSound(
     sourceId,
     origin: { ...position },
     rays,
+    reactedEnemyIds: [],
   });
   state.nextWaveId += 1;
   state.events.push({ type: "sound", kind, position: { ...position }, intensity });
@@ -229,6 +233,21 @@ export function updateSoundPropagation(
         if (segmentIntersectsAabb(ray.position, segmentEnd, enemyBounds)) {
           enemy.echoTime = Math.max(enemy.echoTime, SOUND_CONFIG.enemyEchoSeconds);
           enemy.echoDuration = SOUND_CONFIG.enemyEchoSeconds;
+          if (
+            wave.sourceId === PLAYER_SOUND_SOURCE_ID &&
+            !wave.reactedEnemyIds.includes(enemy.id)
+          ) {
+            const directionTowardSound: Facing =
+              ray.direction.x > 0
+                ? -1
+                : ray.direction.x < 0
+                  ? 1
+                  : wave.origin.x <= enemy.position.x
+                    ? -1
+                    : 1;
+            enemy.facing = directionTowardSound;
+            wave.reactedEnemyIds.push(enemy.id);
+          }
         }
       }
 

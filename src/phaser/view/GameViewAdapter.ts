@@ -21,6 +21,7 @@ const WAVE_COLORS: Record<SoundKind, number> = {
   landing: 0x8af7ff,
   "attack-hit": 0xff67b1,
   "enemy-step": 0xffb85c,
+  "enemy-alert": 0xff334f,
   "enemy-attack": 0xff704d,
   hurt: 0xff4f7d,
   death: 0xffffff,

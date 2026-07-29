@@ -4,13 +4,14 @@ import { ENEMY_CONFIG, PLAYER_CONFIG } from "./rules/config";
 
 export type Facing = -1 | 1;
 export type PlayerAction = "normal" | "roll" | "attack" | "hurt" | "dead";
-export type EnemyAction = "patrol" | "attack" | "hurt" | "dead";
+export type EnemyAction = "patrol" | "alert" | "attack" | "hurt" | "dead";
 export type SessionStatus = "playing" | "completed" | "failed";
 export type SoundKind =
   | "terrain-step"
   | "landing"
   | "attack-hit"
   | "enemy-step"
+  | "enemy-alert"
   | "enemy-attack"
   | "hurt"
   | "death"
@@ -53,6 +54,7 @@ export interface EnemyState {
   action: EnemyAction;
   actionTime: number;
   attackCooldown: number;
+  hazardInvulnerabilityTime: number;
   patrolMinX: number;
   patrolMaxX: number;
   footstepTravel: number;
@@ -88,6 +90,7 @@ export interface SoundWaveState {
   sourceId?: string;
   origin: Vector2State;
   rays: SoundRayState[];
+  reactedEnemyIds: string[];
 }
 
 export interface EchoMarkState {
@@ -162,6 +165,7 @@ export function createInitialGameState(
       action: "patrol",
       actionTime: 0,
       attackCooldown: 0,
+      hazardInvulnerabilityTime: 0,
       patrolMinX: spawn.patrolMinX,
       patrolMaxX: spawn.patrolMaxX,
       footstepTravel: 0,

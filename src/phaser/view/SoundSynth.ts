@@ -5,6 +5,7 @@ const FREQUENCIES: Record<SoundKind, number> = {
   landing: 92,
   "attack-hit": 360,
   "enemy-step": 210,
+  "enemy-alert": 165,
   "enemy-attack": 115,
   hurt: 280,
   death: 72,

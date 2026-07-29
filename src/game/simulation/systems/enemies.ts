@@ -38,7 +38,19 @@ export function updateEnemies(
     }
 
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - deltaSeconds);
-    if (enemy.action === "attack") {
+    enemy.hazardInvulnerabilityTime = Math.max(
+      0,
+      enemy.hazardInvulnerabilityTime - deltaSeconds,
+    );
+    if (enemy.action === "alert") {
+      enemy.actionTime += deltaSeconds;
+      enemy.velocity.x = 0;
+      if (enemy.actionTime >= ENEMY_CONFIG.alertSeconds) {
+        enemy.action = "attack";
+        enemy.actionTime = 0;
+        emitSound(state, "enemy-attack", enemy.position, 340, 1, enemy.id);
+      }
+    } else if (enemy.action === "attack") {
       enemy.actionTime += deltaSeconds;
       enemy.velocity.x = 0;
       if (enemy.actionTime >= ENEMY_CONFIG.attackSeconds) {
@@ -61,11 +73,18 @@ export function updateEnemies(
         enemy.attackCooldown <= 0 &&
         playerInAttackRange(state, enemy)
       ) {
-        enemy.action = "attack";
+        enemy.action = "alert";
         enemy.actionTime = 0;
         enemy.facing = playerDeltaX < 0 ? -1 : 1;
         enemy.velocity.x = 0;
-        emitSound(state, "enemy-attack", enemy.position, 340, 1, enemy.id);
+        emitSound(
+          state,
+          "enemy-alert",
+          enemy.position,
+          ENEMY_CONFIG.alertWaveDistance,
+          0.78,
+          enemy.id,
+        );
       } else {
         if (enemy.position.x <= enemy.patrolMinX) {
           enemy.facing = 1;
