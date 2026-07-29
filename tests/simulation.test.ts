@@ -8,7 +8,10 @@ import {
   FIXED_STEP_SECONDS,
   PLAYER_CONFIG,
 } from "../src/game/simulation/rules/config";
-import { getPlayerAttackBounds } from "../src/game/simulation/rules/combat";
+import {
+  getEnemyAttackBounds,
+  getPlayerAttackBounds,
+} from "../src/game/simulation/rules/combat";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { getLandingSoundProfile } from "../src/game/simulation/systems/movement";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
@@ -408,6 +411,9 @@ describe("combat loop", () => {
     expect(
       Math.max(...warningWave!.rays.map((ray) => ray.remainingDistance)),
     ).toBeLessThan(ENEMY_CONFIG.alertWaveDistance);
+    expect(
+      Math.max(...warningWave!.rays.map((ray) => ray.intensity)),
+    ).toBe(ENEMY_CONFIG.alertWaveIntensity);
 
     advanceEnemyAlert(state);
     expect(state.enemies[0].action).toBe("alert");
@@ -417,6 +423,27 @@ describe("combat loop", () => {
     expect(state.enemies[0].action).toBe("attack");
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
     expect(state.player.action).toBe("hurt");
+  });
+
+  it("keeps the enemy attack hitbox facing its detection direction", () => {
+    const state = createOverlappingEnemyAttackState();
+
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
+
+    const enemy = state.enemies[0];
+    expect(enemy.action).toBe("alert");
+    expect(enemy.attackFacing).toBe(-1);
+    const lockedAttackBounds = getEnemyAttackBounds(enemy);
+
+    enemy.facing = 1;
+    advanceEnemyAlert(state);
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
+
+    expect(enemy.action).toBe("attack");
+    expect(enemy.facing).toBe(1);
+    expect(enemy.attackFacing).toBe(-1);
+    expect(getEnemyAttackBounds(enemy)).toEqual(lockedAttackBounds);
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
   });
 
   it("blocks overlapping enemy attacks during invulnerability", () => {

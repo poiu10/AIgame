@@ -40,6 +40,7 @@ export const ENEMY_CONFIG = {
   attackRangeY: 62,
   alertSeconds: 0.3,
   alertWaveDistance: 120,
+  alertWaveIntensity: 1,
   attackSeconds: 0.58,
   attackCooldownSeconds: 1.15,
   hazardDamageCooldownSeconds: 0.8,

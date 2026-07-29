@@ -76,13 +76,14 @@ export function updateEnemies(
         enemy.action = "alert";
         enemy.actionTime = 0;
         enemy.facing = playerDeltaX < 0 ? -1 : 1;
+        enemy.attackFacing = enemy.facing;
         enemy.velocity.x = 0;
         emitSound(
           state,
           "enemy-alert",
           enemy.position,
           ENEMY_CONFIG.alertWaveDistance,
-          0.78,
+          ENEMY_CONFIG.alertWaveIntensity,
           enemy.id,
         );
       } else {
@@ -112,7 +113,7 @@ export function updateEnemies(
     }
 
     if (enemy.action === "attack" && attackTouchesPlayer(state, enemy)) {
-      damagePlayer(state, enemy.facing);
+      damagePlayer(state, enemy.attackFacing);
     }
 
     if (enemy.grounded && enemy.action === "patrol") {

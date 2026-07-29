@@ -29,7 +29,7 @@ export function getPlayerAttackBounds(player: PlayerState): RectState {
 export function getEnemyAttackBounds(enemy: EnemyState): RectState {
   return {
     x:
-      enemy.facing > 0
+      enemy.attackFacing > 0
         ? enemy.position.x
         : enemy.position.x - ENEMY_ATTACK_HITBOX.reach,
     y: enemy.position.y - ENEMY_ATTACK_HITBOX.height / 2,

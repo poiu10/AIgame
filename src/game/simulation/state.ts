@@ -48,6 +48,7 @@ export interface EnemyState {
   position: Vector2State;
   velocity: Vector2State;
   facing: Facing;
+  attackFacing: Facing;
   grounded: boolean;
   health: number;
   maxHealth: number;
@@ -160,6 +161,7 @@ export function createInitialGameState(
       position: { ...spawn.position },
       velocity: { x: 0, y: 0 },
       facing: -1,
+      attackFacing: -1,
       grounded: false,
       health: spawn.health ?? ENEMY_CONFIG.maxHealth,
       maxHealth: spawn.health ?? ENEMY_CONFIG.maxHealth,
