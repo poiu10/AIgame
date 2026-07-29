@@ -31,10 +31,10 @@ export function damagePlayer(
     player.velocity.x = 0;
     player.velocity.y = 0;
     state.status = "failed";
-    emitSound(state, "death", player.position, 720, 1);
+    emitSound(state, "death", player.position, 360, 1);
   } else {
     player.action = "hurt";
-    emitSound(state, "hurt", player.position, 500, 0.86);
+    emitSound(state, "hurt", player.position, 250, 0.86);
   }
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
   return true;
@@ -47,7 +47,7 @@ function defeatEnemy(state: GameState, enemyIndex: number): void {
   enemy.action = "dead";
   enemy.echoTime = 1;
   enemy.echoDuration = 1;
-  emitSound(state, "death", enemy.position, 720, 1, enemy.id);
+  emitSound(state, "death", enemy.position, 360, 1, enemy.id);
 }
 
 export function updatePlayerCombat(
@@ -85,7 +85,7 @@ export function updatePlayerCombat(
     enemy.velocity.y = -120;
     enemy.echoTime = 0.72;
     enemy.echoDuration = 0.72;
-    emitSound(state, "attack-hit", enemy.position, 520, 0.9, enemy.id);
+    emitSound(state, "attack-hit", enemy.position, 260, 0.9, enemy.id);
     state.events.push({
       type: "impact",
       position: { ...enemy.position },
@@ -117,7 +117,7 @@ export function updatePlayerCombat(
         block.bounds.y + block.bounds.height,
       ),
     };
-    emitSound(state, "attack-hit", hitPosition, 460, 0.76);
+    emitSound(state, "attack-hit", hitPosition, 230, 0.76);
     state.events.push({ type: "impact", position: hitPosition, strength: 0.45 });
   }
 

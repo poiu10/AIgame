@@ -8,7 +8,6 @@ export interface HudState {
   remainingEnemies: number;
   status: SessionStatus;
   debugVisible: boolean;
-  tutorialPrompt?: string;
 }
 
 export function mountHud(container: HTMLDivElement | null): void {
@@ -25,10 +24,6 @@ export function mountHud(container: HTMLDivElement | null): void {
       <span class="hud-enemies"></span>
     </div>
     <div class="hud-message"></div>
-    <div class="hud-controls">
-      <span>A/D 이동</span><span>Space 점프</span><span>Shift 구르기</span>
-      <span>J 공격</span><span>R 재시작</span>
-    </div>
     <div class="hud-debug">개발 도구 · P 강제 음파 · F3 충돌체</div>
   `;
   container.replaceChildren(panel);
@@ -58,9 +53,8 @@ export function mountHud(container: HTMLDivElement | null): void {
       message.textContent = "어둠에 쓰러졌다 · R로 다시 시작";
       message.className = "hud-message is-failed";
     } else {
-      message.textContent =
-        state.tutorialPrompt ?? "소리가 그리는 윤곽을 따라 적을 처치하라";
-      message.className = "hud-message";
+      message.textContent = "";
+      message.className = "hud-message is-hidden";
     }
   });
 }

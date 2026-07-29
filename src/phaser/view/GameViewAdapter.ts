@@ -33,6 +33,7 @@ export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
 
   private readonly playerGraphics: Phaser.GameObjects.Graphics;
+  private readonly tutorialText: Phaser.GameObjects.Text;
   private readonly enemyViews = new Map<
     string,
     { container: Phaser.GameObjects.Container; graphics: Phaser.GameObjects.Graphics }
@@ -51,8 +52,21 @@ export class GameViewAdapter {
     this.waveGraphics = scene.add.graphics().setDepth(4);
     this.hazardGraphics = scene.add.graphics().setDepth(7);
     this.playerGraphics = scene.add.graphics();
+    this.tutorialText = scene.add
+      .text(0, -PLAYER_CONFIG.height / 2 - 10, "", {
+        color: "#eaffff",
+        fontFamily: "Consolas, monospace",
+        fontSize: "13px",
+        fontStyle: "bold",
+        stroke: "#030608",
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5, 1);
     this.playerTarget = scene.add
-      .container(world.playerSpawn.x, world.playerSpawn.y, [this.playerGraphics])
+      .container(world.playerSpawn.x, world.playerSpawn.y, [
+        this.playerGraphics,
+        this.tutorialText,
+      ])
       .setDepth(10);
 
     for (const spawn of world.enemies) {
@@ -67,11 +81,19 @@ export class GameViewAdapter {
 
   sync(state: GameState, debugVisible: boolean): void {
     this.drawPlayer(state.player);
+    this.drawTutorialText(state);
     this.drawEnemies(state, debugVisible);
     this.drawHazards(state, debugVisible);
     this.drawEchoes(state);
     this.drawWaves(state);
     this.drawDebug(debugVisible);
+  }
+
+  private drawTutorialText(state: GameState): void {
+    const section = this.world.tutorialSections?.[state.tutorialStep];
+    this.tutorialText.setText(
+      state.status === "playing" ? (section?.prompt ?? "") : "",
+    );
   }
 
   private drawHazards(state: GameState, debugVisible: boolean): void {

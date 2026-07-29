@@ -78,7 +78,7 @@ export function updateEnemies(
         enemy.attackConnected = false;
         enemy.facing = playerDeltaX < 0 ? -1 : 1;
         enemy.velocity.x = 0;
-        emitSound(state, "enemy-attack", enemy.position, 680, 1, enemy.id);
+        emitSound(state, "enemy-attack", enemy.position, 340, 1, enemy.id);
       } else {
         if (enemy.position.x <= enemy.patrolMinX) {
           enemy.facing = 1;
@@ -116,7 +116,7 @@ export function updateEnemies(
             x: enemy.position.x,
             y: enemy.position.y + ENEMY_CONFIG.height / 2 - 1,
           },
-          360,
+          180,
           0.62,
           enemy.id,
         );

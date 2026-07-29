@@ -165,7 +165,7 @@ export function updatePlayerMovement(
         x: player.position.x,
         y: player.position.y + PLAYER_CONFIG.height / 2 - 1,
       },
-      distance: 380 + strength * 240,
+      distance: 190 + strength * 120,
       intensity: strength,
     });
   }
@@ -180,7 +180,7 @@ export function updatePlayerMovement(
           x: player.position.x,
           y: player.position.y + PLAYER_CONFIG.height / 2 - 1,
         },
-        distance: 280,
+        distance: 140,
         intensity: 0.42,
       });
     }

@@ -153,15 +153,12 @@ export class GameScene extends Phaser.Scene {
     const remainingEnemies = this.gameState.enemies.filter(
       (enemy) => enemy.alive,
     ).length;
-    const tutorialPrompt =
-      TUTORIAL_STAGE.tutorialSections?.[this.gameState.tutorialStep]?.prompt;
     const hudState: HudState = {
       health: this.gameState.player.health,
       maxHealth: this.gameState.player.maxHealth,
       remainingEnemies,
       status: this.gameState.status,
       debugVisible: this.debugVisible,
-      tutorialPrompt,
     };
     const signature = JSON.stringify(hudState);
     if (signature === this.lastHudSignature) {

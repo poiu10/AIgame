@@ -47,7 +47,7 @@ export function stepSimulation(
     state.player.velocity.x = 0;
     state.player.velocity.y = 0;
     state.status = "failed";
-    emitSound(state, "death", state.player.position, 720, 1);
+    emitSound(state, "death", state.player.position, 360, 1);
   }
 
   updateEnemies(state, world, deltaSeconds);
@@ -56,7 +56,7 @@ export function stepSimulation(
   updateTutorialProgress(state, world);
 
   if (input.debugPulsePressed) {
-    emitSound(state, "debug", state.player.position, 800, 1);
+    emitSound(state, "debug", state.player.position, 400, 1);
   }
 
   updateSoundPropagation(state, world, deltaSeconds);

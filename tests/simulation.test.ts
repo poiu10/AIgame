@@ -332,6 +332,16 @@ describe("combat loop", () => {
 });
 
 describe("tutorial stage", () => {
+  it("uses key-only prompts and half-distance environmental waves", () => {
+    expect(
+      TUTORIAL_STAGE.tutorialSections?.map((section) => section.prompt),
+    ).toEqual(["A / D", "Space", "Shift", "J", "A / D · Space · Shift · J"]);
+    expect(
+      TUTORIAL_STAGE.soundEmitters?.map((emitter) => emitter.maximumDistance),
+    ).toEqual([215, 250, 195]);
+    expect(TUTORIAL_STAGE.hazards?.[0].bounds.height).toBe(160);
+  });
+
   it("advances the guidance as the player reaches each lesson", () => {
     const state = createInitialGameState(TUTORIAL_STAGE);
     expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
