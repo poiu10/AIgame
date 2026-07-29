@@ -8,6 +8,8 @@ const FREQUENCIES: Record<SoundKind, number> = {
   "enemy-attack": 115,
   hurt: 280,
   death: 72,
+  ambient: 430,
+  hazard: 64,
   debug: 520,
 };
 
@@ -38,7 +40,10 @@ export class SoundSynth {
       Math.min(1, (event.position.x - listenerX) / (viewportWidth * 0.48)),
     );
 
-    oscillator.type = event.kind.includes("enemy") ? "sawtooth" : "sine";
+    oscillator.type =
+      event.kind.includes("enemy") || event.kind === "hazard"
+        ? "sawtooth"
+        : "sine";
     oscillator.frequency.setValueAtTime(FREQUENCIES[event.kind], now);
     oscillator.frequency.exponentialRampToValueAtTime(
       Math.max(45, FREQUENCIES[event.kind] * 0.72),

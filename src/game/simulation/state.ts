@@ -1,5 +1,5 @@
 import type { WorldDefinition } from "../content/world";
-import { TEST_ROOM } from "../content/testRoom";
+import { TUTORIAL_STAGE } from "../content/tutorialStage";
 import { ENEMY_CONFIG, PLAYER_CONFIG } from "./rules/config";
 
 export type Facing = -1 | 1;
@@ -14,6 +14,8 @@ export type SoundKind =
   | "enemy-attack"
   | "hurt"
   | "death"
+  | "ambient"
+  | "hazard"
   | "debug";
 
 export interface Vector2State {
@@ -57,6 +59,17 @@ export interface EnemyState {
   footstepTravel: number;
   echoTime: number;
   echoDuration: number;
+}
+
+export interface HazardState {
+  id: string;
+  echoTime: number;
+  echoDuration: number;
+}
+
+export interface WorldSoundEmitterState {
+  id: string;
+  timeUntilPulse: number;
 }
 
 export interface SoundRayState {
@@ -106,6 +119,9 @@ export interface GameState {
   elapsedTime: number;
   player: PlayerState;
   enemies: EnemyState[];
+  hazards: HazardState[];
+  worldSoundEmitters: WorldSoundEmitterState[];
+  tutorialStep: number;
   soundWaves: SoundWaveState[];
   echoMarks: EchoMarkState[];
   events: GameEvent[];
@@ -114,7 +130,7 @@ export interface GameState {
 }
 
 export function createInitialGameState(
-  world: WorldDefinition = TEST_ROOM,
+  world: WorldDefinition = TUTORIAL_STAGE,
 ): GameState {
   return {
     elapsedTime: 0,
@@ -141,8 +157,8 @@ export function createInitialGameState(
       velocity: { x: 0, y: 0 },
       facing: -1,
       grounded: false,
-      health: ENEMY_CONFIG.maxHealth,
-      maxHealth: ENEMY_CONFIG.maxHealth,
+      health: spawn.health ?? ENEMY_CONFIG.maxHealth,
+      maxHealth: spawn.health ?? ENEMY_CONFIG.maxHealth,
       alive: true,
       action: "patrol",
       actionTime: 0,
@@ -154,6 +170,16 @@ export function createInitialGameState(
       echoTime: 0,
       echoDuration: 0,
     })),
+    hazards: (world.hazards ?? []).map((hazard) => ({
+      id: hazard.id,
+      echoTime: 0,
+      echoDuration: 0,
+    })),
+    worldSoundEmitters: (world.soundEmitters ?? []).map((emitter) => ({
+      id: emitter.id,
+      timeUntilPulse: emitter.initialDelaySeconds,
+    })),
+    tutorialStep: 0,
     soundWaves: [],
     echoMarks: [],
     events: [],

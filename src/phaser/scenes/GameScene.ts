@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { TEST_ROOM } from "../../game/content/testRoom";
+import { TUTORIAL_STAGE } from "../../game/content/tutorialStage";
 import type { InputActions } from "../../game/input/actions";
 import { FIXED_STEP_SECONDS } from "../../game/simulation/rules/config";
 import { createInitialGameState, type GameState } from "../../game/simulation/state";
@@ -33,7 +33,7 @@ const EMPTY_PENDING: PendingButtons = {
 };
 
 export class GameScene extends Phaser.Scene {
-  private gameState: GameState = createInitialGameState(TEST_ROOM);
+  private gameState: GameState = createInitialGameState(TUTORIAL_STAGE);
   private view!: GameViewAdapter;
   private soundSynth!: SoundSynth;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -48,8 +48,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setBounds(0, 0, TEST_ROOM.width, TEST_ROOM.height);
-    this.view = new GameViewAdapter(this, TEST_ROOM);
+    this.cameras.main.setBounds(0, 0, TUTORIAL_STAGE.width, TUTORIAL_STAGE.height);
+    this.view = new GameViewAdapter(this, TUTORIAL_STAGE);
     this.soundSynth = new SoundSynth();
     this.cameras.main.startFollow(this.view.playerTarget, true, 0.11, 0.11);
     this.cameras.main.setDeadzone(150, 90);
@@ -88,7 +88,7 @@ export class GameScene extends Phaser.Scene {
         this.gameState,
         this.readInput(firstStep),
         FIXED_STEP_SECONDS,
-        TEST_ROOM,
+        TUTORIAL_STAGE,
       );
       this.accumulator -= FIXED_STEP_SECONDS;
       if (firstStep) {
@@ -153,12 +153,15 @@ export class GameScene extends Phaser.Scene {
     const remainingEnemies = this.gameState.enemies.filter(
       (enemy) => enemy.alive,
     ).length;
+    const tutorialPrompt =
+      TUTORIAL_STAGE.tutorialSections?.[this.gameState.tutorialStep]?.prompt;
     const hudState: HudState = {
       health: this.gameState.player.health,
       maxHealth: this.gameState.player.maxHealth,
       remainingEnemies,
       status: this.gameState.status,
       debugVisible: this.debugVisible,
+      tutorialPrompt,
     };
     const signature = JSON.stringify(hudState);
     if (signature === this.lastHudSignature) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WorldDefinition } from "../src/game/content/world";
+import { TUTORIAL_STAGE } from "../src/game/content/tutorialStage";
 import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
 import { raycastAabb } from "../src/game/simulation/collision/aabb";
 import {
@@ -327,5 +328,113 @@ describe("combat loop", () => {
     expect(state.enemies[0].alive).toBe(false);
     expect(state.status).toBe("completed");
     expect(state.soundWaves.some((wave) => wave.kind === "death")).toBe(true);
+  });
+});
+
+describe("tutorial stage", () => {
+  it("advances the guidance as the player reaches each lesson", () => {
+    const state = createInitialGameState(TUTORIAL_STAGE);
+    expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
+      "move",
+    );
+
+    state.player.position.x = 500;
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
+    expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
+      "jump",
+    );
+
+    state.player.position.x = 1300;
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
+    expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
+      "roll",
+    );
+
+    state.player.position.x = 1700;
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
+    expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
+      "attack",
+    );
+
+    state.player.position.x = 2100;
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
+    expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
+      "attack",
+    );
+
+    const lessonEnemy = state.enemies.find(
+      (enemy) => enemy.id === "lesson-sentinel",
+    );
+    expect(lessonEnemy).toBeDefined();
+    lessonEnemy!.alive = false;
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
+    expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
+      "trial",
+    );
+  });
+
+  it("keeps the resonance crusher harmful while emitting red hazard waves", () => {
+    const state = createInitialGameState(TUTORIAL_STAGE);
+    const crusher = TUTORIAL_STAGE.hazards?.[0];
+    expect(crusher).toBeDefined();
+    state.player.position = {
+      x: crusher!.bounds.x + crusher!.bounds.width / 2,
+      y: 624,
+    };
+    state.player.grounded = true;
+
+    stepSimulation(state, EMPTY_INPUT, 0.11, TUTORIAL_STAGE);
+
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+    expect(state.player.action).toBe("hurt");
+    expect(state.soundWaves.some((wave) => wave.kind === "hazard")).toBe(true);
+    expect(state.hazards[0].echoTime).toBeGreaterThan(0);
+  });
+
+  it("rejects non-rolling movement even during damage invulnerability", () => {
+    const state = createInitialGameState(TUTORIAL_STAGE);
+    const crusher = TUTORIAL_STAGE.hazards?.[0];
+    expect(crusher).toBeDefined();
+    state.player.position = { x: crusher!.bounds.x - 10, y: 624 };
+    state.player.grounded = true;
+    state.player.invulnerabilityTime = 0.5;
+
+    stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1 },
+      FIXED_STEP_SECONDS,
+      TUTORIAL_STAGE,
+    );
+
+    expect(state.player.position.x).toBe(
+      crusher!.bounds.x - PLAYER_CONFIG.width / 2,
+    );
+    expect(state.player.velocity.x).toBeLessThan(0);
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+  });
+
+  it("allows a full roll to cross the resonance crusher without damage", () => {
+    const state = createInitialGameState(TUTORIAL_STAGE);
+    const crusher = TUTORIAL_STAGE.hazards?.[0];
+    expect(crusher).toBeDefined();
+    state.player.position = { x: crusher!.bounds.x - 18, y: 624 };
+    state.player.grounded = true;
+    const initialHealth = state.player.health;
+
+    for (let index = 0; index < 34; index += 1) {
+      stepSimulation(
+        state,
+        index === 0
+          ? { ...EMPTY_INPUT, moveX: 1, rollPressed: true }
+          : { ...EMPTY_INPUT, moveX: 1 },
+        FIXED_STEP_SECONDS,
+        TUTORIAL_STAGE,
+      );
+    }
+
+    expect(state.player.position.x).toBeGreaterThan(
+      crusher!.bounds.x + crusher!.bounds.width + PLAYER_CONFIG.width / 2,
+    );
+    expect(state.player.health).toBe(initialHealth);
   });
 });

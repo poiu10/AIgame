@@ -24,6 +24,8 @@ const WAVE_COLORS: Record<SoundKind, number> = {
   "enemy-attack": 0xff704d,
   hurt: 0xff4f7d,
   death: 0xffffff,
+  ambient: 0x79dfee,
+  hazard: 0xff334f,
   debug: 0xc18cff,
 };
 
@@ -37,6 +39,7 @@ export class GameViewAdapter {
   >();
   private readonly waveGraphics: Phaser.GameObjects.Graphics;
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
+  private readonly hazardGraphics: Phaser.GameObjects.Graphics;
   private readonly debugGraphics: Phaser.GameObjects.Graphics;
 
   constructor(
@@ -46,6 +49,7 @@ export class GameViewAdapter {
     this.debugGraphics = scene.add.graphics().setDepth(1);
     this.echoGraphics = scene.add.graphics().setDepth(3);
     this.waveGraphics = scene.add.graphics().setDepth(4);
+    this.hazardGraphics = scene.add.graphics().setDepth(7);
     this.playerGraphics = scene.add.graphics();
     this.playerTarget = scene.add
       .container(world.playerSpawn.x, world.playerSpawn.y, [this.playerGraphics])
@@ -64,9 +68,33 @@ export class GameViewAdapter {
   sync(state: GameState, debugVisible: boolean): void {
     this.drawPlayer(state.player);
     this.drawEnemies(state, debugVisible);
+    this.drawHazards(state, debugVisible);
     this.drawEchoes(state);
     this.drawWaves(state);
     this.drawDebug(debugVisible);
+  }
+
+  private drawHazards(state: GameState, debugVisible: boolean): void {
+    this.hazardGraphics.clear();
+    for (const definition of this.world.hazards ?? []) {
+      const hazard = state.hazards.find(
+        (candidate) => candidate.id === definition.id,
+      );
+      if (!hazard || (!debugVisible && hazard.echoTime <= 0)) {
+        continue;
+      }
+
+      const alpha = debugVisible
+        ? 0.35
+        : Math.min(1, hazard.echoTime / Math.max(hazard.echoDuration, 0.001));
+      this.hazardGraphics.lineStyle(2.5, 0xff334f, alpha);
+      this.hazardGraphics.strokeRect(
+        definition.bounds.x,
+        definition.bounds.y,
+        definition.bounds.width,
+        definition.bounds.height,
+      );
+    }
   }
 
   private drawPlayer(player: PlayerState): void {
@@ -206,6 +234,15 @@ export class GameViewAdapter {
         block.bounds.y,
         block.bounds.width,
         block.bounds.height,
+      );
+    }
+    this.debugGraphics.lineStyle(1, 0xff334f, 0.55);
+    for (const hazard of this.world.hazards ?? []) {
+      this.debugGraphics.strokeRect(
+        hazard.bounds.x,
+        hazard.bounds.y,
+        hazard.bounds.width,
+        hazard.bounds.height,
       );
     }
   }

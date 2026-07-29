@@ -1,10 +1,11 @@
-import { TEST_ROOM } from "../../content/testRoom";
+import { TUTORIAL_STAGE } from "../../content/tutorialStage";
 import type { WorldDefinition } from "../../content/world";
 import type { InputActions } from "../../input/actions";
 import { PLAYER_CONFIG } from "../rules/config";
 import { createInitialGameState, type GameState } from "../state";
 import { updatePlayerCombat } from "./combat";
 import { updateEnemies } from "./enemies";
+import { updateTutorialProgress, updateWorldEnvironment } from "./environment";
 import { updatePlayerMovement } from "./movement";
 import { emitSound, updateSoundPropagation } from "./sound";
 
@@ -12,7 +13,7 @@ export function stepSimulation(
   state: GameState,
   input: InputActions,
   deltaSeconds: number,
-  world: WorldDefinition = TEST_ROOM,
+  world: WorldDefinition = TUTORIAL_STAGE,
 ): GameState {
   if (input.restartPressed) {
     return createInitialGameState(world);
@@ -51,6 +52,8 @@ export function stepSimulation(
 
   updateEnemies(state, world, deltaSeconds);
   updatePlayerCombat(state, world);
+  updateWorldEnvironment(state, world, deltaSeconds);
+  updateTutorialProgress(state, world);
 
   if (input.debugPulsePressed) {
     emitSound(state, "debug", state.player.position, 800, 1);
