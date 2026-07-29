@@ -42,7 +42,8 @@ export const ENEMY_CONFIG = {
 
 export const SOUND_CONFIG = {
   speed: 650,
-  rayCount: 96,
+  initialRayCount: 24,
+  maximumRaySpacing: 20,
   reflectionDistanceRetention: 0.64,
   reflectionIntensityRetention: 0.7,
   minimumRemainingDistance: 30,

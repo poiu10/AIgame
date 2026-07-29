@@ -65,6 +65,7 @@ export interface SoundRayState {
   remainingDistance: number;
   intensity: number;
   reflectionCount: number;
+  pathKey: string;
   active: boolean;
 }
 
@@ -77,8 +78,9 @@ export interface SoundWaveState {
 }
 
 export interface EchoMarkState {
-  position: Vector2State;
-  normal: Vector2State;
+  surfaceId: string;
+  start: Vector2State;
+  end: Vector2State;
   intensity: number;
   time: number;
   duration: number;

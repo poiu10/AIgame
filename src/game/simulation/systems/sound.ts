@@ -1,7 +1,8 @@
-import type { WorldDefinition } from "../../content/world";
+import type { TerrainBlock, WorldDefinition } from "../../content/world";
 import { centerRect, raycastAabb, segmentIntersectsAabb } from "../collision/aabb";
 import { ENEMY_CONFIG, SOUND_CONFIG } from "../rules/config";
 import type {
+  EchoMarkState,
   GameState,
   SoundKind,
   SoundRayState,
@@ -17,8 +18,8 @@ export function emitSound(
   sourceId?: string,
 ): void {
   const rays: SoundRayState[] = [];
-  for (let index = 0; index < SOUND_CONFIG.rayCount; index += 1) {
-    const angle = (index / SOUND_CONFIG.rayCount) * Math.PI * 2;
+  for (let index = 0; index < SOUND_CONFIG.initialRayCount; index += 1) {
+    const angle = (index / SOUND_CONFIG.initialRayCount) * Math.PI * 2;
     rays.push({
       position: { ...position },
       previousPosition: { ...position },
@@ -26,6 +27,7 @@ export function emitSound(
       remainingDistance: maximumDistance,
       intensity,
       reflectionCount: 0,
+      pathKey: "source",
       active: true,
     });
   }
@@ -49,19 +51,54 @@ export function emitSound(
   }
 }
 
+export function createEchoMark(
+  block: TerrainBlock,
+  position: Vector2State,
+  normal: Vector2State,
+  intensity: number,
+): EchoMarkState {
+  const halfLength = 7 + 17 * intensity;
+  let start: Vector2State;
+  let end: Vector2State;
+
+  if (Math.abs(normal.x) > 0.5) {
+    start = {
+      x: position.x,
+      y: Math.max(block.bounds.y, position.y - halfLength),
+    };
+    end = {
+      x: position.x,
+      y: Math.min(block.bounds.y + block.bounds.height, position.y + halfLength),
+    };
+  } else {
+    start = {
+      x: Math.max(block.bounds.x, position.x - halfLength),
+      y: position.y,
+    };
+    end = {
+      x: Math.min(block.bounds.x + block.bounds.width, position.x + halfLength),
+      y: position.y,
+    };
+  }
+
+  return {
+    surfaceId: block.id,
+    start,
+    end,
+    intensity,
+    time: SOUND_CONFIG.echoSeconds,
+    duration: SOUND_CONFIG.echoSeconds,
+  };
+}
+
 function addEchoMark(
   state: GameState,
+  block: TerrainBlock,
   position: Vector2State,
   normal: Vector2State,
   intensity: number,
 ): void {
-  state.echoMarks.push({
-    position: { ...position },
-    normal: { ...normal },
-    intensity,
-    time: SOUND_CONFIG.echoSeconds,
-    duration: SOUND_CONFIG.echoSeconds,
-  });
+  state.echoMarks.push(createEchoMark(block, position, normal, intensity));
 
   if (state.echoMarks.length > SOUND_CONFIG.maximumEchoMarks) {
     state.echoMarks.splice(
@@ -69,6 +106,68 @@ function addEchoMark(
       state.echoMarks.length - SOUND_CONFIG.maximumEchoMarks,
     );
   }
+}
+
+function interpolateRay(a: SoundRayState, b: SoundRayState): SoundRayState {
+  const direction = {
+    x: a.direction.x + b.direction.x,
+    y: a.direction.y + b.direction.y,
+  };
+  const directionLength = Math.hypot(direction.x, direction.y);
+  const normalizedDirection =
+    directionLength > 0.0001
+      ? { x: direction.x / directionLength, y: direction.y / directionLength }
+      : { ...a.direction };
+
+  return {
+    position: {
+      x: (a.position.x + b.position.x) / 2,
+      y: (a.position.y + b.position.y) / 2,
+    },
+    previousPosition: {
+      x: (a.previousPosition.x + b.previousPosition.x) / 2,
+      y: (a.previousPosition.y + b.previousPosition.y) / 2,
+    },
+    direction: normalizedDirection,
+    remainingDistance: (a.remainingDistance + b.remainingDistance) / 2,
+    intensity: (a.intensity + b.intensity) / 2,
+    reflectionCount: a.reflectionCount,
+    pathKey: a.pathKey,
+    active: true,
+  };
+}
+
+function subdivideWavefront(rays: SoundRayState[]): SoundRayState[] {
+  let result = rays;
+  let needsAnotherPass = true;
+
+  while (needsAnotherPass) {
+    needsAnotherPass = false;
+    const subdivided: SoundRayState[] = [];
+
+    for (let index = 0; index < result.length; index += 1) {
+      const ray = result[index];
+      const next = result[(index + 1) % result.length];
+      subdivided.push(ray);
+
+      if (!ray.active || !next.active || ray.pathKey !== next.pathKey) {
+        continue;
+      }
+
+      const separation = Math.hypot(
+        next.position.x - ray.position.x,
+        next.position.y - ray.position.y,
+      );
+      if (separation > SOUND_CONFIG.maximumRaySpacing) {
+        subdivided.push(interpolateRay(ray, next));
+        needsAnotherPass = true;
+      }
+    }
+
+    result = subdivided;
+  }
+
+  return result;
 }
 
 export function updateSoundPropagation(
@@ -94,7 +193,10 @@ export function updateSoundPropagation(
 
       ray.previousPosition = { ...ray.position };
       const allowedTravel = Math.min(travelThisStep, ray.remainingDistance);
-      let nearestHit: ReturnType<typeof raycastAabb> = null;
+      let nearestHit: {
+        hit: NonNullable<ReturnType<typeof raycastAabb>>;
+        block: TerrainBlock;
+      } | null = null;
 
       for (const block of world.terrain) {
         const hit = raycastAabb(
@@ -103,13 +205,13 @@ export function updateSoundPropagation(
           allowedTravel,
           block.bounds,
         );
-        if (hit && (!nearestHit || hit.distance < nearestHit.distance)) {
-          nearestHit = hit;
+        if (hit && (!nearestHit || hit.distance < nearestHit.hit.distance)) {
+          nearestHit = { hit, block };
         }
       }
 
       const segmentEnd = nearestHit
-        ? nearestHit.point
+        ? nearestHit.hit.point
         : {
             x: ray.position.x + ray.direction.x * allowedTravel,
             y: ray.position.y + ray.direction.y * allowedTravel,
@@ -131,27 +233,24 @@ export function updateSoundPropagation(
       }
 
       if (nearestHit) {
+        const { hit, block } = nearestHit;
         ray.remainingDistance =
-          (ray.remainingDistance - nearestHit.distance) *
+          (ray.remainingDistance - hit.distance) *
           SOUND_CONFIG.reflectionDistanceRetention;
         ray.intensity *= SOUND_CONFIG.reflectionIntensityRetention;
         const dot =
-          ray.direction.x * nearestHit.normal.x +
-          ray.direction.y * nearestHit.normal.y;
+          ray.direction.x * hit.normal.x + ray.direction.y * hit.normal.y;
         ray.direction = {
-          x: ray.direction.x - 2 * dot * nearestHit.normal.x,
-          y: ray.direction.y - 2 * dot * nearestHit.normal.y,
+          x: ray.direction.x - 2 * dot * hit.normal.x,
+          y: ray.direction.y - 2 * dot * hit.normal.y,
         };
         ray.position = {
-          x:
-            nearestHit.point.x +
-            nearestHit.normal.x * SOUND_CONFIG.raySurfaceOffset,
-          y:
-            nearestHit.point.y +
-            nearestHit.normal.y * SOUND_CONFIG.raySurfaceOffset,
+          x: hit.point.x + hit.normal.x * SOUND_CONFIG.raySurfaceOffset,
+          y: hit.point.y + hit.normal.y * SOUND_CONFIG.raySurfaceOffset,
         };
         ray.reflectionCount += 1;
-        addEchoMark(state, nearestHit.point, nearestHit.normal, ray.intensity);
+        ray.pathKey += `|${block.id}:${hit.normal.x},${hit.normal.y}`;
+        addEchoMark(state, block, hit.point, hit.normal, ray.intensity);
       } else {
         ray.position = segmentEnd;
         ray.remainingDistance -= allowedTravel;
@@ -161,6 +260,8 @@ export function updateSoundPropagation(
         ray.active = false;
       }
     }
+
+    wave.rays = subdivideWavefront(wave.rays);
   }
 
   state.soundWaves = state.soundWaves.filter((wave) =>

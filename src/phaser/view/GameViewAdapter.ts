@@ -1,6 +1,9 @@
 import Phaser from "phaser";
 import type { WorldDefinition } from "../../game/content/world";
-import { ENEMY_CONFIG } from "../../game/simulation/rules/config";
+import {
+  ENEMY_CONFIG,
+  SOUND_CONFIG,
+} from "../../game/simulation/rules/config";
 import type {
   EnemyState,
   GameState,
@@ -158,15 +161,12 @@ export class GameViewAdapter {
     for (const mark of state.echoMarks) {
       const life = mark.time / mark.duration;
       const alpha = Math.max(0, life * mark.intensity * 0.95);
-      const halfLength = 7 + 17 * mark.intensity;
-      const tangentX = -mark.normal.y;
-      const tangentY = mark.normal.x;
       this.echoGraphics.lineStyle(2.5, 0x83f4ff, alpha);
       this.echoGraphics.lineBetween(
-        mark.position.x - tangentX * halfLength,
-        mark.position.y - tangentY * halfLength,
-        mark.position.x + tangentX * halfLength,
-        mark.position.y + tangentY * halfLength,
+        mark.start.x,
+        mark.start.y,
+        mark.end.x,
+        mark.end.y,
       );
     }
   }
@@ -181,19 +181,17 @@ export class GameViewAdapter {
           continue;
         }
         const alpha = Math.max(0.08, Math.min(0.92, ray.intensity * 0.85));
-        this.waveGraphics.fillStyle(color, alpha);
-        this.waveGraphics.fillCircle(ray.position.x, ray.position.y, 1.7);
 
         const next = wave.rays[(index + 1) % wave.rays.length];
-        if (!next.active || next.reflectionCount !== ray.reflectionCount) {
+        if (!next.active || next.pathKey !== ray.pathKey) {
           continue;
         }
         const separation = Math.hypot(
           next.position.x - ray.position.x,
           next.position.y - ray.position.y,
         );
-        if (separation < 72) {
-          this.waveGraphics.lineStyle(1.4, color, alpha * 0.72);
+        if (separation <= SOUND_CONFIG.maximumRaySpacing * 1.15) {
+          this.waveGraphics.lineStyle(2, color, alpha * 0.86);
           this.waveGraphics.lineBetween(
             ray.position.x,
             ray.position.y,

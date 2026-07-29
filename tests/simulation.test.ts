@@ -6,6 +6,7 @@ import { FIXED_STEP_SECONDS } from "../src/game/simulation/rules/config";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import {
+  createEchoMark,
   emitSound,
   updateSoundPropagation,
 } from "../src/game/simulation/systems/sound";
@@ -83,6 +84,27 @@ describe("player controller", () => {
     expect(state.player.invulnerabilityTime).toBeGreaterThan(0);
     expect(state.player.rollCooldown).toBeGreaterThan(0);
   });
+
+  it("does not keep moving after death", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = { x: 180, y: 324 };
+    state.player.velocity = { x: 320, y: -120 };
+    state.player.grounded = true;
+    state.player.action = "dead";
+    state.player.health = 0;
+    state.status = "failed";
+    const deathPosition = { ...state.player.position };
+
+    stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1 },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.position).toEqual(deathPosition);
+    expect(state.player.velocity).toEqual({ x: 0, y: 0 });
+  });
 });
 
 describe("sound propagation", () => {
@@ -133,6 +155,62 @@ describe("sound propagation", () => {
     }
 
     expect(state.enemies[0].echoTime).toBeGreaterThan(0);
+  });
+
+  it("adds collision rays as the expanding wavefront spacing grows", () => {
+    const openWorld: WorldDefinition = {
+      width: 2_000,
+      height: 2_000,
+      playerSpawn: { x: 1_000, y: 1_000 },
+      terrain: [],
+      enemies: [],
+    };
+    const state = createInitialGameState(openWorld);
+    emitSound(state, "debug", openWorld.playerSpawn, 800, 1);
+    const initialRayCount = state.soundWaves[0].rays.length;
+
+    for (let index = 0; index < 90; index += 1) {
+      updateSoundPropagation(state, openWorld, FIXED_STEP_SECONDS);
+    }
+
+    const rays = state.soundWaves[0].rays;
+    const maximumSpacing = rays.reduce((maximum, ray, index) => {
+      const next = rays[(index + 1) % rays.length];
+      return Math.max(
+        maximum,
+        Math.hypot(
+          next.position.x - ray.position.x,
+          next.position.y - ray.position.y,
+        ),
+      );
+    }, 0);
+
+    expect(rays.length).toBeGreaterThan(initialRayCount);
+    expect(maximumSpacing).toBeLessThanOrEqual(24);
+  });
+
+  it("clips corner echo marks to the terrain face bounds", () => {
+    const block = {
+      id: "corner",
+      bounds: { x: 100, y: 100, width: 20, height: 20 },
+    };
+    const horizontal = createEchoMark(
+      block,
+      { x: 100, y: 100 },
+      { x: 0, y: -1 },
+      1,
+    );
+    const vertical = createEchoMark(
+      block,
+      { x: 100, y: 100 },
+      { x: -1, y: 0 },
+      1,
+    );
+
+    expect(horizontal.start).toEqual({ x: 100, y: 100 });
+    expect(horizontal.end).toEqual({ x: 120, y: 100 });
+    expect(vertical.start).toEqual({ x: 100, y: 100 });
+    expect(vertical.end).toEqual({ x: 100, y: 120 });
   });
 });
 

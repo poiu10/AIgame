@@ -27,6 +27,8 @@ export function damagePlayer(
   if (player.health <= 0) {
     player.health = 0;
     player.action = "dead";
+    player.velocity.x = 0;
+    player.velocity.y = 0;
     state.status = "failed";
     emitSound(state, "death", player.position, 720, 1);
   } else {

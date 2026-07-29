@@ -46,17 +46,8 @@ export function updatePlayerMovement(
   }
 
   if (player.action === "dead") {
-    player.velocity.y = Math.min(
-      player.velocity.y + PLAYER_CONFIG.gravity * deltaSeconds,
-      PLAYER_CONFIG.maxFallSpeed,
-    );
-    moveBodyAgainstTerrain(
-      player,
-      PLAYER_CONFIG.width,
-      PLAYER_CONFIG.height,
-      world.terrain,
-      deltaSeconds,
-    );
+    player.velocity.x = 0;
+    player.velocity.y = 0;
     return sounds;
   }
 
