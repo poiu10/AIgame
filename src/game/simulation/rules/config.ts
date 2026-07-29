@@ -34,7 +34,6 @@ export const ENEMY_CONFIG = {
   attackRangeX: 82,
   attackRangeY: 62,
   attackSeconds: 0.58,
-  attackHitTime: 0.29,
   attackCooldownSeconds: 1.15,
   hurtSeconds: 0.24,
   footstepDistance: 64,

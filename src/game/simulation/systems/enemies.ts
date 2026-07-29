@@ -38,21 +38,9 @@ export function updateEnemies(
     }
 
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - deltaSeconds);
-    const previousActionTime = enemy.actionTime;
-
     if (enemy.action === "attack") {
       enemy.actionTime += deltaSeconds;
       enemy.velocity.x = 0;
-      if (
-        !enemy.attackConnected &&
-        previousActionTime < ENEMY_CONFIG.attackHitTime &&
-        enemy.actionTime >= ENEMY_CONFIG.attackHitTime
-      ) {
-        enemy.attackConnected = true;
-        if (attackTouchesPlayer(state, enemy)) {
-          damagePlayer(state, enemy.facing);
-        }
-      }
       if (enemy.actionTime >= ENEMY_CONFIG.attackSeconds) {
         enemy.action = "patrol";
         enemy.actionTime = 0;
@@ -75,7 +63,6 @@ export function updateEnemies(
       ) {
         enemy.action = "attack";
         enemy.actionTime = 0;
-        enemy.attackConnected = false;
         enemy.facing = playerDeltaX < 0 ? -1 : 1;
         enemy.velocity.x = 0;
         emitSound(state, "enemy-attack", enemy.position, 340, 1, enemy.id);
@@ -103,6 +90,10 @@ export function updateEnemies(
 
     if (motion.hitWall && enemy.action === "patrol") {
       enemy.facing = enemy.facing === 1 ? -1 : 1;
+    }
+
+    if (enemy.action === "attack" && attackTouchesPlayer(state, enemy)) {
+      damagePlayer(state, enemy.facing);
     }
 
     if (enemy.grounded && enemy.action === "patrol") {

@@ -296,6 +296,51 @@ describe("sound propagation", () => {
 });
 
 describe("combat loop", () => {
+  const enemyAttackWorld: WorldDefinition = {
+    ...flatWorld,
+    enemies: [
+      {
+        id: "attacker",
+        position: { x: 150, y: 326 },
+        patrolMinX: 150,
+        patrolMaxX: 150,
+      },
+    ],
+  };
+
+  function createOverlappingEnemyAttackState() {
+    const state = createInitialGameState(enemyAttackWorld);
+    state.player.position = { x: 100, y: 324 };
+    state.player.grounded = true;
+    state.enemies[0].grounded = true;
+    return state;
+  }
+
+  it("damages the player as soon as an enemy attack hitbox overlaps", () => {
+    const state = createOverlappingEnemyAttackState();
+
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
+
+    expect(state.enemies[0].action).toBe("attack");
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+    expect(state.player.action).toBe("hurt");
+  });
+
+  it("blocks overlapping enemy attacks during invulnerability", () => {
+    const state = createOverlappingEnemyAttackState();
+    state.player.invulnerabilityTime = 0.5;
+
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
+
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+    expect(state.enemies[0].action).toBe("attack");
+
+    state.player.invulnerabilityTime = 0;
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
+
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+  });
+
   it("damages and defeats an enemy with the active attack hitbox", () => {
     const combatWorld: WorldDefinition = {
       ...flatWorld,
@@ -313,6 +358,7 @@ describe("combat loop", () => {
     state.player.grounded = true;
     state.enemies[0].health = 1;
     state.enemies[0].grounded = true;
+    state.enemies[0].attackCooldown = Number.POSITIVE_INFINITY;
 
     for (let index = 0; index < 24; index += 1) {
       state = stepSimulation(
@@ -335,7 +381,7 @@ describe("tutorial stage", () => {
   it("uses key-only prompts and half-distance environmental waves", () => {
     expect(
       TUTORIAL_STAGE.tutorialSections?.map((section) => section.prompt),
-    ).toEqual(["A / D", "Space", "Shift", "J", "A / D · Space · Shift · J"]);
+    ).toEqual(["A / D", "Space", "Shift", "J", ""]);
     expect(
       TUTORIAL_STAGE.soundEmitters?.map((emitter) => emitter.maximumDistance),
     ).toEqual([215, 250, 195]);
