@@ -1,6 +1,7 @@
 import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
+import { getPlayerAttackBounds } from "../rules/combat";
 import type { GameState } from "../state";
 import { emitSound } from "./sound";
 
@@ -62,17 +63,7 @@ export function updatePlayerCombat(
     return;
   }
 
-  const attackWidth = 58;
-  const attackHeight = 38;
-  const hitbox = {
-    x:
-      player.facing > 0
-        ? player.position.x + PLAYER_CONFIG.width / 2
-        : player.position.x - PLAYER_CONFIG.width / 2 - attackWidth,
-    y: player.position.y - attackHeight / 2,
-    width: attackWidth,
-    height: attackHeight,
-  };
+  const hitbox = getPlayerAttackBounds(player);
 
   state.enemies.forEach((enemy, enemyIndex) => {
     if (

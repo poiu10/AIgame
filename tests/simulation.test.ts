@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { WorldDefinition } from "../src/game/content/world";
 import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
 import { raycastAabb } from "../src/game/simulation/collision/aabb";
-import { FIXED_STEP_SECONDS } from "../src/game/simulation/rules/config";
+import {
+  FIXED_STEP_SECONDS,
+  PLAYER_CONFIG,
+} from "../src/game/simulation/rules/config";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import {
@@ -83,6 +86,55 @@ describe("player controller", () => {
     expect(state.player.velocity.x).toBeGreaterThan(400);
     expect(state.player.invulnerabilityTime).toBeGreaterThan(0);
     expect(state.player.rollCooldown).toBeGreaterThan(0);
+  });
+
+  it("cancels a grounded roll into a jump", () => {
+    let state = stepMany(flatWorld, 40);
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1, rollPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    expect(state.player.action).toBe("roll");
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, jumpPressed: true, jumpHeld: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.action).toBe("normal");
+    expect(state.player.grounded).toBe(false);
+    expect(state.player.velocity.y).toBeLessThan(-600);
+    expect(Math.abs(state.player.velocity.x)).toBeLessThanOrEqual(
+      PLAYER_CONFIG.maxSpeed,
+    );
+  });
+
+  it("cancels an attack into a roll", () => {
+    let state = stepMany(flatWorld, 40);
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    expect(state.player.action).toBe("attack");
+
+    state.player.attackHitIds = ["previous-target"];
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, rollPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.action).toBe("roll");
+    expect(state.player.actionTime).toBe(0);
+    expect(state.player.attackHitIds).toEqual([]);
+    expect(state.player.invulnerabilityTime).toBeGreaterThan(0);
   });
 
   it("does not keep moving after death", () => {

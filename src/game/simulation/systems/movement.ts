@@ -66,9 +66,27 @@ export function updatePlayerMovement(
     }
   }
 
-  if (player.action === "normal" && input.rollPressed && player.rollCooldown <= 0) {
+  if (
+    player.action === "roll" &&
+    player.jumpBufferTime > 0 &&
+    player.coyoteTime > 0
+  ) {
+    player.action = "normal";
+    player.actionTime = 0;
+    player.velocity.x = Math.max(
+      -PLAYER_CONFIG.maxSpeed,
+      Math.min(PLAYER_CONFIG.maxSpeed, player.velocity.x),
+    );
+  }
+
+  if (
+    (player.action === "normal" || player.action === "attack") &&
+    input.rollPressed &&
+    player.rollCooldown <= 0
+  ) {
     player.action = "roll";
     player.actionTime = 0;
+    player.attackHitIds = [];
     player.rollCooldown = PLAYER_CONFIG.rollCooldownSeconds;
     player.invulnerabilityTime = Math.max(
       player.invulnerabilityTime,

@@ -2,8 +2,13 @@ import Phaser from "phaser";
 import type { WorldDefinition } from "../../game/content/world";
 import {
   ENEMY_CONFIG,
+  PLAYER_CONFIG,
   SOUND_CONFIG,
 } from "../../game/simulation/rules/config";
+import {
+  getEnemyAttackBounds,
+  getPlayerAttackBounds,
+} from "../../game/simulation/rules/combat";
 import type {
   EnemyState,
   GameState,
@@ -57,54 +62,41 @@ export class GameViewAdapter {
   }
 
   sync(state: GameState, debugVisible: boolean): void {
-    this.drawPlayer(state.player, state.elapsedTime);
+    this.drawPlayer(state.player);
     this.drawEnemies(state, debugVisible);
     this.drawEchoes(state);
     this.drawWaves(state);
     this.drawDebug(debugVisible);
   }
 
-  private drawPlayer(player: PlayerState, elapsedTime: number): void {
+  private drawPlayer(player: PlayerState): void {
     this.playerTarget.setPosition(player.position.x, player.position.y);
-    this.playerTarget.setAlpha(
-      player.invulnerabilityTime > 0 && Math.floor(elapsedTime * 18) % 2 === 0
-        ? 0.42
-        : 1,
-    );
+    this.playerTarget.setAlpha(1);
 
     const graphics = this.playerGraphics;
     graphics.clear();
-    const facing = player.facing;
-    const actionColor =
+    const hitboxColor =
       player.action === "hurt" || player.action === "dead" ? 0xff5c86 : 0x76efff;
+    graphics.lineStyle(2, hitboxColor, 1);
+    graphics.strokeRect(
+      -PLAYER_CONFIG.width / 2,
+      -PLAYER_CONFIG.height / 2,
+      PLAYER_CONFIG.width,
+      PLAYER_CONFIG.height,
+    );
 
-    graphics.fillStyle(0x183d55, 0.35);
-    graphics.fillCircle(0, 0, 30);
-    graphics.fillStyle(actionColor, 1);
-    graphics.fillCircle(0, -18, 9);
-    graphics.fillRoundedRect(-10, -9, 20, 32, 7);
-    graphics.fillTriangle(-10, 19, 10, 19, -facing * 4, 29);
-
-    graphics.lineStyle(3, 0xd9fbff, 0.95);
-    graphics.beginPath();
-    graphics.moveTo(facing * 5, -4);
-    graphics.lineTo(facing * 24, 16);
-    graphics.strokePath();
-
-    if (player.action === "roll") {
-      graphics.lineStyle(2, 0x76efff, 0.65);
-      graphics.strokeCircle(0, 6, 21);
-    }
-
-    if (
-      player.action === "attack" &&
-      player.actionTime >= 0.05 &&
-      player.actionTime <= 0.22
-    ) {
-      graphics.lineStyle(5, 0xff8fc7, 0.88);
-      graphics.beginPath();
-      graphics.arc(facing * 8, 0, 35, facing > 0 ? -0.9 : 2.2, facing > 0 ? 0.9 : 4.05);
-      graphics.strokePath();
+    if (player.action === "attack") {
+      const attackBounds = getPlayerAttackBounds(player);
+      const active =
+        player.actionTime >= PLAYER_CONFIG.attackActiveStart &&
+        player.actionTime <= PLAYER_CONFIG.attackActiveEnd;
+      graphics.lineStyle(2, 0xffd166, active ? 1 : 0.4);
+      graphics.strokeRect(
+        attackBounds.x - player.position.x,
+        attackBounds.y - player.position.y,
+        attackBounds.width,
+        attackBounds.height,
+      );
     }
   }
 
@@ -136,23 +128,22 @@ export class GameViewAdapter {
     graphics.clear();
     const color = enemy.alive ? 0xffa24d : 0xfff4dc;
     graphics.lineStyle(2, color, alpha);
-    graphics.strokeRoundedRect(
+    graphics.strokeRect(
       -ENEMY_CONFIG.width / 2,
       -ENEMY_CONFIG.height / 2,
       ENEMY_CONFIG.width,
       ENEMY_CONFIG.height,
-      8,
     );
-    graphics.strokeCircle(enemy.facing * 7, -11, 3);
-    graphics.beginPath();
-    graphics.moveTo(-12, 16);
-    graphics.lineTo(0, 8);
-    graphics.lineTo(12, 16);
-    graphics.strokePath();
 
     if (enemy.action === "attack") {
-      graphics.lineStyle(4, 0xff604c, alpha);
-      graphics.lineBetween(0, -2, enemy.facing * 34, 2);
+      const attackBounds = getEnemyAttackBounds(enemy);
+      graphics.lineStyle(2, 0xff9f68, alpha);
+      graphics.strokeRect(
+        attackBounds.x - enemy.position.x,
+        attackBounds.y - enemy.position.y,
+        attackBounds.width,
+        attackBounds.height,
+      );
     }
   }
 

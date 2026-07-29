@@ -2,6 +2,7 @@ import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import { moveBodyAgainstTerrain } from "../collision/motion";
 import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
+import { getEnemyAttackBounds } from "../rules/combat";
 import type { EnemyState, GameState } from "../state";
 import { damagePlayer } from "./combat";
 import { emitSound } from "./sound";
@@ -16,18 +17,8 @@ function playerInAttackRange(state: GameState, enemy: EnemyState): boolean {
 }
 
 function attackTouchesPlayer(state: GameState, enemy: EnemyState): boolean {
-  const reach = 62;
-  const hitbox = {
-    x:
-      enemy.facing > 0
-        ? enemy.position.x
-        : enemy.position.x - reach,
-    y: enemy.position.y - 24,
-    width: reach,
-    height: 48,
-  };
   return rectanglesOverlap(
-    hitbox,
+    getEnemyAttackBounds(enemy),
     centerRect(
       state.player.position,
       PLAYER_CONFIG.width,
