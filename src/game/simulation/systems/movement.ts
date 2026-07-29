@@ -19,6 +19,25 @@ function approach(value: number, target: number, amount: number): number {
   return Math.max(value - amount, target);
 }
 
+export function getLandingSoundProfile(fallHeight: number): {
+  distance: number;
+  intensity: number;
+} {
+  const safeFallHeight = Math.max(0, fallHeight);
+  return {
+    distance: Math.min(
+      PLAYER_CONFIG.landingWaveMaximumDistance,
+      PLAYER_CONFIG.landingWaveMinimumDistance +
+        safeFallHeight * PLAYER_CONFIG.landingWaveDistancePerPixel,
+    ),
+    intensity: Math.min(
+      1,
+      PLAYER_CONFIG.landingWaveMinimumIntensity +
+        safeFallHeight * PLAYER_CONFIG.landingWaveIntensityPerPixel,
+    ),
+  };
+}
+
 export function updatePlayerMovement(
   state: GameState,
   world: WorldDefinition,
@@ -158,16 +177,28 @@ export function updatePlayerMovement(
   );
 
   if (motion.landed) {
-    const strength = Math.min(1, 0.45 + motion.landingSpeed / 900);
+    const fallHeight = Math.max(
+      0,
+      player.position.y - player.airborneApexY,
+    );
+    const landingSound = getLandingSoundProfile(fallHeight);
     sounds.push({
       kind: "landing",
       position: {
         x: player.position.x,
         y: player.position.y + PLAYER_CONFIG.height / 2 - 1,
       },
-      distance: 190 + strength * 120,
-      intensity: strength,
+      distance: landingSound.distance,
+      intensity: landingSound.intensity,
     });
+    player.airborneApexY = player.position.y;
+  } else if (player.grounded) {
+    player.airborneApexY = player.position.y;
+  } else {
+    player.airborneApexY = Math.min(
+      player.airborneApexY,
+      player.position.y,
+    );
   }
 
   if (player.grounded && player.action !== "roll") {

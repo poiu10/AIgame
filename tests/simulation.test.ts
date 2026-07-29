@@ -10,6 +10,7 @@ import {
 } from "../src/game/simulation/rules/config";
 import { getPlayerAttackBounds } from "../src/game/simulation/rules/combat";
 import { createInitialGameState } from "../src/game/simulation/state";
+import { getLandingSoundProfile } from "../src/game/simulation/systems/movement";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
 import {
@@ -76,6 +77,37 @@ describe("player controller", () => {
     );
     expect(state.player.grounded).toBe(false);
     expect(state.player.velocity.y).toBeLessThan(-600);
+  });
+
+  it("scales the landing wave with the tracked fall height", () => {
+    function landWithApex(airborneApexY: number) {
+      const state = createInitialGameState(flatWorld);
+      state.player.position = { x: 100, y: 320 };
+      state.player.velocity = { x: 0, y: 600 };
+      state.player.grounded = false;
+      state.player.airborneApexY = airborneApexY;
+
+      stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
+
+      const landingWave = state.soundWaves.find(
+        (wave) => wave.kind === "landing",
+      );
+      expect(landingWave).toBeDefined();
+      return Math.max(
+        ...landingWave!.rays.map((ray) => ray.remainingDistance),
+      );
+    }
+
+    const shallowFallHeight = 44;
+    const deepFallHeight = 224;
+    const shallowWaveDistance = landWithApex(324 - shallowFallHeight);
+    const deepWaveDistance = landWithApex(324 - deepFallHeight);
+
+    expect(deepWaveDistance).toBeGreaterThan(shallowWaveDistance);
+    expect(deepWaveDistance - shallowWaveDistance).toBeCloseTo(
+      getLandingSoundProfile(deepFallHeight).distance -
+        getLandingSoundProfile(shallowFallHeight).distance,
+    );
   });
 
   it("enters a timed roll and receives temporary invulnerability", () => {

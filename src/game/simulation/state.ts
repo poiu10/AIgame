@@ -38,6 +38,7 @@ export interface PlayerState {
   invulnerabilityTime: number;
   coyoteTime: number;
   jumpBufferTime: number;
+  airborneApexY: number;
   footstepTravel: number;
   attackHitIds: string[];
 }
@@ -150,6 +151,7 @@ export function createInitialGameState(
       invulnerabilityTime: 0,
       coyoteTime: 0,
       jumpBufferTime: 0,
+      airborneApexY: world.playerSpawn.y,
       footstepTravel: 0,
       attackHitIds: [],
     },

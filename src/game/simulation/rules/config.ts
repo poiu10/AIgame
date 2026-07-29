@@ -21,6 +21,11 @@ export const PLAYER_CONFIG = {
   attackActiveEnd: 0.18,
   hurtSeconds: 0.3,
   damageInvulnerabilitySeconds: 0.8,
+  landingWaveMinimumDistance: 90,
+  landingWaveDistancePerPixel: 1,
+  landingWaveMaximumDistance: 420,
+  landingWaveMinimumIntensity: 0.35,
+  landingWaveIntensityPerPixel: 0.0025,
   footstepDistance: 92,
 } as const;
 

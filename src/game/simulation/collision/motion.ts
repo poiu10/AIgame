@@ -12,7 +12,6 @@ export interface MotionResult {
   movedX: number;
   movedY: number;
   landed: boolean;
-  landingSpeed: number;
   hitWall: boolean;
 }
 
@@ -66,7 +65,6 @@ export function moveBodyAgainstTerrain(
     movedX: body.position.x - startX,
     movedY: body.position.y - startY,
     landed: !wasGrounded && body.grounded && verticalSpeed > 80,
-    landingSpeed: Math.max(verticalSpeed, 0),
     hitWall,
   };
 }
