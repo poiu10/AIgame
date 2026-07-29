@@ -217,6 +217,7 @@ export class GameViewAdapter {
     this.waveGraphics.clear();
     for (const wave of state.soundWaves) {
       const color = WAVE_COLORS[wave.kind];
+      const lineWidth = wave.kind === "enemy-alert" ? 4 : 2;
       for (let index = 0; index < wave.rays.length; index += 1) {
         const ray = wave.rays[index];
         if (!ray.active) {
@@ -233,7 +234,7 @@ export class GameViewAdapter {
           next.position.y - ray.position.y,
         );
         if (separation <= SOUND_CONFIG.maximumRaySpacing * 1.15) {
-          this.waveGraphics.lineStyle(2, color, alpha * 0.86);
+          this.waveGraphics.lineStyle(lineWidth, color, alpha * 0.86);
           this.waveGraphics.lineBetween(
             ray.position.x,
             ray.position.y,
