@@ -56,7 +56,7 @@ export class GameViewAdapter {
       .text(0, -PLAYER_CONFIG.height / 2 - 10, "", {
         color: "#eaffff",
         fontFamily: "Consolas, monospace",
-        fontSize: "13px",
+        fontSize: "39px",
         fontStyle: "bold",
         stroke: "#030608",
         strokeThickness: 4,

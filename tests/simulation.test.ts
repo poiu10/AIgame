@@ -340,6 +340,19 @@ describe("tutorial stage", () => {
       TUTORIAL_STAGE.soundEmitters?.map((emitter) => emitter.maximumDistance),
     ).toEqual([215, 250, 195]);
     expect(TUTORIAL_STAGE.hazards?.[0].bounds.height).toBe(160);
+
+    const jumpPlatform = TUTORIAL_STAGE.terrain.find(
+      (block) => block.id === "jump-platform",
+    );
+    const rightHill = TUTORIAL_STAGE.terrain.find(
+      (block) => block.id === "jump-right-hill",
+    );
+    expect(rightHill?.bounds.y).toBe(jumpPlatform?.bounds.y);
+    expect(
+      TUTORIAL_STAGE.terrain
+        .filter((block) => block.id.startsWith("jump-recovery-"))
+        .map((block) => block.bounds.y),
+    ).toEqual([650, 600]);
   });
 
   it("advances the guidance as the player reaches each lesson", () => {
