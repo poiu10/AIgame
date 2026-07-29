@@ -15,7 +15,7 @@ export const ENEMY_ATTACK_HITBOX = {
 export function getPlayerAttackBounds(player: PlayerState): RectState {
   return {
     x:
-      player.facing > 0
+      player.attackFacing > 0
         ? player.position.x + PLAYER_CONFIG.width / 2
         : player.position.x -
           PLAYER_CONFIG.width / 2 -

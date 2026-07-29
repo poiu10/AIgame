@@ -95,6 +95,12 @@ export function updatePlayerMovement(
   } else if (player.action === "normal" && input.attackPressed) {
     player.action = "attack";
     player.actionTime = 0;
+    player.attackFacing =
+      Math.abs(input.moveX) > 0.01
+        ? input.moveX < 0
+          ? -1
+          : 1
+        : player.facing;
     player.attackHitIds = [];
   }
 

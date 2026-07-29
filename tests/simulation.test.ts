@@ -6,6 +6,7 @@ import {
   FIXED_STEP_SECONDS,
   PLAYER_CONFIG,
 } from "../src/game/simulation/rules/config";
+import { getPlayerAttackBounds } from "../src/game/simulation/rules/combat";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import {
@@ -135,6 +136,33 @@ describe("player controller", () => {
     expect(state.player.actionTime).toBe(0);
     expect(state.player.attackHitIds).toEqual([]);
     expect(state.player.invulnerabilityTime).toBeGreaterThan(0);
+  });
+
+  it("keeps the attack hitbox facing its starting direction", () => {
+    let state = stepMany(flatWorld, 40);
+    state.player.facing = 1;
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.action).toBe("attack");
+    expect(state.player.attackFacing).toBe(1);
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: -1 },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.facing).toBe(-1);
+    expect(state.player.attackFacing).toBe(1);
+    expect(getPlayerAttackBounds(state.player).x).toBe(
+      state.player.position.x + PLAYER_CONFIG.width / 2,
+    );
   });
 
   it("does not keep moving after death", () => {
