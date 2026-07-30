@@ -11,6 +11,7 @@ import {
 import {
   getEnemyAttackBounds,
   getPlayerAttackBounds,
+  PLAYER_ATTACK_HITBOX,
 } from "../src/game/simulation/rules/combat";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { getLandingSoundProfile } from "../src/game/simulation/systems/movement";
@@ -202,6 +203,27 @@ describe("player controller", () => {
     expect(getPlayerAttackBounds(state.player).x).toBe(
       state.player.position.x + PLAYER_CONFIG.width / 2,
     );
+  });
+
+  it("keeps the attack hitbox slightly larger than the attack sprite", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = { x: 100, y: 200 };
+    state.player.attackFacing = 1;
+
+    expect(PLAYER_ATTACK_HITBOX).toEqual({
+      width: 64,
+      height: 52,
+      verticalOffset: 4,
+    });
+    expect(getPlayerAttackBounds(state.player)).toEqual({
+      x: 115,
+      y: 178,
+      width: 64,
+      height: 52,
+    });
+
+    state.player.attackFacing = -1;
+    expect(getPlayerAttackBounds(state.player).x).toBe(21);
   });
 
   it("does not keep moving after death", () => {

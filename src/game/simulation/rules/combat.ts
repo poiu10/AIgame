@@ -3,8 +3,9 @@ import type { EnemyState, PlayerState } from "../state";
 import { PLAYER_CONFIG } from "./config";
 
 export const PLAYER_ATTACK_HITBOX = {
-  width: 58,
-  height: 38,
+  width: 64,
+  height: 52,
+  verticalOffset: 4,
 } as const;
 
 export const ENEMY_ATTACK_HITBOX = {
@@ -20,7 +21,10 @@ export function getPlayerAttackBounds(player: PlayerState): RectState {
         : player.position.x -
           PLAYER_CONFIG.width / 2 -
           PLAYER_ATTACK_HITBOX.width,
-    y: player.position.y - PLAYER_ATTACK_HITBOX.height / 2,
+    y:
+      player.position.y -
+      PLAYER_ATTACK_HITBOX.height / 2 +
+      PLAYER_ATTACK_HITBOX.verticalOffset,
     width: PLAYER_ATTACK_HITBOX.width,
     height: PLAYER_ATTACK_HITBOX.height,
   };
