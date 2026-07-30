@@ -2,10 +2,16 @@ import type { RectState } from "../../content/world";
 import type { EnemyState, PlayerState } from "../state";
 import { PLAYER_CONFIG } from "./config";
 
-export const PLAYER_ATTACK_HITBOX = {
+export const PLAYER_GROUND_ATTACK_HITBOX = {
   width: 64,
-  height: 52,
-  verticalOffset: 4,
+  height: 60,
+  verticalOffset: 0,
+} as const;
+
+export const PLAYER_AIR_ATTACK_HITBOX = {
+  width: 64,
+  height: 70,
+  verticalOffset: -4,
 } as const;
 
 export const ENEMY_ATTACK_HITBOX = {
@@ -14,19 +20,22 @@ export const ENEMY_ATTACK_HITBOX = {
 } as const;
 
 export function getPlayerAttackBounds(player: PlayerState): RectState {
+  const hitbox = player.attackAirborne
+    ? PLAYER_AIR_ATTACK_HITBOX
+    : PLAYER_GROUND_ATTACK_HITBOX;
   return {
     x:
       player.attackFacing > 0
         ? player.position.x + PLAYER_CONFIG.width / 2
         : player.position.x -
           PLAYER_CONFIG.width / 2 -
-          PLAYER_ATTACK_HITBOX.width,
+          hitbox.width,
     y:
       player.position.y -
-      PLAYER_ATTACK_HITBOX.height / 2 +
-      PLAYER_ATTACK_HITBOX.verticalOffset,
-    width: PLAYER_ATTACK_HITBOX.width,
-    height: PLAYER_ATTACK_HITBOX.height,
+      hitbox.height / 2 +
+      hitbox.verticalOffset,
+    width: hitbox.width,
+    height: hitbox.height,
   };
 }
 

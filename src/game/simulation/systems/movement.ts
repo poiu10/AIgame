@@ -1,6 +1,12 @@
 import type { WorldDefinition } from "../../content/world";
 import type { InputActions } from "../../input/actions";
-import type { GameState, SoundKind, Vector2State } from "../state";
+import type {
+  GameState,
+  GroundAttackVariant,
+  PlayerState,
+  SoundKind,
+  Vector2State,
+} from "../state";
 import { moveBodyAgainstTerrain } from "../collision/motion";
 import { PLAYER_CONFIG } from "../rules/config";
 
@@ -17,6 +23,37 @@ function approach(value: number, target: number, amount: number): number {
     return Math.min(value + amount, target);
   }
   return Math.max(value - amount, target);
+}
+
+function cancelPlayerAction(player: PlayerState): void {
+  player.action = "normal";
+  player.actionTime = 0;
+  player.attackHitIds = [];
+}
+
+function advanceGroundAttackVariant(
+  variant: GroundAttackVariant,
+): GroundAttackVariant {
+  return ((variant + 1) % 3) as GroundAttackVariant;
+}
+
+function startPlayerAttack(player: PlayerState, input: InputActions): void {
+  player.action = "attack";
+  player.actionTime = 0;
+  player.attackFacing =
+    Math.abs(input.moveX) > 0.01
+      ? input.moveX < 0
+        ? -1
+        : 1
+      : player.facing;
+  player.attackAirborne = !player.grounded;
+  if (!player.attackAirborne) {
+    player.attackVariant = player.nextGroundAttackVariant;
+    player.nextGroundAttackVariant = advanceGroundAttackVariant(
+      player.nextGroundAttackVariant,
+    );
+  }
+  player.attackHitIds = [];
 }
 
 export function getLandingSoundProfile(fallHeight: number): {
@@ -85,20 +122,9 @@ export function updatePlayerMovement(
     }
   }
 
-  if (
-    player.action === "roll" &&
-    player.jumpBufferTime > 0 &&
-    player.coyoteTime > 0
-  ) {
-    player.action = "normal";
-    player.actionTime = 0;
-    player.velocity.x = Math.max(
-      -PLAYER_CONFIG.maxSpeed,
-      Math.min(PLAYER_CONFIG.maxSpeed, player.velocity.x),
-    );
-  }
-
-  if (
+  if (player.action === "roll" && input.attackPressed) {
+    startPlayerAttack(player, input);
+  } else if (
     (player.action === "normal" || player.action === "attack") &&
     input.rollPressed &&
     player.rollCooldown <= 0
@@ -107,28 +133,24 @@ export function updatePlayerMovement(
     player.actionTime = 0;
     player.attackHitIds = [];
     player.rollCooldown = PLAYER_CONFIG.rollCooldownSeconds;
-    player.invulnerabilityTime = Math.max(
-      player.invulnerabilityTime,
-      PLAYER_CONFIG.rollSeconds,
-    );
   } else if (player.action === "normal" && input.attackPressed) {
-    player.action = "attack";
-    player.actionTime = 0;
-    player.attackFacing =
-      Math.abs(input.moveX) > 0.01
-        ? input.moveX < 0
-          ? -1
-          : 1
-        : player.facing;
-    player.attackHitIds = [];
+    startPlayerAttack(player, input);
   }
 
   if (
     player.jumpBufferTime > 0 &&
     player.coyoteTime > 0 &&
-    player.action !== "roll" &&
     player.action !== "hurt"
   ) {
+    if (player.action === "roll") {
+      cancelPlayerAction(player);
+      player.velocity.x = Math.max(
+        -PLAYER_CONFIG.maxSpeed,
+        Math.min(PLAYER_CONFIG.maxSpeed, player.velocity.x),
+      );
+    } else if (player.action === "attack") {
+      cancelPlayerAction(player);
+    }
     player.velocity.y = -PLAYER_CONFIG.jumpSpeed;
     player.grounded = false;
     player.coyoteTime = 0;

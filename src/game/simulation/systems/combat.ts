@@ -12,6 +12,7 @@ export function damagePlayer(
   const player = state.player;
   if (
     player.action === "dead" ||
+    player.action === "roll" ||
     player.invulnerabilityTime > 0 ||
     state.status !== "playing"
   ) {

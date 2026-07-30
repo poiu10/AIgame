@@ -1,9 +1,5 @@
 import Phaser from "phaser";
-import {
-  ANIMATION_KEYS,
-  ASSET_KEYS,
-  PLAYER_SPRITE_FRAME,
-} from "../../game/assets/manifest";
+import { ASSET_KEYS, PLAYER_SPRITE_FRAME } from "../../game/assets/manifest";
 import type { WorldDefinition } from "../../game/content/world";
 import {
   ENEMY_CONFIG,
@@ -20,6 +16,7 @@ import type {
   PlayerState,
   SoundKind,
 } from "../../game/simulation/state";
+import { resolvePlayerAnimationKey } from "./playerAnimation";
 
 const WAVE_COLORS: Record<SoundKind, number> = {
   "terrain-step": 0x68e8ff,
@@ -138,7 +135,7 @@ export class GameViewAdapter {
     this.playerTarget.setPosition(player.position.x, player.position.y);
     this.playerTarget.setAlpha(1);
 
-    const animationKey = this.getPlayerAnimationKey(player);
+    const animationKey = resolvePlayerAnimationKey(player);
     if (this.playerSprite.anims.currentAnim?.key !== animationKey) {
       this.playerSprite.anims.play(animationKey);
     }
@@ -171,19 +168,6 @@ export class GameViewAdapter {
         attackBounds.height,
       );
     }
-  }
-
-  private getPlayerAnimationKey(player: PlayerState): string {
-    if (player.action === "hurt" || player.action === "dead") {
-      return ANIMATION_KEYS.player.hurt;
-    }
-    if (player.action === "attack") {
-      return ANIMATION_KEYS.player.attack;
-    }
-    if (!player.grounded || Math.abs(player.velocity.x) > 10) {
-      return ANIMATION_KEYS.player.run;
-    }
-    return ANIMATION_KEYS.player.idle;
   }
 
   private drawEnemies(state: GameState, debugVisible: boolean): void {

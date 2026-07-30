@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ANIMATION_KEYS } from "../src/game/assets/manifest";
 import type { WorldDefinition } from "../src/game/content/world";
 import { TUTORIAL_STAGE } from "../src/game/content/tutorialStage";
 import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
@@ -11,9 +12,11 @@ import {
 import {
   getEnemyAttackBounds,
   getPlayerAttackBounds,
-  PLAYER_ATTACK_HITBOX,
+  PLAYER_AIR_ATTACK_HITBOX,
+  PLAYER_GROUND_ATTACK_HITBOX,
 } from "../src/game/simulation/rules/combat";
 import { createInitialGameState } from "../src/game/simulation/state";
+import { damagePlayer } from "../src/game/simulation/systems/combat";
 import { getLandingSoundProfile } from "../src/game/simulation/systems/movement";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
@@ -23,6 +26,7 @@ import {
   PLAYER_SOUND_SOURCE_ID,
   updateSoundPropagation,
 } from "../src/game/simulation/systems/sound";
+import { resolvePlayerAnimationKey } from "../src/phaser/view/playerAnimation";
 
 const flatWorld: WorldDefinition = {
   width: 600,
@@ -114,7 +118,7 @@ describe("player controller", () => {
     );
   });
 
-  it("enters a timed roll and receives temporary invulnerability", () => {
+  it("enters a timed roll and ignores damage while the roll action lasts", () => {
     let state = stepMany(flatWorld, 40);
     state = stepSimulation(
       state,
@@ -125,8 +129,10 @@ describe("player controller", () => {
 
     expect(state.player.action).toBe("roll");
     expect(state.player.velocity.x).toBeGreaterThan(400);
-    expect(state.player.invulnerabilityTime).toBeGreaterThan(0);
+    expect(state.player.invulnerabilityTime).toBe(0);
     expect(state.player.rollCooldown).toBeGreaterThan(0);
+    expect(damagePlayer(state, -1)).toBe(false);
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
   });
 
   it("cancels a grounded roll into a jump", () => {
@@ -175,7 +181,142 @@ describe("player controller", () => {
     expect(state.player.action).toBe("roll");
     expect(state.player.actionTime).toBe(0);
     expect(state.player.attackHitIds).toEqual([]);
-    expect(state.player.invulnerabilityTime).toBeGreaterThan(0);
+    expect(damagePlayer(state, -1)).toBe(false);
+  });
+
+  it("cancels a roll into an attack and removes roll invulnerability", () => {
+    let state = stepMany(flatWorld, 40);
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1, rollPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    expect(state.player.action).toBe("roll");
+    expect(damagePlayer(state, -1)).toBe(false);
+
+    state.player.attackHitIds = ["previous-target"];
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.action).toBe("attack");
+    expect(state.player.actionTime).toBe(0);
+    expect(state.player.attackHitIds).toEqual([]);
+    expect(damagePlayer(state, -1)).toBe(true);
+    expect(state.player.action).toBe("hurt");
+  });
+
+  it("cancels an attack into a grounded jump", () => {
+    let state = stepMany(flatWorld, 40);
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    state.player.attackHitIds = ["previous-target"];
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, jumpPressed: true, jumpHeld: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.action).toBe("normal");
+    expect(state.player.actionTime).toBe(0);
+    expect(state.player.attackHitIds).toEqual([]);
+    expect(state.player.grounded).toBe(false);
+    expect(state.player.velocity.y).toBeLessThan(-600);
+  });
+
+  it("cycles ground attacks and keeps air attacks separate", () => {
+    let state = stepMany(flatWorld, 40);
+
+    for (const expectedVariant of [0, 1, 2, 0] as const) {
+      state = stepSimulation(
+        state,
+        { ...EMPTY_INPUT, attackPressed: true },
+        FIXED_STEP_SECONDS,
+        flatWorld,
+      );
+      expect(state.player.action).toBe("attack");
+      expect(state.player.attackAirborne).toBe(false);
+      expect(state.player.attackVariant).toBe(expectedVariant);
+
+      for (
+        let index = 0;
+        index < Math.ceil(PLAYER_CONFIG.attackSeconds / FIXED_STEP_SECONDS);
+        index += 1
+      ) {
+        state = stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
+      }
+      expect(state.player.action).toBe("normal");
+    }
+
+    const nextGroundVariant = state.player.nextGroundAttackVariant;
+    state.player.grounded = false;
+    state.player.velocity.y = 200;
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    expect(state.player.attackAirborne).toBe(true);
+    expect(state.player.nextGroundAttackVariant).toBe(nextGroundVariant);
+  });
+
+  it("selects dedicated animations for each player motion", () => {
+    const player = createInitialGameState(flatWorld).player;
+    player.grounded = true;
+    player.velocity = { x: 0, y: 0 };
+    expect(resolvePlayerAnimationKey(player)).toBe(ANIMATION_KEYS.player.idle);
+
+    player.velocity.x = 100;
+    expect(resolvePlayerAnimationKey(player)).toBe(ANIMATION_KEYS.player.run);
+
+    player.action = "roll";
+    expect(resolvePlayerAnimationKey(player)).toBe(ANIMATION_KEYS.player.dash);
+
+    player.action = "attack";
+    player.attackAirborne = false;
+    for (const variant of [0, 1, 2] as const) {
+      player.attackVariant = variant;
+      expect(resolvePlayerAnimationKey(player)).toBe(
+        [
+          ANIMATION_KEYS.player.attack1,
+          ANIMATION_KEYS.player.attack2,
+          ANIMATION_KEYS.player.attack3,
+        ][variant],
+      );
+    }
+
+    player.attackAirborne = true;
+    expect(resolvePlayerAnimationKey(player)).toBe(
+      ANIMATION_KEYS.player.airAttack,
+    );
+
+    player.action = "normal";
+    player.grounded = false;
+    for (const [velocityY, expected] of [
+      [-650, ANIMATION_KEYS.player.jumpStart],
+      [-300, ANIMATION_KEYS.player.jump],
+      [0, ANIMATION_KEYS.player.jumpTransition],
+      [300, ANIMATION_KEYS.player.jumpFall],
+    ] as const) {
+      player.velocity.y = velocityY;
+      expect(resolvePlayerAnimationKey(player)).toBe(expected);
+    }
+
+    player.action = "hurt";
+    expect(resolvePlayerAnimationKey(player)).toBe(ANIMATION_KEYS.player.hurt);
+    player.action = "dead";
+    expect(resolvePlayerAnimationKey(player)).toBe(ANIMATION_KEYS.player.death);
   });
 
   it("keeps the attack hitbox facing its starting direction", () => {
@@ -210,20 +351,33 @@ describe("player controller", () => {
     state.player.position = { x: 100, y: 200 };
     state.player.attackFacing = 1;
 
-    expect(PLAYER_ATTACK_HITBOX).toEqual({
+    expect(PLAYER_GROUND_ATTACK_HITBOX).toEqual({
       width: 64,
-      height: 52,
-      verticalOffset: 4,
+      height: 60,
+      verticalOffset: 0,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
       x: 115,
-      y: 178,
+      y: 170,
       width: 64,
-      height: 52,
+      height: 60,
     });
 
     state.player.attackFacing = -1;
     expect(getPlayerAttackBounds(state.player).x).toBe(21);
+
+    state.player.attackAirborne = true;
+    expect(PLAYER_AIR_ATTACK_HITBOX).toEqual({
+      width: 64,
+      height: 70,
+      verticalOffset: -4,
+    });
+    expect(getPlayerAttackBounds(state.player)).toEqual({
+      x: 21,
+      y: 161,
+      width: 64,
+      height: 70,
+    });
   });
 
   it("does not keep moving after death", () => {

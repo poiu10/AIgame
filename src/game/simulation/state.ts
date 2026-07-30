@@ -3,6 +3,7 @@ import { TUTORIAL_STAGE } from "../content/tutorialStage";
 import { ENEMY_CONFIG, PLAYER_CONFIG } from "./rules/config";
 
 export type Facing = -1 | 1;
+export type GroundAttackVariant = 0 | 1 | 2;
 export type PlayerAction = "normal" | "roll" | "attack" | "hurt" | "dead";
 export type EnemyAction = "patrol" | "alert" | "attack" | "hurt" | "dead";
 export type SessionStatus = "playing" | "completed" | "failed";
@@ -29,6 +30,9 @@ export interface PlayerState {
   velocity: Vector2State;
   facing: Facing;
   attackFacing: Facing;
+  attackVariant: GroundAttackVariant;
+  nextGroundAttackVariant: GroundAttackVariant;
+  attackAirborne: boolean;
   grounded: boolean;
   health: number;
   maxHealth: number;
@@ -143,6 +147,9 @@ export function createInitialGameState(
       velocity: { x: 0, y: 0 },
       facing: 1,
       attackFacing: 1,
+      attackVariant: 0,
+      nextGroundAttackVariant: 0,
+      attackAirborne: false,
       grounded: false,
       health: PLAYER_CONFIG.maxHealth,
       maxHealth: PLAYER_CONFIG.maxHealth,
