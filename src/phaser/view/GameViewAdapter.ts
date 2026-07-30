@@ -17,6 +17,13 @@ import type {
   SoundKind,
 } from "../../game/simulation/state";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
+import { PixelLabel } from "./PixelLabel";
+import {
+  PIXEL_BOLD_LINE_WIDTH,
+  PIXEL_LINE_WIDTH,
+  WORLD_UNITS_PER_ART_PIXEL,
+  quantizePixelAlpha,
+} from "./pixelStyle";
 
 const WAVE_COLORS: Record<SoundKind, number> = {
   "terrain-step": 0x68e8ff,
@@ -32,7 +39,7 @@ const WAVE_COLORS: Record<SoundKind, number> = {
   debug: 0xc18cff,
 };
 
-const PLAYER_SPRITE_SCALE = 1.5;
+const PLAYER_SPRITE_SCALE = WORLD_UNITS_PER_ART_PIXEL;
 const PLAYER_SPRITE_FEET_Y = 80;
 
 export class GameViewAdapter {
@@ -40,7 +47,7 @@ export class GameViewAdapter {
 
   private readonly playerSprite: Phaser.GameObjects.Sprite;
   private readonly playerGraphics: Phaser.GameObjects.Graphics;
-  private readonly tutorialText: Phaser.GameObjects.Text;
+  private readonly tutorialText: PixelLabel;
   private readonly enemyViews = new Map<
     string,
     { container: Phaser.GameObjects.Container; graphics: Phaser.GameObjects.Graphics }
@@ -63,21 +70,16 @@ export class GameViewAdapter {
       .setOrigin(0.5, PLAYER_SPRITE_FEET_Y / PLAYER_SPRITE_FRAME.height)
       .setScale(PLAYER_SPRITE_SCALE);
     this.playerGraphics = scene.add.graphics();
-    this.tutorialText = scene.add
-      .text(0, -PLAYER_CONFIG.height / 2 - 10, "", {
-        color: "#eaffff",
-        fontFamily: "Consolas, monospace",
-        fontSize: "39px",
-        fontStyle: "bold",
-        stroke: "#030608",
-        strokeThickness: 4,
-      })
-      .setOrigin(0.5, 1);
+    this.tutorialText = new PixelLabel(
+      scene,
+      0,
+      -PLAYER_CONFIG.height / 2 - 10,
+    );
     this.playerTarget = scene.add
       .container(world.playerSpawn.x, world.playerSpawn.y, [
         this.playerSprite,
         this.playerGraphics,
-        this.tutorialText,
+        this.tutorialText.gameObject,
       ])
       .setDepth(10);
 
@@ -118,10 +120,12 @@ export class GameViewAdapter {
         continue;
       }
 
-      const alpha = debugVisible
-        ? 0.35
-        : Math.min(1, hazard.echoTime / Math.max(hazard.echoDuration, 0.001));
-      this.hazardGraphics.lineStyle(2.5, 0xff334f, alpha);
+      const alpha = quantizePixelAlpha(
+        debugVisible
+          ? 0.35
+          : Math.min(1, hazard.echoTime / Math.max(hazard.echoDuration, 0.001)),
+      );
+      this.hazardGraphics.lineStyle(PIXEL_LINE_WIDTH, 0xff334f, alpha);
       this.hazardGraphics.strokeRect(
         definition.bounds.x,
         definition.bounds.y,
@@ -147,7 +151,7 @@ export class GameViewAdapter {
     graphics.clear();
     const hitboxColor =
       player.action === "hurt" || player.action === "dead" ? 0xff5c86 : 0x76efff;
-    graphics.lineStyle(2, hitboxColor, 1);
+    graphics.lineStyle(PIXEL_LINE_WIDTH, hitboxColor, 1);
     graphics.strokeRect(
       -PLAYER_CONFIG.width / 2,
       -PLAYER_CONFIG.height / 2,
@@ -160,7 +164,11 @@ export class GameViewAdapter {
       const active =
         player.actionTime >= PLAYER_CONFIG.attackActiveStart &&
         player.actionTime <= PLAYER_CONFIG.attackActiveEnd;
-      graphics.lineStyle(2, 0xffd166, active ? 1 : 0.4);
+      graphics.lineStyle(
+        PIXEL_LINE_WIDTH,
+        0xffd166,
+        quantizePixelAlpha(active ? 1 : 0.4),
+      );
       graphics.strokeRect(
         attackBounds.x - player.position.x,
         attackBounds.y - player.position.y,
@@ -183,9 +191,11 @@ export class GameViewAdapter {
         continue;
       }
 
-      const alpha = debugVisible
-        ? 0.35
-        : Math.min(1, enemy.echoTime / Math.max(enemy.echoDuration, 0.001));
+      const alpha = quantizePixelAlpha(
+        debugVisible
+          ? 0.35
+          : Math.min(1, enemy.echoTime / Math.max(enemy.echoDuration, 0.001)),
+      );
       this.drawEnemy(view.graphics, enemy, alpha);
     }
   }
@@ -197,7 +207,7 @@ export class GameViewAdapter {
   ): void {
     graphics.clear();
     const color = enemy.alive ? 0xffa24d : 0xfff4dc;
-    graphics.lineStyle(2, color, alpha);
+    graphics.lineStyle(PIXEL_LINE_WIDTH, color, alpha);
     graphics.strokeRect(
       -ENEMY_CONFIG.width / 2,
       -ENEMY_CONFIG.height / 2,
@@ -207,7 +217,7 @@ export class GameViewAdapter {
 
     if (enemy.action === "attack") {
       const attackBounds = getEnemyAttackBounds(enemy);
-      graphics.lineStyle(2, 0xff9f68, alpha);
+      graphics.lineStyle(PIXEL_LINE_WIDTH, 0xff9f68, alpha);
       graphics.strokeRect(
         attackBounds.x - enemy.position.x,
         attackBounds.y - enemy.position.y,
@@ -221,8 +231,10 @@ export class GameViewAdapter {
     this.echoGraphics.clear();
     for (const mark of state.echoMarks) {
       const life = mark.time / mark.duration;
-      const alpha = Math.max(0, life * mark.intensity * 0.95);
-      this.echoGraphics.lineStyle(2.5, 0x83f4ff, alpha);
+      const alpha = quantizePixelAlpha(
+        Math.max(0, life * mark.intensity * 0.95),
+      );
+      this.echoGraphics.lineStyle(PIXEL_LINE_WIDTH, 0x83f4ff, alpha);
       this.echoGraphics.lineBetween(
         mark.start.x,
         mark.start.y,
@@ -236,13 +248,18 @@ export class GameViewAdapter {
     this.waveGraphics.clear();
     for (const wave of state.soundWaves) {
       const color = WAVE_COLORS[wave.kind];
-      const lineWidth = wave.kind === "enemy-alert" ? 4 : 2;
+      const lineWidth =
+        wave.kind === "enemy-alert"
+          ? PIXEL_BOLD_LINE_WIDTH
+          : PIXEL_LINE_WIDTH;
       for (let index = 0; index < wave.rays.length; index += 1) {
         const ray = wave.rays[index];
         if (!ray.active) {
           continue;
         }
-        const alpha = Math.max(0.08, Math.min(0.92, ray.intensity * 0.85));
+        const alpha = quantizePixelAlpha(
+          Math.max(0.08, Math.min(0.92, ray.intensity * 0.85)),
+        );
 
         const next = wave.rays[(index + 1) % wave.rays.length];
         if (!next.active || next.pathKey !== ray.pathKey) {
@@ -253,7 +270,11 @@ export class GameViewAdapter {
           next.position.y - ray.position.y,
         );
         if (separation <= SOUND_CONFIG.maximumRaySpacing * 1.15) {
-          this.waveGraphics.lineStyle(lineWidth, color, alpha * 0.86);
+          this.waveGraphics.lineStyle(
+            lineWidth,
+            color,
+            quantizePixelAlpha(alpha * 0.86),
+          );
           this.waveGraphics.lineBetween(
             ray.position.x,
             ray.position.y,
@@ -270,7 +291,7 @@ export class GameViewAdapter {
     if (!visible) {
       return;
     }
-    this.debugGraphics.lineStyle(1, 0x5f7690, 0.55);
+    this.debugGraphics.lineStyle(PIXEL_LINE_WIDTH, 0x5f7690, 0.5);
     for (const block of this.world.terrain) {
       this.debugGraphics.strokeRect(
         block.bounds.x,
@@ -279,7 +300,7 @@ export class GameViewAdapter {
         block.bounds.height,
       );
     }
-    this.debugGraphics.lineStyle(1, 0xff334f, 0.55);
+    this.debugGraphics.lineStyle(PIXEL_LINE_WIDTH, 0xff334f, 0.5);
     for (const hazard of this.world.hazards ?? []) {
       this.debugGraphics.strokeRect(
         hazard.bounds.x,
