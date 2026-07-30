@@ -1,4 +1,9 @@
 import Phaser from "phaser";
+import {
+  ANIMATION_KEYS,
+  ASSET_KEYS,
+  PLAYER_SPRITE_FRAME,
+} from "../../game/assets/manifest";
 import type { WorldDefinition } from "../../game/content/world";
 import {
   ENEMY_CONFIG,
@@ -30,9 +35,13 @@ const WAVE_COLORS: Record<SoundKind, number> = {
   debug: 0xc18cff,
 };
 
+const PLAYER_SPRITE_SCALE = 1.5;
+const PLAYER_SPRITE_FEET_Y = 80;
+
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
 
+  private readonly playerSprite: Phaser.GameObjects.Sprite;
   private readonly playerGraphics: Phaser.GameObjects.Graphics;
   private readonly tutorialText: Phaser.GameObjects.Text;
   private readonly enemyViews = new Map<
@@ -52,6 +61,10 @@ export class GameViewAdapter {
     this.echoGraphics = scene.add.graphics().setDepth(3);
     this.waveGraphics = scene.add.graphics().setDepth(4);
     this.hazardGraphics = scene.add.graphics().setDepth(7);
+    this.playerSprite = scene.add
+      .sprite(0, PLAYER_CONFIG.height / 2, ASSET_KEYS.player.idle)
+      .setOrigin(0.5, PLAYER_SPRITE_FEET_Y / PLAYER_SPRITE_FRAME.height)
+      .setScale(PLAYER_SPRITE_SCALE);
     this.playerGraphics = scene.add.graphics();
     this.tutorialText = scene.add
       .text(0, -PLAYER_CONFIG.height / 2 - 10, "", {
@@ -65,6 +78,7 @@ export class GameViewAdapter {
       .setOrigin(0.5, 1);
     this.playerTarget = scene.add
       .container(world.playerSpawn.x, world.playerSpawn.y, [
+        this.playerSprite,
         this.playerGraphics,
         this.tutorialText,
       ])
@@ -124,6 +138,14 @@ export class GameViewAdapter {
     this.playerTarget.setPosition(player.position.x, player.position.y);
     this.playerTarget.setAlpha(1);
 
+    const animationKey = this.getPlayerAnimationKey(player);
+    if (this.playerSprite.anims.currentAnim?.key !== animationKey) {
+      this.playerSprite.anims.play(animationKey);
+    }
+    this.playerSprite.setFlipX(
+      (player.action === "attack" ? player.attackFacing : player.facing) < 0,
+    );
+
     const graphics = this.playerGraphics;
     graphics.clear();
     const hitboxColor =
@@ -149,6 +171,19 @@ export class GameViewAdapter {
         attackBounds.height,
       );
     }
+  }
+
+  private getPlayerAnimationKey(player: PlayerState): string {
+    if (player.action === "hurt" || player.action === "dead") {
+      return ANIMATION_KEYS.player.hurt;
+    }
+    if (player.action === "attack") {
+      return ANIMATION_KEYS.player.attack;
+    }
+    if (!player.grounded || Math.abs(player.velocity.x) > 10) {
+      return ANIMATION_KEYS.player.run;
+    }
+    return ANIMATION_KEYS.player.idle;
   }
 
   private drawEnemies(state: GameState, debugVisible: boolean): void {
