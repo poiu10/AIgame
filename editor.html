@@ -5,6 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#05090b" />
     <title>EchoBound · 외부 맵 에디터</title>
+    <style>
+      :root {
+        color: #d8f9fb;
+        background: #05090b;
+        font-family: "Segoe UI", sans-serif;
+        --ink: #d8f9fb;
+        --muted: #72959a;
+        --line: #16363c;
+        --panel: #081114;
+        --cyan: #55edf5;
+        --red: #ff344d;
+        --amber: #ffc857;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 1120px; min-height: 100vh; background: radial-gradient(circle at 55% 15%, #0d2025 0, #05090b 42%); }
+      button, input, select, textarea { font: inherit; }
+      button { color: var(--ink); background: #0c1d21; border: 1px solid #24515a; padding: 8px 11px; cursor: pointer; }
+      button:hover, button.active { color: #031012; background: var(--cyan); border-color: var(--cyan); }
+      input, select, textarea { color: var(--ink); background: #030809; border: 1px solid var(--line); }
+      input, select { padding: 6px 7px; }
+
+      .editor-shell { display: grid; grid-template: 92px minmax(600px, 1fr) 238px / 128px minmax(720px, 1fr) 300px; min-height: 100vh; }
+      .editor-header { grid-column: 1 / 4; display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; border-bottom: 1px solid var(--line); background: rgba(5, 9, 11, .9); }
+      .editor-header h1 { margin: 2px 0 0; font-size: 25px; letter-spacing: .08em; }
+      .eyebrow { color: var(--cyan); font: 700 10px ui-monospace, monospace; letter-spacing: .2em; }
+      .stage-fields { display: flex; align-items: end; gap: 9px; }
+      .stage-fields label { display: grid; gap: 4px; color: var(--muted); font-size: 10px; letter-spacing: .09em; }
+      .stage-fields input { width: 94px; }
+      .stage-fields label:nth-child(2) input { width: 150px; }
+
+      .tool-rail { grid-row: 2; padding: 14px 10px; border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; justify-content: space-between; }
+      .tool-buttons { display: grid; gap: 8px; }
+      .tool-buttons button { min-height: 54px; text-align: left; }
+      .tool-buttons small { display: block; color: var(--muted); margin-top: 3px; }
+      .tool-buttons button.active small, .tool-buttons button:hover small { color: #17444a; }
+      .rail-actions { display: grid; gap: 7px; }
+
+      .map-panel { grid-row: 2; min-width: 0; background: #030708; }
+      .map-toolbar { height: 46px; padding: 8px 14px; display: flex; align-items: center; gap: 22px; color: var(--muted); border-bottom: 1px solid var(--line); }
+      .map-toolbar #status { color: var(--cyan); margin-right: auto; }
+      .map-toolbar label { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+      .canvas-viewport { height: calc(100% - 46px); overflow: auto; padding: 36px; }
+      #map-canvas { display: block; background: #050b0d; border: 1px solid #2b5c65; image-rendering: pixelated; box-shadow: 0 0 48px rgba(50, 222, 236, .07); cursor: crosshair; }
+
+      .inspector-panel { grid-row: 2; padding: 18px; border-left: 1px solid var(--line); background: var(--panel); }
+      .inspector-panel h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: .12em; }
+      .inspector-help { color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .inspector-help code { color: var(--amber); }
+      #inspector { width: 100%; height: 360px; padding: 10px; resize: vertical; font: 12px/1.5 ui-monospace, monospace; }
+      #apply-inspector { width: 100%; margin-top: 8px; }
+      .validation { margin-top: 14px; color: var(--muted); font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; }
+      .validation.error { color: #ff7688; }
+
+      .export-panel { grid-column: 1 / 4; display: grid; grid-template-columns: 128px 1fr; border-top: 1px solid var(--line); background: #071013; }
+      .export-actions { padding: 12px; display: grid; gap: 7px; align-content: start; border-right: 1px solid var(--line); }
+      #output { margin: 12px; padding: 12px; resize: none; font: 12px/1.45 ui-monospace, monospace; }
+    </style>
   </head>
   <body>
     <main class="editor-shell">
@@ -57,6 +115,447 @@
         <textarea id="output" spellcheck="false" aria-label="가져오기 및 내보내기 코드"></textarea>
       </section>
     </main>
-    <script type="module" src="/src/editor/main.ts"></script>
+
+    <script id="initial-stage" type="application/json">
+      {
+        "schemaVersion": 1,
+        "id": "stage-1",
+        "name": "1스테이지",
+        "width": 4800,
+        "height": 1440,
+        "playerSpawn": { "x": 180, "y": 1258 },
+        "spawns": [
+          { "id": "from-tutorial", "position": { "x": 180, "y": 1258 }, "facing": 1 },
+          { "id": "east-return", "position": { "x": 4520, "y": 1258 }, "facing": -1 }
+        ],
+        "exits": [
+          {
+            "id": "to-tutorial",
+            "bounds": { "x": 0, "y": 1080, "width": 48, "height": 220 },
+            "targetStageId": "tutorial",
+            "targetSpawnId": "from-stage-1"
+          }
+        ],
+        "terrain": [
+          { "id": "entry-ceiling", "kind": "solid", "bounds": { "x": 0, "y": 1020, "width": 700, "height": 60 } },
+          { "id": "stage-floor", "kind": "solid", "bounds": { "x": 0, "y": 1300, "width": 4800, "height": 140 } },
+          { "id": "left-upper-wall", "kind": "solid", "bounds": { "x": -64, "y": 0, "width": 64, "height": 1020 } },
+          { "id": "right-wall", "kind": "solid", "bounds": { "x": 4800, "y": 0, "width": 64, "height": 1440 } }
+        ],
+        "enemies": [],
+        "hazards": [],
+        "soundEmitters": []
+      }
+    </script>
+    <script>
+      "use strict";
+
+      const EDITOR_OBJECT_CATALOG = [
+        { tool: "select", label: "선택", shortcut: "V", placement: "select", description: "선택하고 JSON 속성을 수정" },
+        { tool: "terrain", label: "지형", shortcut: "T", placement: "rectangle", description: "충돌 지형을 드래그" },
+        { tool: "hazard", label: "장해물", shortcut: "H", placement: "rectangle", description: "피해 장해물을 드래그" },
+        { tool: "enemy", label: "적", shortcut: "E", placement: "point", description: "적과 기본 순찰 범위를 배치" },
+        { tool: "spawn", label: "도착점", shortcut: "S", placement: "point", description: "다른 맵 출구의 도착 위치" },
+        { tool: "exit", label: "맵 출구", shortcut: "X", placement: "rectangle", description: "맵 전환 판정 영역" }
+      ];
+
+      const $ = (selector) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`에디터 요소를 찾을 수 없습니다: ${selector}`);
+        return element;
+      };
+      const deepClone = (value) => globalThis.structuredClone
+        ? globalThis.structuredClone(value)
+        : JSON.parse(JSON.stringify(value));
+      const canvas = $("#map-canvas");
+      const drawing = canvas.getContext("2d");
+      if (!drawing) throw new Error("Canvas 2D를 사용할 수 없습니다.");
+
+      let stage = JSON.parse($("#initial-stage").textContent);
+      let tool = "select";
+      let selection = null;
+      let draft = null;
+      let gridSize = 20;
+      let zoom = 0.35;
+      let idCounter = 1;
+
+      const groupForTool = {
+        terrain: "terrain", hazard: "hazards", enemy: "enemies", spawn: "spawns", exit: "exits"
+      };
+
+      function entities(group) {
+        if (group === "hazards") return stage.hazards ?? (stage.hazards = []);
+        return stage[group];
+      }
+
+      function selectedEntity() {
+        return selection ? entities(selection.group)[selection.index] ?? null : null;
+      }
+
+      function snap(value) { return Math.round(value / gridSize) * gridSize; }
+      function nextId(prefix) {
+        let candidate = `${prefix}-${idCounter++}`;
+        const source = JSON.stringify(stage);
+        while (source.includes(`"${candidate}"`)) candidate = `${prefix}-${idCounter++}`;
+        return candidate;
+      }
+
+      function normalizeRect(value) {
+        const x1 = snap(Math.min(value.startX, value.currentX));
+        const y1 = snap(Math.min(value.startY, value.currentY));
+        const x2 = snap(Math.max(value.startX, value.currentX));
+        const y2 = snap(Math.max(value.startY, value.currentY));
+        return { x: x1, y: y1, width: Math.max(gridSize, x2 - x1), height: Math.max(gridSize, y2 - y1) };
+      }
+
+      function entityRect(group, entity) {
+        if (group === "terrain" || group === "hazards" || group === "exits") return entity.bounds;
+        return { x: entity.position.x - 24, y: entity.position.y - 48, width: 48, height: 96 };
+      }
+
+      function isFiniteRect(bounds) {
+        return bounds
+          && [bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite)
+          && bounds.width > 0
+          && bounds.height > 0;
+      }
+
+      function validateStage(candidate) {
+        const errors = [];
+        if (candidate.schemaVersion !== 1) errors.push("schemaVersion은 1이어야 합니다.");
+        if (!candidate.id?.trim()) errors.push("스테이지 id가 필요합니다.");
+        if (!candidate.name?.trim()) errors.push("스테이지 이름이 필요합니다.");
+        if (!Number.isFinite(candidate.width) || candidate.width <= 0) errors.push("width는 양수여야 합니다.");
+        if (!Number.isFinite(candidate.height) || candidate.height <= 0) errors.push("height는 양수여야 합니다.");
+        if (!Array.isArray(candidate.terrain) || !Array.isArray(candidate.enemies)) {
+          errors.push("terrain과 enemies 배열이 필요합니다.");
+          return { valid: false, errors };
+        }
+
+        const ids = new Set();
+        const register = (id, label) => {
+          if (!id?.trim()) errors.push(`${label}에 id가 없습니다.`);
+          else if (ids.has(id)) errors.push(`중복 id: ${id}`);
+          ids.add(id);
+        };
+        for (const terrain of candidate.terrain) {
+          register(terrain.id, "지형");
+          if (!isFiniteRect(terrain.bounds)) errors.push(`지형 ${terrain.id}의 범위가 올바르지 않습니다.`);
+        }
+        for (const hazard of candidate.hazards ?? []) {
+          register(hazard.id, "장해물");
+          if (!isFiniteRect(hazard.bounds)) errors.push(`장해물 ${hazard.id}의 범위가 올바르지 않습니다.`);
+        }
+        for (const enemy of candidate.enemies) {
+          register(enemy.id, "적");
+          if (enemy.patrolMinX > enemy.patrolMaxX) errors.push(`적 ${enemy.id}의 순찰 범위가 뒤집혔습니다.`);
+        }
+        for (const spawn of candidate.spawns ?? []) register(spawn.id, "출구 도착점");
+        for (const exit of candidate.exits ?? []) {
+          register(exit.id, "출구");
+          if (!isFiniteRect(exit.bounds)) errors.push(`출구 ${exit.id}의 범위가 올바르지 않습니다.`);
+          if (!exit.targetStageId?.trim() || !exit.targetSpawnId?.trim()) {
+            errors.push(`출구 ${exit.id}의 대상 스테이지와 도착점이 필요합니다.`);
+          }
+        }
+        if (!candidate.spawns?.length) errors.push("출구에서 들어올 도착점이 하나 이상 필요합니다.");
+        return { valid: errors.length === 0, errors };
+      }
+
+      function parseStageJson(source) {
+        const parsed = JSON.parse(source);
+        if (!parsed || typeof parsed !== "object") throw new Error("스테이지 JSON 객체가 아닙니다.");
+        parsed.hazards ??= [];
+        parsed.soundEmitters ??= [];
+        parsed.exits ??= [];
+        parsed.spawns ??= [];
+        const result = validateStage(parsed);
+        if (!result.valid) throw new Error(result.errors.join("\n"));
+        return parsed;
+      }
+
+      function formatStageAsTypeScript(candidate, exportName) {
+        const safeName = exportName.replace(/[^A-Za-z0-9_$]/g, "_").replace(/^[0-9]/, "_$&") || "CUSTOM_STAGE";
+        return [
+          'import type { StageDefinition } from "./world";',
+          "",
+          `export const ${safeName}: StageDefinition = ${JSON.stringify(candidate, null, 2)};`,
+          ""
+        ].join("\n");
+      }
+
+      function render() {
+        canvas.width = stage.width;
+        canvas.height = stage.height;
+        canvas.style.width = `${stage.width * zoom}px`;
+        canvas.style.height = `${stage.height * zoom}px`;
+        drawing.fillStyle = "#050b0d";
+        drawing.fillRect(0, 0, stage.width, stage.height);
+        drawing.strokeStyle = "#102b31";
+        drawing.lineWidth = 1;
+        for (let x = 0; x <= stage.width; x += gridSize) {
+          drawing.beginPath(); drawing.moveTo(x, 0); drawing.lineTo(x, stage.height); drawing.stroke();
+        }
+        for (let y = 0; y <= stage.height; y += gridSize) {
+          drawing.beginPath(); drawing.moveTo(0, y); drawing.lineTo(stage.width, y); drawing.stroke();
+        }
+
+        const drawRect = (rect, fill, stroke) => {
+          drawing.fillStyle = fill;
+          drawing.strokeStyle = stroke;
+          drawing.lineWidth = Math.max(2, 2 / zoom);
+          drawing.fillRect(rect.x, rect.y, rect.width, rect.height);
+          drawing.strokeRect(rect.x, rect.y, rect.width, rect.height);
+        };
+        stage.terrain.forEach((item) => drawRect(item.bounds, "rgba(65,219,230,.16)", "#45dbe6"));
+        (stage.hazards ?? []).forEach((item) => drawRect(item.bounds, "rgba(255,52,77,.38)", "#ff344d"));
+        stage.exits.forEach((item) => drawRect(item.bounds, "rgba(255,200,87,.14)", "#ffc857"));
+        stage.enemies.forEach((item) => {
+          drawing.fillStyle = "#ff344d";
+          drawing.beginPath();
+          drawing.moveTo(item.position.x - 30, item.position.y);
+          drawing.lineTo(item.position.x + 25, item.position.y - 35);
+          drawing.lineTo(item.position.x + 15, item.position.y + 15);
+          drawing.closePath();
+          drawing.fill();
+          drawing.strokeStyle = "rgba(255,52,77,.5)";
+          drawing.beginPath();
+          drawing.moveTo(item.patrolMinX, item.position.y + 22);
+          drawing.lineTo(item.patrolMaxX, item.position.y + 22);
+          drawing.stroke();
+        });
+        stage.spawns.forEach((item) => {
+          drawing.strokeStyle = "#6ff2a1";
+          drawing.lineWidth = 6;
+          drawing.beginPath();
+          drawing.moveTo(item.position.x - 18, item.position.y);
+          drawing.lineTo(item.position.x + 18, item.position.y);
+          drawing.moveTo(item.position.x, item.position.y - 18);
+          drawing.lineTo(item.position.x, item.position.y + 18);
+          drawing.stroke();
+        });
+
+        if (selection) {
+          const entity = selectedEntity();
+          if (entity) {
+            const rect = entityRect(selection.group, entity);
+            drawing.strokeStyle = "#ffffff";
+            drawing.lineWidth = 5;
+            drawing.strokeRect(rect.x - 5, rect.y - 5, rect.width + 10, rect.height + 10);
+          }
+        }
+        if (draft) drawRect(normalizeRect(draft), "rgba(255,255,255,.08)", "#ffffff");
+      }
+
+      function syncStageFields() {
+        $("#stage-id").value = stage.id;
+        $("#stage-name").value = stage.name;
+        $("#stage-width").value = String(stage.width);
+        $("#stage-height").value = String(stage.height);
+      }
+
+      function syncInspector() {
+        $("#inspector").value = selectedEntity() ? JSON.stringify(selectedEntity(), null, 2) : "";
+        const result = validateStage(stage);
+        const validation = $("#validation");
+        validation.textContent = result.valid
+          ? `스키마 정상\n지형 ${stage.terrain.length} · 장해물 ${(stage.hazards ?? []).length} · 적 ${stage.enemies.length}`
+          : result.errors.join("\n");
+        validation.classList.toggle("error", !result.valid);
+      }
+
+      function setSelection(next) {
+        selection = next;
+        syncInspector();
+        render();
+      }
+
+      function setTool(next) {
+        tool = next;
+        document.querySelectorAll("[data-tool]").forEach((button) => {
+          button.classList.toggle("active", button.dataset.tool === tool);
+        });
+        $("#status").textContent = EDITOR_OBJECT_CATALOG.find((item) => item.tool === tool)?.description ?? tool;
+      }
+
+      function pointerPosition(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: snap((event.clientX - rect.left) * canvas.width / rect.width),
+          y: snap((event.clientY - rect.top) * canvas.height / rect.height)
+        };
+      }
+
+      function hitTest(x, y) {
+        const groups = ["spawns", "enemies", "exits", "hazards", "terrain"];
+        for (const group of groups) {
+          const list = entities(group);
+          for (let index = list.length - 1; index >= 0; index -= 1) {
+            const rect = entityRect(group, list[index]);
+            if (x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height) {
+              return { group, index };
+            }
+          }
+        }
+        return null;
+      }
+
+      function addPoint(toolName, x, y) {
+        if (toolName === "enemy") {
+          stage.enemies.push({
+            id: nextId("enemy"), kind: "echo-stalker", role: "enemy", position: { x, y },
+            patrolMinX: Math.max(0, x - 200), patrolMaxX: Math.min(stage.width, x + 200), health: 3
+          });
+          setSelection({ group: "enemies", index: stage.enemies.length - 1 });
+        } else {
+          stage.spawns.push({ id: nextId("spawn"), position: { x, y }, facing: 1 });
+          setSelection({ group: "spawns", index: stage.spawns.length - 1 });
+        }
+      }
+
+      function addRectangle(toolName, bounds) {
+        if (toolName === "terrain") stage.terrain.push({ id: nextId("terrain"), kind: "solid", bounds });
+        if (toolName === "hazard") (stage.hazards ??= []).push({ id: nextId("hazard"), kind: "resonance-crusher", bounds });
+        if (toolName === "exit") {
+          stage.exits.push({ id: nextId("exit"), bounds, targetStageId: "tutorial", targetSpawnId: "from-stage-1" });
+        }
+        const group = groupForTool[toolName];
+        setSelection({ group, index: entities(group).length - 1 });
+      }
+
+      const toolButtons = $("#tool-buttons");
+      for (const descriptor of EDITOR_OBJECT_CATALOG) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.dataset.tool = descriptor.tool;
+        button.innerHTML = `${descriptor.label} <small>${descriptor.shortcut} · ${descriptor.placement === "rectangle" ? "드래그" : "클릭"}</small>`;
+        button.addEventListener("click", () => setTool(descriptor.tool));
+        toolButtons.append(button);
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        const point = pointerPosition(event);
+        if (tool === "select") setSelection(hitTest(point.x, point.y));
+        else if (tool === "enemy" || tool === "spawn") addPoint(tool, point.x, point.y);
+        else {
+          draft = { startX: point.x, startY: point.y, currentX: point.x, currentY: point.y };
+          canvas.setPointerCapture(event.pointerId);
+          render();
+        }
+      });
+      canvas.addEventListener("pointermove", (event) => {
+        if (!draft) return;
+        const point = pointerPosition(event);
+        draft.currentX = point.x;
+        draft.currentY = point.y;
+        render();
+      });
+      canvas.addEventListener("pointerup", () => {
+        if (draft && (tool === "terrain" || tool === "hazard" || tool === "exit")) {
+          const bounds = normalizeRect(draft);
+          draft = null;
+          addRectangle(tool, bounds);
+        }
+      });
+
+      $("#apply-inspector").addEventListener("click", () => {
+        if (!selection) return;
+        try {
+          entities(selection.group)[selection.index] = JSON.parse($("#inspector").value);
+          syncInspector();
+          render();
+        } catch (error) {
+          $("#validation").textContent = error instanceof Error ? error.message : String(error);
+          $("#validation").classList.add("error");
+        }
+      });
+      $("#delete").addEventListener("click", () => {
+        if (!selection) return;
+        entities(selection.group).splice(selection.index, 1);
+        setSelection(null);
+      });
+      $("#duplicate").addEventListener("click", () => {
+        if (!selection) return;
+        const copy = deepClone(selectedEntity());
+        copy.id = nextId(selection.group.replace(/s$/, ""));
+        if (copy.bounds) { copy.bounds.x += gridSize; copy.bounds.y += gridSize; }
+        if (copy.position) { copy.position.x += gridSize; copy.position.y += gridSize; }
+        entities(selection.group).push(copy);
+        setSelection({ group: selection.group, index: entities(selection.group).length - 1 });
+      });
+      $("#apply-stage").addEventListener("click", () => {
+        stage.id = $("#stage-id").value;
+        stage.name = $("#stage-name").value;
+        stage.width = Number($("#stage-width").value);
+        stage.height = Number($("#stage-height").value);
+        render();
+        syncInspector();
+      });
+      $("#grid-size").addEventListener("change", (event) => {
+        gridSize = Number(event.target.value);
+        render();
+      });
+      $("#zoom").addEventListener("input", (event) => {
+        zoom = Number(event.target.value) / 100;
+        $("#zoom-value").textContent = `${Math.round(zoom * 100)}%`;
+        render();
+      });
+
+      const output = $("#output");
+      $("#export-json").addEventListener("click", () => { output.value = JSON.stringify(stage, null, 2); });
+      $("#export-ts").addEventListener("click", () => {
+        output.value = formatStageAsTypeScript(stage, stage.id.toUpperCase().replace(/-/g, "_"));
+      });
+      $("#copy-output").addEventListener("click", async () => {
+        let copied = false;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(output.value);
+            copied = true;
+          }
+        } catch {
+          copied = false;
+        }
+        if (!copied) {
+          output.focus();
+          output.select();
+          copied = document.execCommand("copy");
+        }
+        $("#status").textContent = copied
+          ? "클립보드에 복사했습니다."
+          : "자동 복사가 차단되었습니다. 선택된 코드를 Ctrl+C로 복사하세요.";
+      });
+      $("#download-json").addEventListener("click", () => {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([JSON.stringify(stage, null, 2)], { type: "application/json" }));
+        link.download = `${stage.id}.json`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 0);
+      });
+      $("#import-json").addEventListener("click", () => {
+        try {
+          stage = parseStageJson(output.value);
+          selection = null;
+          syncStageFields();
+          syncInspector();
+          render();
+        } catch (error) {
+          $("#validation").textContent = error instanceof Error ? error.message : String(error);
+          $("#validation").classList.add("error");
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+        const descriptor = EDITOR_OBJECT_CATALOG.find((item) => item.shortcut.toLowerCase() === event.key.toLowerCase());
+        if (descriptor) setTool(descriptor.tool);
+        if (event.key === "Delete") $("#delete").click();
+      });
+
+      syncStageFields();
+      syncInspector();
+      setTool("select");
+      render();
+    </script>
   </body>
 </html>

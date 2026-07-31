@@ -21,10 +21,12 @@ npm install
 npm run dev
 ```
 
-게임은 `http://localhost:5173/`, 외부 맵 에디터는
-`http://localhost:5173/editor.html`에서 연다. 에디터의 `JSON 생성` 결과는 다시
-불러올 수 있고, `TypeScript 생성` 결과는 `src/game/content`에 그대로 옮겨
-스테이지 레지스트리에 등록할 수 있다.
+게임은 `http://localhost:5173/`에서 연다.
+
+외부 맵 에디터에는 Node.js나 개발 서버가 필요하지 않다. 저장소의
+[`editor.html`](editor.html)을 탐색기에서 더블클릭하면 기본 웹 브라우저에서
+바로 실행된다. `JSON 생성` 결과는 다시 불러올 수 있고, `TypeScript 생성`
+결과는 `src/game/content`에 그대로 옮겨 스테이지 레지스트리에 등록할 수 있다.
 
 자동화 테스트와 프로덕션 빌드는 다음 명령으로 확인한다.
 
