@@ -23,18 +23,18 @@ export function resolvePlayerAnimationKey(player: PlayerState): string {
     return ANIMATION_KEYS.player.dash;
   }
   if (!player.grounded) {
-    if (player.velocity.y < -480) {
+    if (player.velocity.y < -960) {
       return ANIMATION_KEYS.player.jumpStart;
     }
-    if (player.velocity.y < -120) {
+    if (player.velocity.y < -240) {
       return ANIMATION_KEYS.player.jump;
     }
-    if (player.velocity.y <= 160) {
+    if (player.velocity.y <= 320) {
       return ANIMATION_KEYS.player.jumpTransition;
     }
     return ANIMATION_KEYS.player.jumpFall;
   }
-  if (Math.abs(player.velocity.x) > 10) {
+  if (Math.abs(player.velocity.x) > 20) {
     return ANIMATION_KEYS.player.run;
   }
   return ANIMATION_KEYS.player.idle;

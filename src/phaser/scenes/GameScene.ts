@@ -52,7 +52,7 @@ export class GameScene extends Phaser.Scene {
     this.view = new GameViewAdapter(this, TUTORIAL_STAGE);
     this.soundSynth = new SoundSynth();
     this.cameras.main.startFollow(this.view.playerTarget, true, 0.11, 0.11);
-    this.cameras.main.setDeadzone(150, 90);
+    this.cameras.main.setDeadzone(300, 180);
 
     const keyboard = this.input.keyboard;
     if (!keyboard) {
@@ -98,7 +98,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.view.sync(this.gameState, this.debugVisible);
-    this.cameras.main.setFollowOffset(-this.gameState.player.facing * 72, 34);
+    this.cameras.main.setFollowOffset(-this.gameState.player.facing * 144, 68);
     this.consumeEvents();
     this.publishHud();
   }

@@ -21,8 +21,8 @@ export function damagePlayer(
 
   player.health -= 1;
   player.invulnerabilityTime = PLAYER_CONFIG.damageInvulnerabilitySeconds;
-  player.velocity.x = knockbackDirection * 330;
-  player.velocity.y = -280;
+  player.velocity.x = knockbackDirection * 660;
+  player.velocity.y = -560;
   player.actionTime = 0;
   player.attackHitIds = [];
 
@@ -32,10 +32,10 @@ export function damagePlayer(
     player.velocity.x = 0;
     player.velocity.y = 0;
     state.status = "failed";
-    emitSound(state, "death", player.position, 360, 1, PLAYER_SOUND_SOURCE_ID);
+    emitSound(state, "death", player.position, 720, 1, PLAYER_SOUND_SOURCE_ID);
   } else {
     player.action = "hurt";
-    emitSound(state, "hurt", player.position, 250, 0.86, PLAYER_SOUND_SOURCE_ID);
+    emitSound(state, "hurt", player.position, 500, 0.86, PLAYER_SOUND_SOURCE_ID);
   }
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
   return true;
@@ -47,7 +47,7 @@ function defeatEnemy(state: GameState, enemy: EnemyState): void {
   enemy.action = "dead";
   enemy.echoTime = 1;
   enemy.echoDuration = 1;
-  emitSound(state, "death", enemy.position, 360, 1, enemy.id);
+  emitSound(state, "death", enemy.position, 720, 1, enemy.id);
   if (
     state.status === "playing" &&
     state.enemies.every((candidate) => !candidate.alive)
@@ -68,8 +68,8 @@ export function damageEnemy(
   enemy.health -= 1;
   enemy.action = "hurt";
   enemy.actionTime = 0;
-  enemy.velocity.x = knockbackDirection * 240;
-  enemy.velocity.y = -120;
+  enemy.velocity.x = knockbackDirection * 480;
+  enemy.velocity.y = -240;
   enemy.echoTime = 0.72;
   enemy.echoDuration = 0.72;
   state.events.push({
@@ -117,7 +117,7 @@ export function updatePlayerCombat(
       state,
       "attack-hit",
       enemy.position,
-      260,
+      520,
       0.9,
       PLAYER_SOUND_SOURCE_ID,
     );
@@ -136,8 +136,8 @@ export function updatePlayerCombat(
     const hitPosition = {
       x:
         player.facing > 0
-          ? Math.min(hitbox.x + hitbox.width, block.bounds.x) - player.facing
-          : Math.max(hitbox.x, block.bounds.x + block.bounds.width) - player.facing,
+          ? Math.min(hitbox.x + hitbox.width, block.bounds.x) - player.facing * 2
+          : Math.max(hitbox.x, block.bounds.x + block.bounds.width) - player.facing * 2,
       y: Math.min(
         Math.max(player.position.y, block.bounds.y),
         block.bounds.y + block.bounds.height,
@@ -147,7 +147,7 @@ export function updatePlayerCombat(
       state,
       "attack-hit",
       hitPosition,
-      230,
+      460,
       0.76,
       PLAYER_SOUND_SOURCE_ID,
     );

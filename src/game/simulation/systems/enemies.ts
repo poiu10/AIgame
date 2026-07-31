@@ -48,7 +48,7 @@ export function updateEnemies(
       if (enemy.actionTime >= ENEMY_CONFIG.alertSeconds) {
         enemy.action = "attack";
         enemy.actionTime = 0;
-        emitSound(state, "enemy-attack", enemy.position, 340, 1, enemy.id);
+        emitSound(state, "enemy-attack", enemy.position, 680, 1, enemy.id);
       }
     } else if (enemy.action === "attack") {
       enemy.actionTime += deltaSeconds;
@@ -125,9 +125,9 @@ export function updateEnemies(
           "enemy-step",
           {
             x: enemy.position.x,
-            y: enemy.position.y + ENEMY_CONFIG.height / 2 - 1,
+            y: enemy.position.y + ENEMY_CONFIG.height / 2 - 2,
           },
-          180,
+          360,
           0.62,
           enemy.id,
         );

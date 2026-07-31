@@ -64,7 +64,7 @@ export function moveBodyAgainstTerrain(
   return {
     movedX: body.position.x - startX,
     movedY: body.position.y - startY,
-    landed: !wasGrounded && body.grounded && verticalSpeed > 80,
+    landed: !wasGrounded && body.grounded && verticalSpeed > 160,
     hitWall,
   };
 }

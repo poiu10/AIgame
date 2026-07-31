@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ANIMATION_KEYS } from "../src/game/assets/manifest";
+import {
+  ANIMATION_KEYS,
+  PLAYER_SPRITE_DISPLAY_SCALE,
+} from "../src/game/assets/manifest";
 import type { WorldDefinition } from "../src/game/content/world";
 import { TUTORIAL_STAGE } from "../src/game/content/tutorialStage";
 import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
@@ -29,11 +32,11 @@ import {
 import { resolvePlayerAnimationKey } from "../src/phaser/view/playerAnimation";
 
 const flatWorld: WorldDefinition = {
-  width: 600,
-  height: 400,
-  playerSpawn: { x: 100, y: 300 },
+  width: 1200,
+  height: 800,
+  playerSpawn: { x: 200, y: 600 },
   terrain: [
-    { id: "floor", bounds: { x: 0, y: 350, width: 600, height: 50 } },
+    { id: "floor", bounds: { x: 0, y: 700, width: 1200, height: 100 } },
   ],
   enemies: [],
 };
@@ -75,7 +78,7 @@ describe("player controller", () => {
   it("lands on platforms and jumps from the grounded state", () => {
     let state = stepMany(flatWorld, 40);
     expect(state.player.grounded).toBe(true);
-    expect(state.player.position.y).toBeCloseTo(324);
+    expect(state.player.position.y).toBeCloseTo(648);
 
     state = stepSimulation(
       state,
@@ -84,14 +87,14 @@ describe("player controller", () => {
       flatWorld,
     );
     expect(state.player.grounded).toBe(false);
-    expect(state.player.velocity.y).toBeLessThan(-600);
+    expect(state.player.velocity.y).toBeLessThan(-1200);
   });
 
   it("scales the landing wave with the tracked fall height", () => {
     function landWithApex(airborneApexY: number) {
       const state = createInitialGameState(flatWorld);
-      state.player.position = { x: 100, y: 320 };
-      state.player.velocity = { x: 0, y: 600 };
+      state.player.position = { x: 200, y: 640 };
+      state.player.velocity = { x: 0, y: 1200 };
       state.player.grounded = false;
       state.player.airborneApexY = airborneApexY;
 
@@ -106,10 +109,10 @@ describe("player controller", () => {
       );
     }
 
-    const shallowFallHeight = 44;
-    const deepFallHeight = 224;
-    const shallowWaveDistance = landWithApex(324 - shallowFallHeight);
-    const deepWaveDistance = landWithApex(324 - deepFallHeight);
+    const shallowFallHeight = 88;
+    const deepFallHeight = 448;
+    const shallowWaveDistance = landWithApex(648 - shallowFallHeight);
+    const deepWaveDistance = landWithApex(648 - deepFallHeight);
 
     expect(deepWaveDistance).toBeGreaterThan(shallowWaveDistance);
     expect(deepWaveDistance - shallowWaveDistance).toBeCloseTo(
@@ -128,7 +131,7 @@ describe("player controller", () => {
     );
 
     expect(state.player.action).toBe("roll");
-    expect(state.player.velocity.x).toBeGreaterThan(400);
+    expect(state.player.velocity.x).toBeGreaterThan(800);
     expect(state.player.invulnerabilityTime).toBe(0);
     expect(state.player.rollCooldown).toBeGreaterThan(0);
     expect(damagePlayer(state, -1)).toBe(false);
@@ -154,7 +157,7 @@ describe("player controller", () => {
 
     expect(state.player.action).toBe("normal");
     expect(state.player.grounded).toBe(false);
-    expect(state.player.velocity.y).toBeLessThan(-600);
+    expect(state.player.velocity.y).toBeLessThan(-1200);
     expect(Math.abs(state.player.velocity.x)).toBeLessThanOrEqual(
       PLAYER_CONFIG.maxSpeed,
     );
@@ -231,7 +234,7 @@ describe("player controller", () => {
     expect(state.player.actionTime).toBe(0);
     expect(state.player.attackHitIds).toEqual([]);
     expect(state.player.grounded).toBe(false);
-    expect(state.player.velocity.y).toBeLessThan(-600);
+    expect(state.player.velocity.y).toBeLessThan(-1200);
   });
 
   it("cycles ground attacks and keeps air attacks separate", () => {
@@ -260,7 +263,7 @@ describe("player controller", () => {
 
     const nextGroundVariant = state.player.nextGroundAttackVariant;
     state.player.grounded = false;
-    state.player.velocity.y = 200;
+    state.player.velocity.y = 400;
     state = stepSimulation(
       state,
       { ...EMPTY_INPUT, attackPressed: true },
@@ -277,7 +280,7 @@ describe("player controller", () => {
     player.velocity = { x: 0, y: 0 };
     expect(resolvePlayerAnimationKey(player)).toBe(ANIMATION_KEYS.player.idle);
 
-    player.velocity.x = 100;
+    player.velocity.x = 200;
     expect(resolvePlayerAnimationKey(player)).toBe(ANIMATION_KEYS.player.run);
 
     player.action = "roll";
@@ -304,10 +307,10 @@ describe("player controller", () => {
     player.action = "normal";
     player.grounded = false;
     for (const [velocityY, expected] of [
-      [-650, ANIMATION_KEYS.player.jumpStart],
-      [-300, ANIMATION_KEYS.player.jump],
+      [-1300, ANIMATION_KEYS.player.jumpStart],
+      [-600, ANIMATION_KEYS.player.jump],
       [0, ANIMATION_KEYS.player.jumpTransition],
-      [300, ANIMATION_KEYS.player.jumpFall],
+      [600, ANIMATION_KEYS.player.jumpFall],
     ] as const) {
       player.velocity.y = velocityY;
       expect(resolvePlayerAnimationKey(player)).toBe(expected);
@@ -348,42 +351,43 @@ describe("player controller", () => {
 
   it("keeps the attack hitbox slightly larger than the attack sprite", () => {
     const state = createInitialGameState(flatWorld);
-    state.player.position = { x: 100, y: 200 };
+    state.player.position = { x: 200, y: 400 };
     state.player.attackFacing = 1;
 
+    expect(PLAYER_SPRITE_DISPLAY_SCALE).toBe(3);
     expect(PLAYER_GROUND_ATTACK_HITBOX).toEqual({
-      width: 64,
-      height: 60,
+      width: 128,
+      height: 120,
       verticalOffset: 0,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
-      x: 115,
-      y: 170,
-      width: 64,
-      height: 60,
+      x: 230,
+      y: 340,
+      width: 128,
+      height: 120,
     });
 
     state.player.attackFacing = -1;
-    expect(getPlayerAttackBounds(state.player).x).toBe(21);
+    expect(getPlayerAttackBounds(state.player).x).toBe(42);
 
     state.player.attackAirborne = true;
     expect(PLAYER_AIR_ATTACK_HITBOX).toEqual({
-      width: 64,
-      height: 70,
-      verticalOffset: -4,
+      width: 128,
+      height: 140,
+      verticalOffset: -8,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
-      x: 21,
-      y: 161,
-      width: 64,
-      height: 70,
+      x: 42,
+      y: 322,
+      width: 128,
+      height: 140,
     });
   });
 
   it("does not keep moving after death", () => {
     const state = createInitialGameState(flatWorld);
-    state.player.position = { x: 180, y: 324 };
-    state.player.velocity = { x: 320, y: -120 };
+    state.player.position = { x: 360, y: 648 };
+    state.player.velocity = { x: 640, y: -240 };
     state.player.grounded = true;
     state.player.action = "dead";
     state.player.health = 0;
@@ -405,17 +409,17 @@ describe("player controller", () => {
 describe("sound propagation", () => {
   it("keeps reflecting without a bounce cap until distance attenuation removes it", () => {
     const corridor: WorldDefinition = {
-      width: 110,
-      height: 100,
-      playerSpawn: { x: 50, y: 50 },
+      width: 220,
+      height: 200,
+      playerSpawn: { x: 100, y: 100 },
       terrain: [
-        { id: "left", bounds: { x: -10, y: 0, width: 10, height: 100 } },
-        { id: "right", bounds: { x: 100, y: 0, width: 10, height: 100 } },
+        { id: "left", bounds: { x: -20, y: 0, width: 20, height: 200 } },
+        { id: "right", bounds: { x: 200, y: 0, width: 20, height: 200 } },
       ],
       enemies: [],
     };
     const state = createInitialGameState(corridor);
-    emitSound(state, "debug", { x: 50, y: 50 }, 5_000, 1);
+    emitSound(state, "debug", { x: 100, y: 100 }, 10_000, 1);
     const trackedRay = state.soundWaves[0].rays[0];
     for (const ray of state.soundWaves[0].rays.slice(1)) {
       ray.active = false;
@@ -427,7 +431,7 @@ describe("sound propagation", () => {
 
     expect(trackedRay.reflectionCount).toBeGreaterThan(3);
     expect(trackedRay.active).toBe(false);
-    expect(trackedRay.remainingDistance).toBeLessThan(30);
+    expect(trackedRay.remainingDistance).toBeLessThan(60);
   });
 
   it("temporarily reveals an enemy crossed by a wave", () => {
@@ -436,14 +440,14 @@ describe("sound propagation", () => {
       enemies: [
         {
           id: "target",
-          position: { x: 180, y: 300 },
-          patrolMinX: 180,
-          patrolMaxX: 180,
+          position: { x: 360, y: 600 },
+          patrolMinX: 360,
+          patrolMaxX: 360,
         },
       ],
     };
     const state = createInitialGameState(enemyWorld);
-    emitSound(state, "debug", { x: 100, y: 300 }, 200, 1);
+    emitSound(state, "debug", { x: 200, y: 600 }, 400, 1);
 
     for (let index = 0; index < 20; index += 1) {
       updateSoundPropagation(state, enemyWorld, FIXED_STEP_SECONDS);
@@ -458,9 +462,9 @@ describe("sound propagation", () => {
       enemies: [
         {
           id: "listener",
-          position: { x: 250, y: 326 },
-          patrolMinX: 150,
-          patrolMaxX: 350,
+          position: { x: 500, y: 652 },
+          patrolMinX: 300,
+          patrolMaxX: 700,
         },
       ],
     };
@@ -471,8 +475,8 @@ describe("sound propagation", () => {
     emitSound(
       state,
       "terrain-step",
-      { x: 100, y: 326 },
-      240,
+      { x: 200, y: 652 },
+      480,
       1,
       PLAYER_SOUND_SOURCE_ID,
     );
@@ -489,14 +493,14 @@ describe("sound propagation", () => {
 
   it("adds collision rays as the expanding wavefront spacing grows", () => {
     const openWorld: WorldDefinition = {
-      width: 2_000,
-      height: 2_000,
-      playerSpawn: { x: 1_000, y: 1_000 },
+      width: 4_000,
+      height: 4_000,
+      playerSpawn: { x: 2_000, y: 2_000 },
       terrain: [],
       enemies: [],
     };
     const state = createInitialGameState(openWorld);
-    emitSound(state, "debug", openWorld.playerSpawn, 800, 1);
+    emitSound(state, "debug", openWorld.playerSpawn, 1600, 1);
     const initialRayCount = state.soundWaves[0].rays.length;
 
     for (let index = 0; index < 90; index += 1) {
@@ -516,31 +520,31 @@ describe("sound propagation", () => {
     }, 0);
 
     expect(rays.length).toBeGreaterThan(initialRayCount);
-    expect(maximumSpacing).toBeLessThanOrEqual(24);
+    expect(maximumSpacing).toBeLessThanOrEqual(48);
   });
 
   it("clips corner echo marks to the terrain face bounds", () => {
     const block = {
       id: "corner",
-      bounds: { x: 100, y: 100, width: 20, height: 20 },
+      bounds: { x: 200, y: 200, width: 40, height: 40 },
     };
     const horizontal = createEchoMark(
       block,
-      { x: 100, y: 100 },
+      { x: 200, y: 200 },
       { x: 0, y: -1 },
       1,
     );
     const vertical = createEchoMark(
       block,
-      { x: 100, y: 100 },
+      { x: 200, y: 200 },
       { x: -1, y: 0 },
       1,
     );
 
-    expect(horizontal.start).toEqual({ x: 100, y: 100 });
-    expect(horizontal.end).toEqual({ x: 120, y: 100 });
-    expect(vertical.start).toEqual({ x: 100, y: 100 });
-    expect(vertical.end).toEqual({ x: 100, y: 120 });
+    expect(horizontal.start).toEqual({ x: 200, y: 200 });
+    expect(horizontal.end).toEqual({ x: 240, y: 200 });
+    expect(vertical.start).toEqual({ x: 200, y: 200 });
+    expect(vertical.end).toEqual({ x: 200, y: 240 });
   });
 });
 
@@ -550,16 +554,16 @@ describe("combat loop", () => {
     enemies: [
       {
         id: "attacker",
-        position: { x: 150, y: 326 },
-        patrolMinX: 150,
-        patrolMaxX: 150,
+        position: { x: 300, y: 652 },
+        patrolMinX: 300,
+        patrolMaxX: 300,
       },
     ],
   };
 
   function createOverlappingEnemyAttackState() {
     const state = createInitialGameState(enemyAttackWorld);
-    state.player.position = { x: 100, y: 324 };
+    state.player.position = { x: 200, y: 648 };
     state.player.grounded = true;
     state.enemies[0].grounded = true;
     return state;
@@ -648,14 +652,14 @@ describe("combat loop", () => {
       enemies: [
         {
           id: "target",
-          position: { x: 150, y: 326 },
-          patrolMinX: 150,
-          patrolMaxX: 150,
+          position: { x: 300, y: 652 },
+          patrolMinX: 300,
+          patrolMaxX: 300,
         },
       ],
     };
     let state = createInitialGameState(combatWorld);
-    state.player.position = { x: 100, y: 324 };
+    state.player.position = { x: 200, y: 648 };
     state.player.grounded = true;
     state.enemies[0].health = 1;
     state.enemies[0].grounded = true;
@@ -683,16 +687,16 @@ describe("combat loop", () => {
       enemies: [
         {
           id: "hazard-target",
-          position: { x: 200, y: 326 },
-          patrolMinX: 200,
-          patrolMaxX: 200,
+          position: { x: 400, y: 652 },
+          patrolMinX: 400,
+          patrolMaxX: 400,
           health: 2,
         },
       ],
       hazards: [
         {
           id: "test-hazard",
-          bounds: { x: 180, y: 280, width: 40, height: 70 },
+          bounds: { x: 360, y: 560, width: 80, height: 140 },
         },
       ],
     };
@@ -721,8 +725,8 @@ describe("tutorial stage", () => {
     ).toEqual(["A / D", "Space", "Shift", "J", ""]);
     expect(
       TUTORIAL_STAGE.soundEmitters?.map((emitter) => emitter.maximumDistance),
-    ).toEqual([215, 250, 195]);
-    expect(TUTORIAL_STAGE.hazards?.[0].bounds.height).toBe(160);
+    ).toEqual([430, 500, 390]);
+    expect(TUTORIAL_STAGE.hazards?.[0].bounds.height).toBe(320);
 
     const jumpPlatform = TUTORIAL_STAGE.terrain.find(
       (block) => block.id === "jump-platform",
@@ -735,7 +739,7 @@ describe("tutorial stage", () => {
       TUTORIAL_STAGE.terrain
         .filter((block) => block.id.startsWith("jump-recovery-"))
         .map((block) => block.bounds.y),
-    ).toEqual([600]);
+    ).toEqual([1200]);
   });
 
   it("advances the guidance as the player reaches each lesson", () => {
@@ -744,25 +748,25 @@ describe("tutorial stage", () => {
       "move",
     );
 
-    state.player.position.x = 500;
+    state.player.position.x = 1000;
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
     expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
       "jump",
     );
 
-    state.player.position.x = 1300;
+    state.player.position.x = 2600;
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
     expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
       "roll",
     );
 
-    state.player.position.x = 1700;
+    state.player.position.x = 3400;
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
     expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
       "attack",
     );
 
-    state.player.position.x = 2100;
+    state.player.position.x = 4200;
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, TUTORIAL_STAGE);
     expect(TUTORIAL_STAGE.tutorialSections?.[state.tutorialStep].id).toBe(
       "attack",
@@ -785,7 +789,7 @@ describe("tutorial stage", () => {
     expect(crusher).toBeDefined();
     state.player.position = {
       x: crusher!.bounds.x + crusher!.bounds.width / 2,
-      y: 624,
+      y: 1248,
     };
     state.player.grounded = true;
 
@@ -801,7 +805,7 @@ describe("tutorial stage", () => {
     const state = createInitialGameState(TUTORIAL_STAGE);
     const crusher = TUTORIAL_STAGE.hazards?.[0];
     expect(crusher).toBeDefined();
-    state.player.position = { x: crusher!.bounds.x - 10, y: 624 };
+    state.player.position = { x: crusher!.bounds.x - 20, y: 1248 };
     state.player.grounded = true;
     state.player.invulnerabilityTime = 0.5;
 
@@ -823,7 +827,7 @@ describe("tutorial stage", () => {
     const state = createInitialGameState(TUTORIAL_STAGE);
     const crusher = TUTORIAL_STAGE.hazards?.[0];
     expect(crusher).toBeDefined();
-    state.player.position = { x: crusher!.bounds.x - 18, y: 624 };
+    state.player.position = { x: crusher!.bounds.x - 36, y: 1248 };
     state.player.grounded = true;
     const initialHealth = state.player.health;
 

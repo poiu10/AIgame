@@ -157,14 +157,14 @@ export function updatePlayerMovement(
     player.jumpBufferTime = 0;
   }
 
-  if (!input.jumpHeld && player.velocity.y < -220) {
-    player.velocity.y = Math.max(player.velocity.y, -220);
+  if (!input.jumpHeld && player.velocity.y < -440) {
+    player.velocity.y = Math.max(player.velocity.y, -440);
   }
 
   if (player.action === "roll") {
     player.velocity.x = player.facing * PLAYER_CONFIG.rollSpeed;
   } else if (player.action === "hurt") {
-    player.velocity.x = approach(player.velocity.x, 0, 900 * deltaSeconds);
+    player.velocity.x = approach(player.velocity.x, 0, 1800 * deltaSeconds);
   } else {
     if (Math.abs(input.moveX) > 0.01) {
       player.facing = input.moveX < 0 ? -1 : 1;
@@ -208,7 +208,7 @@ export function updatePlayerMovement(
       kind: "landing",
       position: {
         x: player.position.x,
-        y: player.position.y + PLAYER_CONFIG.height / 2 - 1,
+        y: player.position.y + PLAYER_CONFIG.height / 2 - 2,
       },
       distance: landingSound.distance,
       intensity: landingSound.intensity,
@@ -231,9 +231,9 @@ export function updatePlayerMovement(
         kind: "terrain-step",
         position: {
           x: player.position.x,
-          y: player.position.y + PLAYER_CONFIG.height / 2 - 1,
+          y: player.position.y + PLAYER_CONFIG.height / 2 - 2,
         },
-        distance: 140,
+        distance: 280,
         intensity: 0.42,
       });
     }

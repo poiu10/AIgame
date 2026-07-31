@@ -69,7 +69,7 @@ export function updateWorldEnvironment(
       rejectionDirection < 0
         ? hazard.bounds.x - PLAYER_CONFIG.width / 2
         : hazard.bounds.x + hazard.bounds.width + PLAYER_CONFIG.width / 2;
-    state.player.velocity.x = rejectionDirection * 330;
+    state.player.velocity.x = rejectionDirection * 660;
   }
 
   for (const enemy of state.enemies) {
@@ -91,7 +91,7 @@ export function updateWorldEnvironment(
         enemy.hazardInvulnerabilityTime =
           ENEMY_CONFIG.hazardDamageCooldownSeconds;
         if (enemy.alive) {
-          emitSound(state, "hurt", enemy.position, 250, 0.86, enemy.id);
+          emitSound(state, "hurt", enemy.position, 500, 0.86, enemy.id);
         }
       }
       break;

@@ -55,7 +55,7 @@ export function stepSimulation(
       state,
       "death",
       state.player.position,
-      360,
+      720,
       1,
       PLAYER_SOUND_SOURCE_ID,
     );
@@ -71,7 +71,7 @@ export function stepSimulation(
       state,
       "debug",
       state.player.position,
-      400,
+      800,
       1,
       PLAYER_SOUND_SOURCE_ID,
     );

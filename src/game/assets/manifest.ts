@@ -39,6 +39,8 @@ export const PLAYER_SPRITE_FRAME = {
   height: 96,
 } as const;
 
+export const PLAYER_SPRITE_DISPLAY_SCALE = 3;
+
 export const PLAYER_SPRITESHEETS = {
   idle: {
     textureKey: ASSET_KEYS.player.idle,

@@ -61,7 +61,7 @@ export function createEchoMark(
   normal: Vector2State,
   intensity: number,
 ): EchoMarkState {
-  const halfLength = 7 + 17 * intensity;
+  const halfLength = 14 + 34 * intensity;
   let start: Vector2State;
   let end: Vector2State;
 
