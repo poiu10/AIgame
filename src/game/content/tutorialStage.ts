@@ -6,10 +6,9 @@ export const TUTORIAL_STAGE: WorldDefinition = {
   playerSpawn: { x: 192, y: 1180 },
   terrain: [
     { id: "left-wall", bounds: { x: -64, y: 0, width: 64, height: 1440 } },
-    { id: "movement-floor", bounds: { x: 0, y: 1300, width: 1360, height: 140 } },
+    { id: "movement-floor", bounds: { x: 0, y: 1300, width: 1840, height: 140 } },
     { id: "jump-step", bounds: { x: 1000, y: 1180, width: 300, height: 120 } },
     { id: "jump-platform", bounds: { x: 1420, y: 1100, width: 300, height: 48 } },
-    { id: "jump-pit-floor", bounds: { x: 1360, y: 1400, width: 480, height: 40 } },
     { id: "jump-recovery-high", bounds: { x: 1720, y: 1200, width: 120, height: 200 } },
     { id: "jump-right-hill", bounds: { x: 1840, y: 1100, width: 520, height: 340 } },
     { id: "middle-floor", bounds: { x: 2360, y: 1300, width: 1720, height: 140 } },

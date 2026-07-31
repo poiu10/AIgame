@@ -81,11 +81,13 @@ describe("AABB ray casting", () => {
 });
 
 describe("player controller", () => {
-  it("uses reduced integer hitbox dimensions", () => {
-    expect(PLAYER_CONFIG.width).toBe(36);
-    expect(PLAYER_CONFIG.height).toBe(94);
+  it("uses integer hitbox dimensions nearest to 90% of the previous size", () => {
+    expect(PLAYER_CONFIG.width).toBe(32);
+    expect(PLAYER_CONFIG.height).toBe(84);
     expect(Number.isInteger(PLAYER_CONFIG.width)).toBe(true);
     expect(Number.isInteger(PLAYER_CONFIG.height)).toBe(true);
+    expect(Number.isInteger(PLAYER_CONFIG.width / 2)).toBe(true);
+    expect(Number.isInteger(PLAYER_CONFIG.height / 2)).toBe(true);
   });
 
   it("lands on platforms and jumps from the grounded state", () => {
@@ -369,37 +371,37 @@ describe("player controller", () => {
     );
   });
 
-  it("keeps the attack hitbox slightly larger than the attack sprite", () => {
+  it("uses an integer attack width nearest to 90% of the previous width", () => {
     const state = createInitialGameState(flatWorld);
     state.player.position = { x: 200, y: 400 };
     state.player.attackFacing = 1;
 
     expect(PLAYER_SPRITE_DISPLAY_SCALE).toBe(3);
     expect(PLAYER_GROUND_ATTACK_HITBOX).toEqual({
-      width: 128,
+      width: 116,
       height: 120,
       verticalOffset: 0,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
-      x: 218,
+      x: 216,
       y: 340,
-      width: 128,
+      width: 116,
       height: 120,
     });
 
     state.player.attackFacing = -1;
-    expect(getPlayerAttackBounds(state.player).x).toBe(54);
+    expect(getPlayerAttackBounds(state.player).x).toBe(68);
 
     state.player.attackAirborne = true;
     expect(PLAYER_AIR_ATTACK_HITBOX).toEqual({
-      width: 128,
+      width: 116,
       height: 140,
       verticalOffset: -8,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
-      x: 54,
+      x: 68,
       y: 322,
-      width: 128,
+      width: 116,
       height: 140,
     });
   });
@@ -778,6 +780,15 @@ describe("tutorial stage", () => {
     expect(
       TUTORIAL_STAGE.terrain.some((block) => block.id === "combat-ceiling"),
     ).toBe(false);
+    expect(
+      TUTORIAL_STAGE.terrain.some((block) => block.id === "jump-pit-floor"),
+    ).toBe(false);
+    const movementFloor = TUTORIAL_STAGE.terrain.find(
+      (block) => block.id === "movement-floor",
+    );
+    expect(
+      (movementFloor?.bounds.x ?? 0) + (movementFloor?.bounds.width ?? 0),
+    ).toBe(rightHill?.bounds.x);
   });
 
   it("advances the guidance as the player reaches each lesson", () => {

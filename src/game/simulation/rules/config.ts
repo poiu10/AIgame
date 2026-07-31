@@ -1,8 +1,8 @@
 export const FIXED_STEP_SECONDS = 1 / 120;
 
 export const PLAYER_CONFIG = {
-  width: 36,
-  height: 94,
+  width: 32,
+  height: 84,
   maxHealth: 4,
   acceleration: 3800,
   airAcceleration: 2100,

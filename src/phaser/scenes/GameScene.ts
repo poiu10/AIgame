@@ -48,11 +48,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.cameras.main.setBounds(0, 0, TUTORIAL_STAGE.width, TUTORIAL_STAGE.height);
+    const camera = this.cameras.main;
+    camera.setBounds(0, 0, TUTORIAL_STAGE.width, TUTORIAL_STAGE.height);
     this.view = new GameViewAdapter(this, TUTORIAL_STAGE);
     this.soundSynth = new SoundSynth();
-    this.cameras.main.startFollow(this.view.playerTarget, true, 0.11, 0.11);
-    this.cameras.main.setDeadzone(300, 180);
+    camera.startFollow(this.view.playerTarget, true, 0.11, 0);
+    camera.setScroll(camera.scrollX, TUTORIAL_STAGE.height - camera.height);
+    camera.setDeadzone(300, camera.height);
 
     const keyboard = this.input.keyboard;
     if (!keyboard) {
@@ -98,7 +100,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.view.sync(this.gameState, this.debugVisible);
-    this.cameras.main.setFollowOffset(-this.gameState.player.facing * 144, 68);
+    this.cameras.main.setFollowOffset(-this.gameState.player.facing * 144, 0);
     this.consumeEvents();
     this.publishHud();
   }
@@ -144,7 +146,10 @@ export class GameScene extends Phaser.Scene {
           this.cameras.main.width,
         );
       } else {
-        this.cameras.main.shake(70, 0.0015 * event.strength);
+        this.cameras.main.shake(
+          70,
+          new Phaser.Math.Vector2(0.0015 * event.strength, 0),
+        );
       }
     }
   }

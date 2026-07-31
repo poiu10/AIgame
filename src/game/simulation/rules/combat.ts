@@ -3,13 +3,13 @@ import type { EnemyState, PlayerState } from "../state";
 import { PLAYER_CONFIG } from "./config";
 
 export const PLAYER_GROUND_ATTACK_HITBOX = {
-  width: 128,
+  width: 116,
   height: 120,
   verticalOffset: 0,
 } as const;
 
 export const PLAYER_AIR_ATTACK_HITBOX = {
-  width: 128,
+  width: 116,
   height: 140,
   verticalOffset: -8,
 } as const;
