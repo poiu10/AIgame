@@ -728,6 +728,43 @@ describe("combat loop", () => {
     expect(state.player.action).toBe("hurt");
   });
 
+  it("only starts an enemy attack while the stationary player is inside its hitbox", () => {
+    const outsideState = createOverlappingEnemyAttackState();
+    outsideState.player.position.x =
+      outsideState.enemies[0].position.x - ENEMY_CONFIG.attackRangeX - 1;
+
+    stepSimulation(
+      outsideState,
+      EMPTY_INPUT,
+      FIXED_STEP_SECONDS,
+      enemyAttackWorld,
+    );
+
+    expect(outsideState.enemies[0].action).toBe("patrol");
+
+    const insideState = createOverlappingEnemyAttackState();
+    insideState.player.position.x =
+      insideState.enemies[0].position.x - ENEMY_CONFIG.attackRangeX;
+
+    stepSimulation(
+      insideState,
+      EMPTY_INPUT,
+      FIXED_STEP_SECONDS,
+      enemyAttackWorld,
+    );
+    expect(insideState.enemies[0].action).toBe("alert");
+
+    advanceEnemyAlert(insideState);
+    stepSimulation(
+      insideState,
+      EMPTY_INPUT,
+      FIXED_STEP_SECONDS,
+      enemyAttackWorld,
+    );
+
+    expect(insideState.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+  });
+
   it("keeps the enemy attack hitbox facing its detection direction", () => {
     const state = createOverlappingEnemyAttackState();
 
