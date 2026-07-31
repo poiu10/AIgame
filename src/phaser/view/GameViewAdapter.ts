@@ -20,7 +20,11 @@ import type {
   PlayerState,
   SoundKind,
 } from "../../game/simulation/state";
-import { rasterizePixelLine, SOUND_PIXEL_SIZE } from "./pixelLine";
+import {
+  getPixelThicknessOffsets,
+  rasterizePixelLine,
+  SOUND_PIXEL_SIZE,
+} from "./pixelLine";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 
 const WAVE_COLORS: Record<SoundKind, number> = {
@@ -38,8 +42,8 @@ const WAVE_COLORS: Record<SoundKind, number> = {
 };
 
 const PLAYER_SPRITE_FEET_Y = 80;
-const STANDARD_WAVE_THICKNESS_CELLS = 1;
-const ALERT_WAVE_THICKNESS_CELLS = 3;
+const STANDARD_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(2);
+const ALERT_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(4);
 
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
@@ -244,10 +248,10 @@ export class GameViewAdapter {
     this.waveGraphics.clear();
     for (const wave of state.soundWaves) {
       const color = WAVE_COLORS[wave.kind];
-      const thicknessCells =
+      const thicknessOffsets =
         wave.kind === "enemy-alert"
-          ? ALERT_WAVE_THICKNESS_CELLS
-          : STANDARD_WAVE_THICKNESS_CELLS;
+          ? ALERT_WAVE_PIXEL_OFFSETS
+          : STANDARD_WAVE_PIXEL_OFFSETS;
       for (let index = 0; index < wave.rays.length; index += 1) {
         const ray = wave.rays[index];
         if (!ray.active) {
@@ -272,7 +276,7 @@ export class GameViewAdapter {
             next.position.y,
             color,
             alpha * 0.86,
-            thicknessCells,
+            thicknessOffsets,
           );
         }
       }
@@ -287,17 +291,16 @@ export class GameViewAdapter {
     endY: number,
     color: number,
     alpha: number,
-    thicknessCells = STANDARD_WAVE_THICKNESS_CELLS,
+    thicknessOffsets = STANDARD_WAVE_PIXEL_OFFSETS,
   ): void {
-    const radius = Math.floor(thicknessCells / 2);
     graphics.fillStyle(color, alpha);
 
     for (const cell of rasterizePixelLine(
       { x: startX, y: startY },
       { x: endX, y: endY },
     )) {
-      for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
-        for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+      for (const offsetY of thicknessOffsets) {
+        for (const offsetX of thicknessOffsets) {
           graphics.fillRect(
             cell.x + offsetX * SOUND_PIXEL_SIZE,
             cell.y + offsetY * SOUND_PIXEL_SIZE,

@@ -10,6 +10,20 @@ interface Point {
   y: number;
 }
 
+export function getPixelThicknessOffsets(
+  thicknessCells: number,
+): readonly number[] {
+  if (!Number.isInteger(thicknessCells) || thicknessCells <= 0) {
+    throw new RangeError("thicknessCells must be a positive integer");
+  }
+
+  const firstOffset = -Math.floor(thicknessCells / 2);
+  return Array.from(
+    { length: thicknessCells },
+    (_, index) => firstOffset + index,
+  );
+}
+
 export function rasterizePixelLine(
   start: Point,
   end: Point,

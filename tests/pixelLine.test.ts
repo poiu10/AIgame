@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getPixelThicknessOffsets,
   rasterizePixelLine,
   SOUND_PIXEL_SIZE,
 } from "../src/phaser/view/pixelLine";
@@ -23,5 +24,10 @@ describe("pixel line rasterization", () => {
       { x: 6, y: 6 },
       { x: 9, y: 6 },
     ]);
+  });
+
+  it("creates exact even thicknesses for normal and alert waves", () => {
+    expect(getPixelThicknessOffsets(2)).toEqual([-1, 0]);
+    expect(getPixelThicknessOffsets(4)).toEqual([-2, -1, 0, 1]);
   });
 });
