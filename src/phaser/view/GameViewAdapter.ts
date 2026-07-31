@@ -20,6 +20,7 @@ import type {
   PlayerState,
   SoundKind,
 } from "../../game/simulation/state";
+import { rasterizePixelLine, SOUND_PIXEL_SIZE } from "./pixelLine";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 
 const WAVE_COLORS: Record<SoundKind, number> = {
@@ -37,6 +38,8 @@ const WAVE_COLORS: Record<SoundKind, number> = {
 };
 
 const PLAYER_SPRITE_FEET_Y = 80;
+const STANDARD_WAVE_THICKNESS_CELLS = 1;
+const ALERT_WAVE_THICKNESS_CELLS = 3;
 
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
@@ -225,12 +228,14 @@ export class GameViewAdapter {
     for (const mark of state.echoMarks) {
       const life = mark.time / mark.duration;
       const alpha = Math.max(0, life * mark.intensity * 0.95);
-      this.echoGraphics.lineStyle(5, 0x83f4ff, alpha);
-      this.echoGraphics.lineBetween(
+      this.drawPixelLine(
+        this.echoGraphics,
         mark.start.x,
         mark.start.y,
         mark.end.x,
         mark.end.y,
+        0x83f4ff,
+        alpha,
       );
     }
   }
@@ -239,7 +244,10 @@ export class GameViewAdapter {
     this.waveGraphics.clear();
     for (const wave of state.soundWaves) {
       const color = WAVE_COLORS[wave.kind];
-      const lineWidth = wave.kind === "enemy-alert" ? 8 : 4;
+      const thicknessCells =
+        wave.kind === "enemy-alert"
+          ? ALERT_WAVE_THICKNESS_CELLS
+          : STANDARD_WAVE_THICKNESS_CELLS;
       for (let index = 0; index < wave.rays.length; index += 1) {
         const ray = wave.rays[index];
         if (!ray.active) {
@@ -256,12 +264,45 @@ export class GameViewAdapter {
           next.position.y - ray.position.y,
         );
         if (separation <= SOUND_CONFIG.maximumRaySpacing * 1.15) {
-          this.waveGraphics.lineStyle(lineWidth, color, alpha * 0.86);
-          this.waveGraphics.lineBetween(
+          this.drawPixelLine(
+            this.waveGraphics,
             ray.position.x,
             ray.position.y,
             next.position.x,
             next.position.y,
+            color,
+            alpha * 0.86,
+            thicknessCells,
+          );
+        }
+      }
+    }
+  }
+
+  private drawPixelLine(
+    graphics: Phaser.GameObjects.Graphics,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    color: number,
+    alpha: number,
+    thicknessCells = STANDARD_WAVE_THICKNESS_CELLS,
+  ): void {
+    const radius = Math.floor(thicknessCells / 2);
+    graphics.fillStyle(color, alpha);
+
+    for (const cell of rasterizePixelLine(
+      { x: startX, y: startY },
+      { x: endX, y: endY },
+    )) {
+      for (let offsetY = -radius; offsetY <= radius; offsetY += 1) {
+        for (let offsetX = -radius; offsetX <= radius; offsetX += 1) {
+          graphics.fillRect(
+            cell.x + offsetX * SOUND_PIXEL_SIZE,
+            cell.y + offsetY * SOUND_PIXEL_SIZE,
+            SOUND_PIXEL_SIZE,
+            SOUND_PIXEL_SIZE,
           );
         }
       }
