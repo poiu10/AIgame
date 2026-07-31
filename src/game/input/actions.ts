@@ -5,8 +5,6 @@ export interface InputActions {
   rollPressed: boolean;
   attackPressed: boolean;
   restartPressed: boolean;
-  debugPulsePressed: boolean;
-  toggleDebugPressed: boolean;
 }
 
 export const EMPTY_INPUT: InputActions = {
@@ -16,6 +14,4 @@ export const EMPTY_INPUT: InputActions = {
   rollPressed: false,
   attackPressed: false,
   restartPressed: false,
-  debugPulsePressed: false,
-  toggleDebugPressed: false,
 };

@@ -14,14 +14,13 @@ import {
 import { GameViewAdapter } from "../view/GameViewAdapter";
 import { SoundSynth } from "../view/SoundSynth";
 
-type ActionKey = "W" | "A" | "D" | "SPACE" | "SHIFT" | "J" | "R" | "P" | "F3";
+type ActionKey = "W" | "A" | "D" | "SPACE" | "SHIFT" | "J" | "R";
 
 interface PendingButtons {
   jumpPressed: boolean;
   rollPressed: boolean;
   attackPressed: boolean;
   restartPressed: boolean;
-  debugPulsePressed: boolean;
 }
 
 const EMPTY_PENDING: PendingButtons = {
@@ -29,7 +28,6 @@ const EMPTY_PENDING: PendingButtons = {
   rollPressed: false,
   attackPressed: false,
   restartPressed: false,
-  debugPulsePressed: false,
 };
 
 export class GameScene extends Phaser.Scene {
@@ -40,7 +38,6 @@ export class GameScene extends Phaser.Scene {
   private keys!: Record<ActionKey, Phaser.Input.Keyboard.Key>;
   private pending: PendingButtons = { ...EMPTY_PENDING };
   private accumulator = 0;
-  private debugVisible = false;
   private lastHudSignature = "";
 
   constructor() {
@@ -70,13 +67,11 @@ export class GameScene extends Phaser.Scene {
       SHIFT: Phaser.Input.Keyboard.KeyCodes.SHIFT,
       J: Phaser.Input.Keyboard.KeyCodes.J,
       R: Phaser.Input.Keyboard.KeyCodes.R,
-      P: Phaser.Input.Keyboard.KeyCodes.P,
-      F3: Phaser.Input.Keyboard.KeyCodes.F3,
     }) as Record<ActionKey, Phaser.Input.Keyboard.Key>;
 
     keyboard.once("keydown", () => this.soundSynth.unlock());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.soundSynth.dispose());
-    this.view.sync(this.gameState, this.debugVisible);
+    this.view.sync(this.gameState);
     this.publishHud();
   }
 
@@ -99,7 +94,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    this.view.sync(this.gameState, this.debugVisible);
+    this.view.sync(this.gameState);
     this.cameras.main.setFollowOffset(-this.gameState.player.facing * 144, 0);
     this.consumeEvents();
     this.publishHud();
@@ -113,11 +108,6 @@ export class GameScene extends Phaser.Scene {
     this.pending.rollPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.SHIFT);
     this.pending.attackPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.J);
     this.pending.restartPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.R);
-    this.pending.debugPulsePressed ||= Phaser.Input.Keyboard.JustDown(this.keys.P);
-
-    if (Phaser.Input.Keyboard.JustDown(this.keys.F3)) {
-      this.debugVisible = !this.debugVisible;
-    }
   }
 
   private readInput(includeEdges: boolean): InputActions {
@@ -132,8 +122,6 @@ export class GameScene extends Phaser.Scene {
       rollPressed: edges.rollPressed,
       attackPressed: edges.attackPressed,
       restartPressed: edges.restartPressed,
-      debugPulsePressed: edges.debugPulsePressed,
-      toggleDebugPressed: false,
     };
   }
 
@@ -158,7 +146,6 @@ export class GameScene extends Phaser.Scene {
     const hudState: HudState = {
       health: this.gameState.player.health,
       maxHealth: this.gameState.player.maxHealth,
-      debugVisible: this.debugVisible,
     };
     const signature = JSON.stringify(hudState);
     if (signature === this.lastHudSignature) {

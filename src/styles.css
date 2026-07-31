@@ -88,24 +88,6 @@ body {
     inset 0 0 8px rgb(234 255 255 / 35%);
 }
 
-.hud-debug {
-  position: absolute;
-  right: clamp(0.85rem, 2.2vw, 1.5rem);
-  bottom: clamp(0.75rem, 2vw, 1.3rem);
-  color: rgb(187 139 255 / 42%);
-  font-size: clamp(0.58rem, 1vw, 0.72rem);
-}
-
-.hud-debug.is-active {
-  color: #cba7ff;
-}
-
-@media (max-width: 720px) {
-  .hud-debug {
-    display: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hud-panel {
     text-shadow: none;

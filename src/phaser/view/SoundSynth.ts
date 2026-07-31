@@ -11,7 +11,6 @@ const FREQUENCIES: Record<SoundKind, number> = {
   death: 72,
   ambient: 430,
   hazard: 64,
-  debug: 520,
 };
 
 export class SoundSynth {

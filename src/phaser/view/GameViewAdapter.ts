@@ -10,10 +10,6 @@ import {
   PLAYER_CONFIG,
   SOUND_CONFIG,
 } from "../../game/simulation/rules/config";
-import {
-  getEnemyAttackBounds,
-  getPlayerAttackBounds,
-} from "../../game/simulation/rules/combat";
 import type {
   EnemyState,
   GameState,
@@ -39,7 +35,6 @@ const WAVE_COLORS: Record<SoundKind, number> = {
   death: 0xffffff,
   ambient: 0x79dfee,
   hazard: 0xff334f,
-  debug: 0xc18cff,
 };
 
 const PLAYER_SPRITE_FEET_Y = 80;
@@ -53,7 +48,6 @@ export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
 
   private readonly playerSprite: Phaser.GameObjects.Sprite;
-  private readonly playerGraphics: Phaser.GameObjects.Graphics;
   private readonly tutorialText: Phaser.GameObjects.Graphics;
   private readonly enemyViews = new Map<
     string,
@@ -62,14 +56,12 @@ export class GameViewAdapter {
   private readonly waveGraphics: Phaser.GameObjects.Graphics;
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
-  private readonly debugGraphics: Phaser.GameObjects.Graphics;
   private currentTutorialPrompt = "";
 
   constructor(
     scene: Phaser.Scene,
     private readonly world: WorldDefinition,
   ) {
-    this.debugGraphics = scene.add.graphics().setDepth(1);
     this.echoGraphics = scene.add.graphics().setDepth(3);
     this.waveGraphics = scene.add.graphics().setDepth(4);
     this.hazardGraphics = scene.add.graphics().setDepth(7);
@@ -77,12 +69,10 @@ export class GameViewAdapter {
       .sprite(0, PLAYER_CONFIG.height / 2, ASSET_KEYS.player.idle)
       .setOrigin(0.5, PLAYER_SPRITE_FEET_Y / PLAYER_SPRITE_FRAME.height)
       .setScale(PLAYER_SPRITE_DISPLAY_SCALE);
-    this.playerGraphics = scene.add.graphics();
     this.tutorialText = scene.add.graphics();
     this.playerTarget = scene.add
       .container(world.playerSpawn.x, world.playerSpawn.y, [
         this.playerSprite,
-        this.playerGraphics,
         this.tutorialText,
       ])
       .setDepth(10);
@@ -97,14 +87,13 @@ export class GameViewAdapter {
     }
   }
 
-  sync(state: GameState, debugVisible: boolean): void {
+  sync(state: GameState): void {
     this.drawPlayer(state.player);
     this.drawTutorialText(state);
-    this.drawEnemies(state, debugVisible);
-    this.drawHazards(state, debugVisible);
+    this.drawEnemies(state);
+    this.drawHazards(state);
     this.drawEchoes(state);
     this.drawWaves(state);
-    this.drawDebug(debugVisible);
   }
 
   private drawTutorialText(state: GameState): void {
@@ -142,19 +131,20 @@ export class GameViewAdapter {
     }
   }
 
-  private drawHazards(state: GameState, debugVisible: boolean): void {
+  private drawHazards(state: GameState): void {
     this.hazardGraphics.clear();
     for (const definition of this.world.hazards ?? []) {
       const hazard = state.hazards.find(
         (candidate) => candidate.id === definition.id,
       );
-      if (!hazard || (!debugVisible && hazard.echoTime <= 0)) {
+      if (!hazard || hazard.echoTime <= 0) {
         continue;
       }
 
-      const alpha = debugVisible
-        ? 0.35
-        : Math.min(1, hazard.echoTime / Math.max(hazard.echoDuration, 0.001));
+      const alpha = Math.min(
+        1,
+        hazard.echoTime / Math.max(hazard.echoDuration, 0.001),
+      );
       this.hazardGraphics.lineStyle(5, 0xff334f, alpha);
       this.hazardGraphics.strokeRect(
         definition.bounds.x,
@@ -176,50 +166,25 @@ export class GameViewAdapter {
     this.playerSprite.setFlipX(
       (player.action === "attack" ? player.attackFacing : player.facing) < 0,
     );
-
-    const graphics = this.playerGraphics;
-    graphics.clear();
-    const hitboxColor =
-      player.action === "hurt" || player.action === "dead" ? 0xff5c86 : 0x76efff;
-    graphics.lineStyle(4, hitboxColor, 1);
-    graphics.strokeRect(
-      player.hitboxOffsetX - PLAYER_CONFIG.width / 2,
-      -PLAYER_CONFIG.height / 2,
-      PLAYER_CONFIG.width,
-      PLAYER_CONFIG.height,
-    );
-
-    if (player.action === "attack") {
-      const attackBounds = getPlayerAttackBounds(player);
-      const active =
-        player.actionTime >= PLAYER_CONFIG.attackActiveStart &&
-        player.actionTime <= PLAYER_CONFIG.attackActiveEnd;
-      graphics.lineStyle(4, 0xffd166, active ? 1 : 0.4);
-      graphics.strokeRect(
-        attackBounds.x - player.position.x,
-        attackBounds.y - player.position.y,
-        attackBounds.width,
-        attackBounds.height,
-      );
-    }
   }
 
-  private drawEnemies(state: GameState, debugVisible: boolean): void {
+  private drawEnemies(state: GameState): void {
     for (const enemy of state.enemies) {
       const view = this.enemyViews.get(enemy.id);
       if (!view) {
         continue;
       }
       view.container.setPosition(enemy.position.x, enemy.position.y);
-      const visible = debugVisible || enemy.echoTime > 0;
+      const visible = enemy.echoTime > 0;
       view.container.setVisible(visible);
       if (!visible) {
         continue;
       }
 
-      const alpha = debugVisible
-        ? 0.35
-        : Math.min(1, enemy.echoTime / Math.max(enemy.echoDuration, 0.001));
+      const alpha = Math.min(
+        1,
+        enemy.echoTime / Math.max(enemy.echoDuration, 0.001),
+      );
       this.drawEnemy(view.graphics, enemy, alpha);
     }
   }
@@ -238,17 +203,6 @@ export class GameViewAdapter {
       ENEMY_CONFIG.width,
       ENEMY_CONFIG.height,
     );
-
-    if (enemy.action === "attack") {
-      const attackBounds = getEnemyAttackBounds(enemy);
-      graphics.lineStyle(4, 0xff9f68, alpha);
-      graphics.strokeRect(
-        attackBounds.x - enemy.position.x,
-        attackBounds.y - enemy.position.y,
-        attackBounds.width,
-        attackBounds.height,
-      );
-    }
   }
 
   private drawEchoes(state: GameState): void {
@@ -333,31 +287,6 @@ export class GameViewAdapter {
           );
         }
       }
-    }
-  }
-
-  private drawDebug(visible: boolean): void {
-    this.debugGraphics.clear();
-    if (!visible) {
-      return;
-    }
-    this.debugGraphics.lineStyle(2, 0x5f7690, 0.55);
-    for (const block of this.world.terrain) {
-      this.debugGraphics.strokeRect(
-        block.bounds.x,
-        block.bounds.y,
-        block.bounds.width,
-        block.bounds.height,
-      );
-    }
-    this.debugGraphics.lineStyle(2, 0xff334f, 0.55);
-    for (const hazard of this.world.hazards ?? []) {
-      this.debugGraphics.strokeRect(
-        hazard.bounds.x,
-        hazard.bounds.y,
-        hazard.bounds.width,
-        hazard.bounds.height,
-      );
     }
   }
 }

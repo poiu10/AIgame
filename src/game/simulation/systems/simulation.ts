@@ -67,17 +67,6 @@ export function stepSimulation(
   updateWorldEnvironment(state, world, deltaSeconds);
   updateTutorialProgress(state, world);
 
-  if (input.debugPulsePressed) {
-    emitSound(
-      state,
-      "debug",
-      state.player.position,
-      800,
-      1,
-      PLAYER_SOUND_SOURCE_ID,
-    );
-  }
-
   updateSoundPropagation(state, world, deltaSeconds);
   return state;
 }

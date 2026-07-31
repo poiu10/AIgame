@@ -17,8 +17,7 @@ export type SoundKind =
   | "hurt"
   | "death"
   | "ambient"
-  | "hazard"
-  | "debug";
+  | "hazard";
 
 export interface Vector2State {
   x: number;
