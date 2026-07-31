@@ -46,6 +46,11 @@ export const ENEMY_CONFIG = {
   attackCooldownSeconds: 1.15,
   hazardDamageCooldownSeconds: 0.8,
   hurtSeconds: 0.24,
+  deathAnimationSeconds: 0.54,
+  deathRevealSeconds: 0.82,
+  corpseEchoWidth: 96,
+  corpseEchoHeight: 36,
+  corpseEchoOffsetY: 30,
   footstepDistance: 128,
 } as const;
 

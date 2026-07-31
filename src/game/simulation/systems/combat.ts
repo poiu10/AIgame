@@ -46,9 +46,10 @@ function defeatEnemy(state: GameState, enemy: EnemyState): void {
   enemy.health = 0;
   enemy.alive = false;
   enemy.action = "dead";
-  enemy.echoTime = 1;
-  enemy.echoDuration = 1;
+  enemy.actionTime = 0;
   emitSound(state, "death", enemy.position, 720, 1, enemy.id);
+  enemy.echoTime = ENEMY_CONFIG.deathRevealSeconds;
+  enemy.echoDuration = ENEMY_CONFIG.deathRevealSeconds;
   if (
     state.status === "playing" &&
     state.enemies.every((candidate) => !candidate.alive)

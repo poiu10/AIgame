@@ -21,9 +21,11 @@ import {
 import { getPlayerBounds } from "../src/game/simulation/rules/player";
 import { createInitialGameState } from "../src/game/simulation/state";
 import {
+  damageEnemy,
   damagePlayer,
   updatePlayerCombat,
 } from "../src/game/simulation/systems/combat";
+import { updateEnemies } from "../src/game/simulation/systems/enemies";
 import { getLandingSoundProfile } from "../src/game/simulation/systems/movement";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
@@ -544,6 +546,61 @@ describe("sound propagation", () => {
     }
 
     expect(state.enemies[0].echoTime).toBeGreaterThan(0);
+  });
+
+  it("keeps a corpse and lets later sound waves reveal it again", () => {
+    const corpseWorld: WorldDefinition = {
+      ...flatWorld,
+      enemies: [
+        {
+          id: "corpse-target",
+          position: { x: 360, y: 652 },
+          patrolMinX: 360,
+          patrolMaxX: 360,
+          health: 1,
+        },
+      ],
+    };
+    const state = createInitialGameState(corpseWorld);
+    const corpse = state.enemies[0];
+    corpse.grounded = true;
+    corpse.facing = 1;
+    damageEnemy(state, corpse, 1);
+
+    expect(state.enemies).toHaveLength(1);
+    expect(corpse.alive).toBe(false);
+    expect(corpse.action).toBe("dead");
+
+    for (let index = 0; index < 10; index += 1) {
+      updateEnemies(state, corpseWorld, FIXED_STEP_SECONDS);
+    }
+    expect(corpse.actionTime).toBeCloseTo(FIXED_STEP_SECONDS * 10);
+    expect(state.enemies).toContain(corpse);
+
+    state.soundWaves = [];
+    corpse.echoTime = 0;
+    emitSound(
+      state,
+      "terrain-step",
+      { x: 200, y: 680 },
+      400,
+      1,
+      PLAYER_SOUND_SOURCE_ID,
+    );
+    for (let index = 0; index < 20; index += 1) {
+      updateSoundPropagation(state, corpseWorld, FIXED_STEP_SECONDS);
+    }
+
+    expect(corpse.echoTime).toBeGreaterThan(0);
+    expect(corpse.alive).toBe(false);
+    expect(corpse.facing).toBe(1);
+
+    state.soundWaves = [];
+    for (let index = 0; index < 120; index += 1) {
+      updateSoundPropagation(state, corpseWorld, FIXED_STEP_SECONDS);
+    }
+    expect(corpse.echoTime).toBe(0);
+    expect(state.enemies).toContain(corpse);
   });
 
   it("moves an enemy toward the side a player wave arrived from", () => {

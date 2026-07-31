@@ -28,7 +28,10 @@ export type EnemyThreatFrame =
   | "attack-follow-through"
   | "attack-recover"
   | "hurt"
-  | "dead";
+  | "death-recoil"
+  | "death-fall"
+  | "death-collapse"
+  | "corpse";
 
 const WALK_FRAMES: readonly EnemyThreatFrame[] = [
   "walk-0",
@@ -279,7 +282,7 @@ function createClawPolygons(
 }
 
 function createEnemyPolygons(frame: EnemyThreatFrame): CellPolygon[] {
-  if (frame === "dead") {
+  if (frame === "corpse") {
     return [[
       { x: -15, y: 13 },
       { x: -10, y: 9 },
@@ -291,6 +294,62 @@ function createEnemyPolygons(frame: EnemyThreatFrame): CellPolygon[] {
       { x: 10, y: 15 },
       { x: -13, y: 15 },
     ]];
+  }
+
+  if (frame === "death-collapse") {
+    return [[
+      { x: -14, y: 10 },
+      { x: -10, y: 5 },
+      { x: -5, y: 7 },
+      { x: -1, y: 2 },
+      { x: 4, y: 6 },
+      { x: 10, y: 7 },
+      { x: 14, y: 12 },
+      { x: 10, y: 15 },
+      { x: -12, y: 15 },
+    ]];
+  }
+
+  if (frame === "death-fall") {
+    return [
+      [
+        { x: -14, y: -1 },
+        { x: -9, y: -7 },
+        { x: -3, y: -6 },
+        { x: 2, y: -2 },
+        { x: 9, y: 1 },
+        { x: 13, y: 6 },
+        { x: 8, y: 9 },
+        { x: 2, y: 5 },
+        { x: -5, y: 3 },
+        { x: -11, y: 5 },
+      ],
+      [
+        { x: -9, y: -5 },
+        { x: -10, y: -12 },
+        { x: -6, y: -7 },
+      ],
+      [
+        { x: 4, y: 0 },
+        { x: 12, y: -3 },
+        { x: 16, y: 0 },
+        { x: 10, y: 3 },
+      ],
+    ];
+  }
+
+  if (frame === "death-recoil") {
+    return [
+      ...createBodyPolygons(0, 11),
+      ...createWalkLegPolygons("idle", 0),
+      [
+        { x: 2, y: -5 },
+        { x: 5, y: -11 },
+        { x: 9, y: -14 },
+        { x: 8, y: -8 },
+        { x: 5, y: -2 },
+      ],
+    ];
   }
 
   if (frame === "hurt") {
@@ -328,7 +387,14 @@ export function resolveEnemyThreatFrame(
   elapsedSeconds: number,
 ): EnemyThreatFrame {
   if (enemy.action === "dead") {
-    return "dead";
+    const deathProgress = enemy.actionTime / ENEMY_CONFIG.deathAnimationSeconds;
+    if (deathProgress < 0.3) {
+      return "death-recoil";
+    }
+    if (!enemy.grounded || deathProgress < 0.68) {
+      return "death-fall";
+    }
+    return deathProgress < 1 ? "death-collapse" : "corpse";
   }
   if (enemy.action === "hurt") {
     return "hurt";

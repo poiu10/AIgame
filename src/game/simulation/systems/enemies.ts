@@ -31,6 +31,24 @@ export function updateEnemies(
 ): void {
   for (const enemy of state.enemies) {
     if (!enemy.alive) {
+      enemy.actionTime += deltaSeconds;
+      if (!enemy.grounded) {
+        enemy.velocity.x *= Math.max(0, 1 - 4 * deltaSeconds);
+        enemy.velocity.y = Math.min(
+          enemy.velocity.y + ENEMY_CONFIG.gravity * deltaSeconds,
+          ENEMY_CONFIG.maxFallSpeed,
+        );
+        moveBodyAgainstTerrain(
+          enemy,
+          ENEMY_CONFIG.width,
+          ENEMY_CONFIG.height,
+          world.terrain,
+          deltaSeconds,
+        );
+      } else {
+        enemy.velocity.x = 0;
+        enemy.velocity.y = 0;
+      }
       continue;
     }
 

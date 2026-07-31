@@ -97,6 +97,37 @@ describe("threat pixel art", () => {
     );
   });
 
+  it("plays a death sequence before settling on the persistent corpse", () => {
+    const deadEnemy = createEnemy({
+      alive: false,
+      action: "dead",
+      grounded: true,
+    });
+
+    deadEnemy.actionTime = ENEMY_CONFIG.deathAnimationSeconds * 0.1;
+    expect(resolveEnemyThreatFrame(deadEnemy, 0)).toBe("death-recoil");
+    deadEnemy.actionTime = ENEMY_CONFIG.deathAnimationSeconds * 0.5;
+    expect(resolveEnemyThreatFrame(deadEnemy, 0)).toBe("death-fall");
+    deadEnemy.actionTime = ENEMY_CONFIG.deathAnimationSeconds * 0.8;
+    expect(resolveEnemyThreatFrame(deadEnemy, 0)).toBe("death-collapse");
+    deadEnemy.actionTime = ENEMY_CONFIG.deathAnimationSeconds * 1.1;
+    expect(resolveEnemyThreatFrame(deadEnemy, 0)).toBe("corpse");
+
+    const deathFrames = [
+      "death-recoil",
+      "death-fall",
+      "death-collapse",
+      "corpse",
+    ] as const;
+    expect(
+      new Set(
+        deathFrames.map((frame) =>
+          JSON.stringify(createEnemyThreatCells(frame, 1)),
+        ),
+      ).size,
+    ).toBe(deathFrames.length);
+  });
+
   it("fills the serrated hazard interior while keeping it inside its bounds", () => {
     const cells = createHazardThreatCells(120, 320);
     expectUniqueIntegerCells(cells);

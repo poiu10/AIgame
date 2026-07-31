@@ -313,18 +313,24 @@ export function updateSoundPropagation(
           };
 
       for (const enemy of state.enemies) {
-        if (!enemy.alive) {
-          continue;
-        }
+        const echoPosition = enemy.alive
+          ? enemy.position
+          : {
+              x: enemy.position.x,
+              y: enemy.position.y + ENEMY_CONFIG.corpseEchoOffsetY,
+            };
         const enemyBounds = centerRect(
-          enemy.position,
-          ENEMY_CONFIG.width,
-          ENEMY_CONFIG.height,
+          echoPosition,
+          enemy.alive ? ENEMY_CONFIG.width : ENEMY_CONFIG.corpseEchoWidth,
+          enemy.alive ? ENEMY_CONFIG.height : ENEMY_CONFIG.corpseEchoHeight,
         );
         if (segmentIntersectsAabb(ray.position, segmentEnd, enemyBounds)) {
-          enemy.echoTime = Math.max(enemy.echoTime, SOUND_CONFIG.enemyEchoSeconds);
-          enemy.echoDuration = SOUND_CONFIG.enemyEchoSeconds;
+          if (enemy.echoTime <= SOUND_CONFIG.enemyEchoSeconds) {
+            enemy.echoTime = SOUND_CONFIG.enemyEchoSeconds;
+            enemy.echoDuration = SOUND_CONFIG.enemyEchoSeconds;
+          }
           if (
+            enemy.alive &&
             wave.sourceId === PLAYER_SOUND_SOURCE_ID &&
             !wave.reactedEnemyIds.includes(enemy.id)
           ) {
