@@ -54,6 +54,10 @@ export const ENEMY_CONFIG = {
   footstepDistance: 128,
 } as const;
 
+export const HAZARD_CONFIG = {
+  attackAnimationSeconds: 0.36,
+} as const;
+
 export const SOUND_CONFIG = {
   speed: 1300,
   initialRayCount: 24,

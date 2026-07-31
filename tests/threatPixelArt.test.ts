@@ -4,8 +4,10 @@ import { ENEMY_ATTACK_HITBOX } from "../src/game/simulation/rules/combat";
 import type { EnemyState } from "../src/game/simulation/state";
 import {
   createEnemyThreatCells,
+  createHazardLightningCells,
   createHazardThreatCells,
   resolveEnemyThreatFrame,
+  resolveHazardAttackFrame,
   THREAT_PIXEL_SIZE,
 } from "../src/phaser/view/threatPixelArt";
 import {
@@ -174,6 +176,46 @@ describe("threat pixel art", () => {
     expect(cells).not.toContainEqual({ x: 39, y: 0 });
     expect(cells).toContainEqual({ x: 19, y: 50 });
     expect(cells.length).toBeGreaterThan(2500);
+  });
+
+  it("bursts 3px lightning outside the unchanged hazard silhouette", () => {
+    const bodyBefore = createHazardThreatCells(120, 320);
+    const charge = createHazardLightningCells(120, 320, "charge");
+    const strike = createHazardLightningCells(120, 320, "strike");
+    const retract = createHazardLightningCells(120, 320, "retract");
+    const bodyAfter = createHazardThreatCells(120, 320);
+
+    expectUniqueIntegerCells(charge);
+    expectUniqueIntegerCells(strike);
+    expectUniqueIntegerCells(retract);
+    expect(bodyAfter).toEqual(bodyBefore);
+    expect(strike.length).toBeGreaterThan(charge.length);
+    expect(strike.some((cell) => cell.x < 0)).toBe(true);
+    expect(strike.some((cell) => cell.x >= 40)).toBe(true);
+    expect(Math.min(...strike.map((cell) => cell.x))).toBeLessThan(
+      Math.min(...retract.map((cell) => cell.x)),
+    );
+    expect(Math.max(...strike.map((cell) => cell.x))).toBeGreaterThan(
+      Math.max(...retract.map((cell) => cell.x)),
+    );
+  });
+
+  it("selects charge, strike, and retract from hazard attack time", () => {
+    const hazard = {
+      id: "hazard-test",
+      echoTime: 1,
+      echoDuration: 1,
+      attackTime: 1,
+      attackDuration: 1,
+    };
+
+    expect(resolveHazardAttackFrame(hazard)).toBe("charge");
+    hazard.attackTime = 0.6;
+    expect(resolveHazardAttackFrame(hazard)).toBe("strike");
+    hazard.attackTime = 0.2;
+    expect(resolveHazardAttackFrame(hazard)).toBe("retract");
+    hazard.attackTime = 0;
+    expect(resolveHazardAttackFrame(hazard)).toBeNull();
   });
 
   it("uses one red for threats and the player blue for enemy footsteps", () => {

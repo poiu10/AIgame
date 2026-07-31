@@ -72,6 +72,8 @@ export interface HazardState {
   id: string;
   echoTime: number;
   echoDuration: number;
+  attackTime: number;
+  attackDuration: number;
 }
 
 export interface WorldSoundEmitterState {
@@ -188,6 +190,8 @@ export function createInitialGameState(
       id: hazard.id,
       echoTime: 0,
       echoDuration: 0,
+      attackTime: 0,
+      attackDuration: 0,
     })),
     worldSoundEmitters: (world.soundEmitters ?? []).map((emitter) => ({
       id: emitter.id,

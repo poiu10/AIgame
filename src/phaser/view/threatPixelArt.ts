@@ -1,6 +1,10 @@
 import { ENEMY_CONFIG } from "../../game/simulation/rules/config";
 import { ENEMY_ATTACK_HITBOX } from "../../game/simulation/rules/combat";
-import type { EnemyState, Facing } from "../../game/simulation/state";
+import type {
+  EnemyState,
+  Facing,
+  HazardState,
+} from "../../game/simulation/state";
 import { SOUND_PIXEL_SIZE } from "./pixelLine";
 
 export const THREAT_PIXEL_SIZE = SOUND_PIXEL_SIZE;
@@ -33,6 +37,8 @@ export type EnemyThreatFrame =
   | "death-fall"
   | "death-collapse"
   | "corpse";
+
+export type HazardAttackFrame = "charge" | "strike" | "retract";
 
 const WALK_FRAMES: readonly EnemyThreatFrame[] = [
   "walk-0",
@@ -131,6 +137,15 @@ function addPolygons(
 ): void {
   for (const polygon of polygons) {
     addFilledPolygon(cells, polygon);
+  }
+}
+
+function addPolyline(
+  cells: Map<string, ThreatPixelCell>,
+  points: readonly CellPoint[],
+): void {
+  for (let index = 0; index < points.length - 1; index += 1) {
+    addBoundary(cells, points[index], points[index + 1]);
   }
 }
 
@@ -494,5 +509,71 @@ export function createHazardThreatCells(
   ];
   const cells = new Map<string, ThreatPixelCell>();
   addFilledPolygon(cells, monolith);
+  return [...cells.values()];
+}
+
+export function resolveHazardAttackFrame(
+  hazard: HazardState,
+): HazardAttackFrame | null {
+  if (hazard.attackTime <= 0 || hazard.attackDuration <= 0) {
+    return null;
+  }
+
+  const progress = 1 - hazard.attackTime / hazard.attackDuration;
+  if (progress < 0.22) {
+    return "charge";
+  }
+  return progress < 0.62 ? "strike" : "retract";
+}
+
+export function createHazardLightningCells(
+  width: number,
+  height: number,
+  frame: HazardAttackFrame,
+): ThreatPixelCell[] {
+  const widthCells = Math.max(9, Math.floor(width / THREAT_PIXEL_SIZE));
+  const heightCells = Math.max(17, Math.floor(height / THREAT_PIXEL_SIZE));
+  const lastX = widthCells - 1;
+  const cells = new Map<string, ThreatPixelCell>();
+  const anchors =
+    frame === "charge"
+      ? [0.5]
+      : frame === "strike"
+        ? [0.22, 0.5, 0.78]
+        : [0.34, 0.66];
+  const reach = frame === "charge" ? 6 : frame === "strike" ? 14 : 9;
+
+  for (let index = 0; index < anchors.length; index += 1) {
+    const anchorY = Math.round((heightCells - 1) * anchors[index]);
+    const verticalSign = index % 2 === 0 ? -1 : 1;
+
+    for (const direction of [-1, 1] as const) {
+      const startX = direction < 0 ? 2 : lastX - 2;
+      const firstX = startX + direction * Math.ceil(reach * 0.34);
+      const secondX = startX + direction * Math.ceil(reach * 0.68);
+      const endX = startX + direction * reach;
+      const firstY = anchorY + verticalSign * direction * 2;
+      const secondY = anchorY - verticalSign * 2;
+      const endY = anchorY + verticalSign * direction * 4;
+      const trunk = [
+        { x: startX, y: anchorY },
+        { x: firstX, y: firstY },
+        { x: secondX, y: secondY },
+        { x: endX, y: endY },
+      ];
+      addPolyline(cells, trunk);
+
+      if (frame !== "charge") {
+        addPolyline(cells, [
+          { x: secondX, y: secondY },
+          {
+            x: secondX + direction * 4,
+            y: secondY + verticalSign * direction * 5,
+          },
+        ]);
+      }
+    }
+  }
+
   return [...cells.values()];
 }

@@ -1043,6 +1043,8 @@ describe("tutorial stage", () => {
     expect(state.player.action).toBe("hurt");
     expect(state.soundWaves.some((wave) => wave.kind === "hazard")).toBe(true);
     expect(state.hazards[0].echoTime).toBeGreaterThan(0);
+    expect(state.hazards[0].attackTime).toBeGreaterThan(0);
+    expect(state.hazards[0].attackDuration).toBeGreaterThan(0);
   });
 
   it("rejects non-rolling movement even during damage invulnerability", () => {

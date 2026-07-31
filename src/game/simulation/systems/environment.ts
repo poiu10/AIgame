@@ -1,6 +1,6 @@
 import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
-import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
+import { ENEMY_CONFIG, HAZARD_CONFIG, PLAYER_CONFIG } from "../rules/config";
 import { getPlayerBounds } from "../rules/player";
 import type { GameState } from "../state";
 import { damageEnemy, damagePlayer } from "./combat";
@@ -15,6 +15,7 @@ export function updateWorldEnvironment(
 ): void {
   for (const hazard of state.hazards) {
     hazard.echoTime = Math.max(0, hazard.echoTime - deltaSeconds);
+    hazard.attackTime = Math.max(0, hazard.attackTime - deltaSeconds);
   }
 
   for (const emitterState of state.worldSoundEmitters) {
@@ -46,6 +47,8 @@ export function updateWorldEnvironment(
       if (hazard) {
         hazard.echoTime = HAZARD_REVEAL_SECONDS;
         hazard.echoDuration = HAZARD_REVEAL_SECONDS;
+        hazard.attackTime = HAZARD_CONFIG.attackAnimationSeconds;
+        hazard.attackDuration = HAZARD_CONFIG.attackAnimationSeconds;
       }
     }
   }

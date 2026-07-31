@@ -23,8 +23,10 @@ import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 import {
   createEnemyThreatCells,
+  createHazardLightningCells,
   createHazardThreatCells,
   resolveEnemyThreatFrame,
+  resolveHazardAttackFrame,
   THREAT_PIXEL_SIZE,
 } from "./threatPixelArt";
 import { SOUND_WAVE_COLORS, THREAT_COLOR } from "./viewPalette";
@@ -148,6 +150,23 @@ export class GameViewAdapter {
           THREAT_PIXEL_SIZE,
           THREAT_PIXEL_SIZE,
         );
+      }
+
+      const attackFrame = resolveHazardAttackFrame(hazard);
+      if (attackFrame) {
+        this.hazardGraphics.fillStyle(THREAT_COLOR, Math.min(1, alpha + 0.2));
+        for (const cell of createHazardLightningCells(
+          definition.bounds.width,
+          definition.bounds.height,
+          attackFrame,
+        )) {
+          this.hazardGraphics.fillRect(
+            definition.bounds.x + cell.x * THREAT_PIXEL_SIZE,
+            definition.bounds.y + cell.y * THREAT_PIXEL_SIZE,
+            THREAT_PIXEL_SIZE,
+            THREAT_PIXEL_SIZE,
+          );
+        }
       }
     }
   }
