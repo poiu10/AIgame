@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { ENEMY_CONFIG } from "../src/game/simulation/rules/config";
+import type { EnemyState } from "../src/game/simulation/state";
 import {
   createEnemyThreatCells,
   createHazardThreatCells,
+  resolveEnemyThreatFrame,
   THREAT_PIXEL_SIZE,
 } from "../src/phaser/view/threatPixelArt";
 import {
@@ -21,25 +24,80 @@ function expectUniqueIntegerCells(cells: readonly { x: number; y: number }[]): v
   }
 }
 
+function createEnemy(overrides: Partial<EnemyState> = {}): EnemyState {
+  return {
+    id: "threat-test",
+    position: { x: 0, y: 0 },
+    velocity: { x: 0, y: 0 },
+    facing: 1,
+    attackFacing: 1,
+    grounded: true,
+    health: 3,
+    maxHealth: 3,
+    alive: true,
+    action: "patrol",
+    actionTime: 0,
+    attackCooldown: 0,
+    hazardInvulnerabilityTime: 0,
+    patrolMinX: -100,
+    patrolMaxX: 100,
+    footstepTravel: 0,
+    echoTime: 1,
+    echoDuration: 1,
+    ...overrides,
+  };
+}
+
 describe("threat pixel art", () => {
-  it("builds the enemy from unique 3px cells with a directional attack claw", () => {
-    const idle = createEnemyThreatCells("patrol", 1);
-    const attackingRight = createEnemyThreatCells("attack", 1);
-    const attackingLeft = createEnemyThreatCells("attack", -1);
+  it("builds a filled side-profile enemy from unique 3px cells", () => {
+    const idle = createEnemyThreatCells("idle", 1);
+    const facingLeft = createEnemyThreatCells("idle", -1);
 
     expect(THREAT_PIXEL_SIZE).toBe(3);
     expectUniqueIntegerCells(idle);
-    expectUniqueIntegerCells(attackingRight);
-    expectUniqueIntegerCells(attackingLeft);
-    expect(Math.max(...attackingRight.map((cell) => cell.x))).toBeGreaterThan(
-      Math.max(...idle.map((cell) => cell.x)),
+    expectUniqueIntegerCells(facingLeft);
+    expect(idle.length).toBeGreaterThan(250);
+    expect(Math.max(...idle.map((cell) => cell.x))).toBeGreaterThan(
+      Math.abs(Math.min(...idle.map((cell) => cell.x))) / 2,
     );
-    expect(Math.min(...attackingLeft.map((cell) => cell.x))).toBeLessThan(
-      Math.min(...idle.map((cell) => cell.x)),
+    expect(Math.min(...facingLeft.map((cell) => cell.x))).toBe(
+      -Math.max(...idle.map((cell) => cell.x)),
     );
   });
 
-  it("keeps the serrated hazard inside its bounds without drawing box corners", () => {
+  it("selects four walking frames and three attack phases", () => {
+    const walker = createEnemy({ velocity: { x: 100, y: 0 } });
+    expect(resolveEnemyThreatFrame(walker, 0)).toBe("walk-0");
+    expect(resolveEnemyThreatFrame(walker, 1 / 9)).toBe("walk-1");
+    expect(resolveEnemyThreatFrame(walker, 2 / 9)).toBe("walk-2");
+    expect(resolveEnemyThreatFrame(walker, 3 / 9)).toBe("walk-3");
+
+    const attacker = createEnemy({ action: "attack" });
+    attacker.actionTime = ENEMY_CONFIG.attackSeconds * 0.2;
+    expect(resolveEnemyThreatFrame(attacker, 0)).toBe("attack-strike");
+    attacker.actionTime = ENEMY_CONFIG.attackSeconds * 0.6;
+    expect(resolveEnemyThreatFrame(attacker, 0)).toBe(
+      "attack-follow-through",
+    );
+    attacker.actionTime = ENEMY_CONFIG.attackSeconds * 0.9;
+    expect(resolveEnemyThreatFrame(attacker, 0)).toBe("attack-recover");
+  });
+
+  it("changes the filled silhouette between walking and attacking poses", () => {
+    const walkFrames = [0, 1, 2, 3].map((index) =>
+      createEnemyThreatCells(`walk-${index}` as const, 1),
+    );
+    const striking = createEnemyThreatCells("attack-strike", 1);
+
+    expect(new Set(walkFrames.map((cells) => JSON.stringify(cells))).size).toBe(
+      4,
+    );
+    expect(Math.max(...striking.map((cell) => cell.x))).toBeGreaterThan(
+      Math.max(...walkFrames[0].map((cell) => cell.x)),
+    );
+  });
+
+  it("fills the serrated hazard interior while keeping it inside its bounds", () => {
     const cells = createHazardThreatCells(120, 320);
     expectUniqueIntegerCells(cells);
 
@@ -47,8 +105,8 @@ describe("threat pixel art", () => {
     expect(cells.every((cell) => cell.y >= 0 && cell.y * 3 < 320)).toBe(true);
     expect(cells).not.toContainEqual({ x: 0, y: 0 });
     expect(cells).not.toContainEqual({ x: 39, y: 0 });
-    expect(cells.some((cell) => cell.x === 11)).toBe(true);
-    expect(cells.some((cell) => cell.x === 28)).toBe(true);
+    expect(cells).toContainEqual({ x: 19, y: 50 });
+    expect(cells.length).toBeGreaterThan(2500);
   });
 
   it("uses one red for threats and the player blue for enemy footsteps", () => {

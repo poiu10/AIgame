@@ -1,4 +1,5 @@
-import type { EnemyAction, Facing } from "../../game/simulation/state";
+import { ENEMY_CONFIG } from "../../game/simulation/rules/config";
+import type { EnemyState, Facing } from "../../game/simulation/state";
 import { SOUND_PIXEL_SIZE } from "./pixelLine";
 
 export const THREAT_PIXEL_SIZE = SOUND_PIXEL_SIZE;
@@ -13,15 +14,37 @@ interface CellPoint {
   y: number;
 }
 
-type CellSegment = readonly [CellPoint, CellPoint];
+type CellPolygon = readonly CellPoint[];
+
+export type EnemyThreatFrame =
+  | "idle"
+  | "walk-0"
+  | "walk-1"
+  | "walk-2"
+  | "walk-3"
+  | "alert-0"
+  | "alert-1"
+  | "attack-strike"
+  | "attack-follow-through"
+  | "attack-recover"
+  | "hurt"
+  | "dead";
+
+const WALK_FRAMES: readonly EnemyThreatFrame[] = [
+  "walk-0",
+  "walk-1",
+  "walk-2",
+  "walk-3",
+];
 
 function cellKey(x: number, y: number): string {
   return `${x},${y}`;
 }
 
-function addSegment(
+function addBoundary(
   cells: Map<string, ThreatPixelCell>,
-  [start, end]: CellSegment,
+  start: CellPoint,
+  end: CellPoint,
 ): void {
   let x = start.x;
   let y = start.y;
@@ -49,92 +72,293 @@ function addSegment(
   }
 }
 
-function addSegments(
+function pointInsidePolygon(x: number, y: number, polygon: CellPolygon): boolean {
+  let inside = false;
+  for (
+    let current = 0, previous = polygon.length - 1;
+    current < polygon.length;
+    previous = current, current += 1
+  ) {
+    const a = polygon[current];
+    const b = polygon[previous];
+    const crossesScanline = a.y > y !== b.y > y;
+    if (
+      crossesScanline &&
+      x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x
+    ) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function addFilledPolygon(
   cells: Map<string, ThreatPixelCell>,
-  segments: readonly CellSegment[],
+  polygon: CellPolygon,
 ): void {
-  for (const segment of segments) {
-    addSegment(cells, segment);
+  const minimumX = Math.min(...polygon.map((point) => point.x));
+  const maximumX = Math.max(...polygon.map((point) => point.x));
+  const minimumY = Math.min(...polygon.map((point) => point.y));
+  const maximumY = Math.max(...polygon.map((point) => point.y));
+
+  for (let y = minimumY; y <= maximumY; y += 1) {
+    for (let x = minimumX; x <= maximumX; x += 1) {
+      if (pointInsidePolygon(x + 0.5, y + 0.5, polygon)) {
+        cells.set(cellKey(x, y), { x, y });
+      }
+    }
+  }
+
+  for (let index = 0; index < polygon.length; index += 1) {
+    addBoundary(
+      cells,
+      polygon[index],
+      polygon[(index + 1) % polygon.length],
+    );
   }
 }
 
-const ENEMY_BODY_SEGMENTS: readonly CellSegment[] = [
-  // 갈라진 뿔과 아래로 눌린 머리
-  [{ x: -4, y: -10 }, { x: -8, y: -15 }],
-  [{ x: -8, y: -15 }, { x: -9, y: -9 }],
-  [{ x: 4, y: -10 }, { x: 8, y: -15 }],
-  [{ x: 8, y: -15 }, { x: 9, y: -9 }],
-  [{ x: -9, y: -9 }, { x: -6, y: -3 }],
-  [{ x: 9, y: -9 }, { x: 6, y: -3 }],
-  [{ x: -6, y: -3 }, { x: 0, y: 1 }],
-  [{ x: 0, y: 1 }, { x: 6, y: -3 }],
-  // 비대칭 눈썹과 빈 얼굴의 균열
-  [{ x: -6, y: -7 }, { x: -2, y: -8 }],
-  [{ x: 2, y: -8 }, { x: 6, y: -7 }],
-  [{ x: 0, y: -6 }, { x: 0, y: -2 }],
-  // 굽은 어깨, 갈비뼈, 가시 돋친 몸통
-  [{ x: -6, y: -2 }, { x: -10, y: 2 }],
-  [{ x: 6, y: -2 }, { x: 10, y: 2 }],
-  [{ x: -7, y: 0 }, { x: -6, y: 10 }],
-  [{ x: 7, y: 0 }, { x: 6, y: 10 }],
-  [{ x: -6, y: 4 }, { x: -1, y: 5 }],
-  [{ x: 1, y: 5 }, { x: 6, y: 4 }],
-  [{ x: -6, y: 7 }, { x: -1, y: 8 }],
-  [{ x: 1, y: 8 }, { x: 6, y: 7 }],
-  [{ x: -6, y: 10 }, { x: -3, y: 12 }],
-  [{ x: 6, y: 10 }, { x: 3, y: 12 }],
-  // 뒤로 꺾인 다리와 발톱
-  [{ x: -3, y: 12 }, { x: -5, y: 15 }],
-  [{ x: -5, y: 15 }, { x: -9, y: 15 }],
-  [{ x: 3, y: 12 }, { x: 5, y: 15 }],
-  [{ x: 5, y: 15 }, { x: 9, y: 15 }],
-];
+function addPolygons(
+  cells: Map<string, ThreatPixelCell>,
+  polygons: readonly CellPolygon[],
+): void {
+  for (const polygon of polygons) {
+    addFilledPolygon(cells, polygon);
+  }
+}
 
-const ENEMY_IDLE_ARM_SEGMENTS: readonly CellSegment[] = [
-  [{ x: -9, y: 2 }, { x: -10, y: 8 }],
-  [{ x: -10, y: 8 }, { x: -7, y: 6 }],
-  [{ x: 9, y: 2 }, { x: 10, y: 8 }],
-  [{ x: 10, y: 8 }, { x: 7, y: 6 }],
-];
+function createBodyPolygons(
+  bodyOffsetY: number,
+  headReach: number,
+): CellPolygon[] {
+  return [
+    // 낮은 몸통과 길게 빠진 옆얼굴을 하나의 덩어리로 묶는다.
+    [
+      { x: -9, y: -6 + bodyOffsetY },
+      { x: -6, y: -10 + bodyOffsetY },
+      { x: -2, y: -12 + bodyOffsetY },
+      { x: 3, y: -11 + bodyOffsetY },
+      { x: 6, y: -9 + bodyOffsetY },
+      { x: 8, y: -11 + bodyOffsetY },
+      { x: 9, y: -8 + bodyOffsetY },
+      { x: headReach - 2, y: -7 + bodyOffsetY },
+      { x: headReach, y: -5 + bodyOffsetY },
+      { x: headReach - 3, y: -3 + bodyOffsetY },
+      { x: 8, y: -3 + bodyOffsetY },
+      { x: 6, y: 1 + bodyOffsetY },
+      { x: 5, y: 6 + bodyOffsetY },
+      { x: 1, y: 8 + bodyOffsetY },
+      { x: -5, y: 7 + bodyOffsetY },
+      { x: -8, y: 3 + bodyOffsetY },
+    ],
+    // 뒤로 휘는 꼬리 덕분에 좌우 방향이 실루엣만으로 읽힌다.
+    [
+      { x: -7, y: -5 + bodyOffsetY },
+      { x: -12, y: -9 + bodyOffsetY },
+      { x: -16, y: -8 + bodyOffsetY },
+      { x: -13, y: -5 + bodyOffsetY },
+      { x: -16, y: -3 + bodyOffsetY },
+      { x: -11, y: -3 + bodyOffsetY },
+      { x: -7, y: 1 + bodyOffsetY },
+    ],
+    // 등 가시는 내부 무늬 없이도 포식자의 외곽 리듬을 만든다.
+    [
+      { x: -7, y: -9 + bodyOffsetY },
+      { x: -6, y: -15 + bodyOffsetY },
+      { x: -3, y: -11 + bodyOffsetY },
+    ],
+    [
+      { x: -3, y: -11 + bodyOffsetY },
+      { x: -1, y: -16 + bodyOffsetY },
+      { x: 1, y: -11 + bodyOffsetY },
+    ],
+    [
+      { x: 1, y: -11 + bodyOffsetY },
+      { x: 4, y: -14 + bodyOffsetY },
+      { x: 5, y: -9 + bodyOffsetY },
+    ],
+    // 옆머리에서 뒤로 젖혀진 단일 뿔.
+    [
+      { x: 6, y: -9 + bodyOffsetY },
+      { x: 5, y: -15 + bodyOffsetY },
+      { x: 9, y: -10 + bodyOffsetY },
+    ],
+  ];
+}
 
-const ENEMY_ATTACK_ARM_SEGMENTS: readonly CellSegment[] = [
-  [{ x: 7, y: 0 }, { x: 13, y: -1 }],
-  [{ x: 13, y: -1 }, { x: 16, y: 2 }],
-  [{ x: 16, y: 2 }, { x: 12, y: 1 }],
-  [{ x: 16, y: 2 }, { x: 13, y: 4 }],
-  [{ x: -9, y: 2 }, { x: -10, y: 8 }],
-  [{ x: -10, y: 8 }, { x: -7, y: 6 }],
-];
+function createWalkLegPolygons(
+  frame: EnemyThreatFrame,
+  bodyOffsetY: number,
+): CellPolygon[] {
+  const strideByFrame: Readonly<
+    Record<"walk-0" | "walk-1" | "walk-2" | "walk-3" | "idle", readonly [number, number]>
+  > = {
+    idle: [7, -7],
+    "walk-0": [11, -9],
+    "walk-1": [7, -5],
+    "walk-2": [2, -1],
+    "walk-3": [6, -6],
+  };
+  const safeFrame =
+    frame === "walk-0" ||
+    frame === "walk-1" ||
+    frame === "walk-2" ||
+    frame === "walk-3"
+      ? frame
+      : "idle";
+  const [frontFootX, rearFootX] = strideByFrame[safeFrame];
 
-const ENEMY_REMAINS_SEGMENTS: readonly CellSegment[] = [
-  [{ x: -11, y: 13 }, { x: -7, y: 10 }],
-  [{ x: -7, y: 10 }, { x: -2, y: 13 }],
-  [{ x: -2, y: 13 }, { x: 4, y: 11 }],
-  [{ x: 4, y: 11 }, { x: 10, y: 14 }],
-  [{ x: -8, y: 10 }, { x: -10, y: 6 }],
-  [{ x: -10, y: 6 }, { x: -5, y: 9 }],
-  [{ x: -2, y: 12 }, { x: 0, y: 8 }],
-  [{ x: 0, y: 8 }, { x: 3, y: 11 }],
-  [{ x: 5, y: 12 }, { x: 9, y: 9 }],
-];
+  return [
+    [
+      { x: 2, y: 4 + bodyOffsetY },
+      { x: 6, y: 4 + bodyOffsetY },
+      { x: 7, y: 9 },
+      { x: frontFootX, y: 14 },
+      { x: frontFootX + 2, y: 15 },
+      { x: frontFootX - 2, y: 15 },
+      { x: 3, y: 10 },
+    ],
+    [
+      { x: -6, y: 4 + bodyOffsetY },
+      { x: -2, y: 5 + bodyOffsetY },
+      { x: -3, y: 9 },
+      { x: rearFootX, y: 14 },
+      { x: rearFootX + 2, y: 15 },
+      { x: rearFootX - 2, y: 15 },
+      { x: -7, y: 10 },
+    ],
+  ];
+}
+
+function createClawPolygons(
+  frame: EnemyThreatFrame,
+  bodyOffsetY: number,
+): CellPolygon[] {
+  if (frame === "alert-1") {
+    return [[
+      { x: 3, y: -7 + bodyOffsetY },
+      { x: 5, y: -13 + bodyOffsetY },
+      { x: 10, y: -17 + bodyOffsetY },
+      { x: 9, y: -12 + bodyOffsetY },
+      { x: 6, y: -6 + bodyOffsetY },
+    ]];
+  }
+
+  if (frame === "attack-strike") {
+    return [[
+      { x: 4, y: -6 + bodyOffsetY },
+      { x: 10, y: -7 + bodyOffsetY },
+      { x: 18, y: -3 + bodyOffsetY },
+      { x: 15, y: 2 + bodyOffsetY },
+      { x: 15, y: -1 + bodyOffsetY },
+      { x: 8, y: -2 + bodyOffsetY },
+      { x: 5, y: 1 + bodyOffsetY },
+    ]];
+  }
+
+  if (frame === "attack-follow-through") {
+    return [[
+      { x: 4, y: -5 + bodyOffsetY },
+      { x: 9, y: -3 + bodyOffsetY },
+      { x: 16, y: 4 + bodyOffsetY },
+      { x: 12, y: 8 + bodyOffsetY },
+      { x: 13, y: 4 + bodyOffsetY },
+      { x: 7, y: 1 + bodyOffsetY },
+      { x: 4, y: 3 + bodyOffsetY },
+    ]];
+  }
+
+  return [[
+    { x: 3, y: -5 + bodyOffsetY },
+    { x: 7, y: -3 + bodyOffsetY },
+    { x: 10, y: 3 + bodyOffsetY },
+    { x: 8, y: 8 + bodyOffsetY },
+    { x: 8, y: 4 + bodyOffsetY },
+    { x: 4, y: 1 + bodyOffsetY },
+  ]];
+}
+
+function createEnemyPolygons(frame: EnemyThreatFrame): CellPolygon[] {
+  if (frame === "dead") {
+    return [[
+      { x: -15, y: 13 },
+      { x: -10, y: 9 },
+      { x: -5, y: 11 },
+      { x: -1, y: 7 },
+      { x: 3, y: 10 },
+      { x: 9, y: 9 },
+      { x: 14, y: 13 },
+      { x: 10, y: 15 },
+      { x: -13, y: 15 },
+    ]];
+  }
+
+  if (frame === "hurt") {
+    return [
+      ...createBodyPolygons(1, 11),
+      ...createWalkLegPolygons("idle", 1),
+      [
+        { x: 1, y: -5 },
+        { x: 6, y: -2 },
+        { x: 8, y: 5 },
+        { x: 5, y: 7 },
+        { x: 4, y: 2 },
+      ],
+    ];
+  }
+
+  const bodyOffsetY =
+    frame === "walk-1" || frame === "walk-3"
+      ? -1
+      : frame === "alert-0" || frame === "attack-recover"
+        ? 1
+        : 0;
+  const headReach = frame === "attack-strike" ? 16 : 13;
+  const locomotionFrame = frame.startsWith("walk-") ? frame : "idle";
+
+  return [
+    ...createBodyPolygons(bodyOffsetY, headReach),
+    ...createWalkLegPolygons(locomotionFrame, bodyOffsetY),
+    ...createClawPolygons(frame, bodyOffsetY),
+  ];
+}
+
+export function resolveEnemyThreatFrame(
+  enemy: EnemyState,
+  elapsedSeconds: number,
+): EnemyThreatFrame {
+  if (enemy.action === "dead") {
+    return "dead";
+  }
+  if (enemy.action === "hurt") {
+    return "hurt";
+  }
+  if (enemy.action === "alert") {
+    return enemy.actionTime / ENEMY_CONFIG.alertSeconds < 0.55
+      ? "alert-0"
+      : "alert-1";
+  }
+  if (enemy.action === "attack") {
+    const progress = enemy.actionTime / ENEMY_CONFIG.attackSeconds;
+    if (progress < 0.45) {
+      return "attack-strike";
+    }
+    return progress < 0.78
+      ? "attack-follow-through"
+      : "attack-recover";
+  }
+  if (enemy.grounded && Math.abs(enemy.velocity.x) > 1) {
+    return WALK_FRAMES[Math.floor(elapsedSeconds * 9) % WALK_FRAMES.length];
+  }
+  return "idle";
+}
 
 export function createEnemyThreatCells(
-  action: EnemyAction,
+  frame: EnemyThreatFrame,
   facing: Facing,
 ): ThreatPixelCell[] {
   const cells = new Map<string, ThreatPixelCell>();
-
-  if (action === "dead") {
-    addSegments(cells, ENEMY_REMAINS_SEGMENTS);
-  } else {
-    addSegments(cells, ENEMY_BODY_SEGMENTS);
-    addSegments(
-      cells,
-      action === "attack" || action === "alert"
-        ? ENEMY_ATTACK_ARM_SEGMENTS
-        : ENEMY_IDLE_ARM_SEGMENTS,
-    );
-  }
+  addPolygons(cells, createEnemyPolygons(frame));
 
   return [...cells.values()].map((cell) => ({
     x: cell.x * facing,
@@ -146,48 +370,42 @@ export function createHazardThreatCells(
   width: number,
   height: number,
 ): ThreatPixelCell[] {
-  const widthCells = Math.max(7, Math.floor(width / THREAT_PIXEL_SIZE));
-  const heightCells = Math.max(15, Math.floor(height / THREAT_PIXEL_SIZE));
+  const widthCells = Math.max(9, Math.floor(width / THREAT_PIXEL_SIZE));
+  const heightCells = Math.max(17, Math.floor(height / THREAT_PIXEL_SIZE));
   const lastX = widthCells - 1;
   const lastY = heightCells - 1;
   const middleX = Math.floor(lastX / 2);
+  const rightSide: CellPoint[] = [];
+  const leftSide: CellPoint[] = [];
+  const sideSteps = 12;
+
+  for (let index = 1; index < sideSteps; index += 1) {
+    const y = Math.round((lastY * index) / sideSteps);
+    const isSpike = index % 2 === 0;
+    const inset = Math.max(2, Math.round(widthCells * 0.18));
+    rightSide.push({ x: isSpike ? lastX : lastX - inset, y });
+    leftSide.unshift({ x: isSpike ? 0 : inset, y });
+  }
+
+  const monolith: CellPolygon = [
+    { x: middleX, y: 0 },
+    { x: lastX - 5, y: 5 },
+    { x: lastX - 2, y: 2 },
+    { x: lastX - 4, y: Math.round(lastY * 0.12) },
+    ...rightSide,
+    { x: lastX - 4, y: Math.round(lastY * 0.88) },
+    { x: lastX - 2, y: lastY - 2 },
+    { x: lastX - 5, y: lastY - 5 },
+    { x: middleX, y: lastY },
+    { x: 5, y: lastY - 5 },
+    { x: 2, y: lastY - 2 },
+    { x: 4, y: Math.round(lastY * 0.88) },
+    ...leftSide,
+    { x: 4, y: Math.round(lastY * 0.12) },
+    { x: 2, y: 2 },
+    { x: 5, y: 5 },
+  ];
   const cells = new Map<string, ThreatPixelCell>();
-
-  // 찢어진 왕관형 상단과 하단이 사각 외곽선 대신 위험 범위를 암시한다.
-  addSegments(cells, [
-    [{ x: 2, y: 5 }, { x: middleX, y: 0 }],
-    [{ x: middleX, y: 0 }, { x: lastX - 2, y: 5 }],
-    [{ x: 2, y: lastY - 5 }, { x: middleX, y: lastY }],
-    [{ x: middleX, y: lastY }, { x: lastX - 2, y: lastY - 5 }],
-  ]);
-
-  // 두 톱니 기둥은 일정 간격으로 안쪽을 물어뜯는 이빨을 만든다.
-  for (let y = 6; y <= lastY - 6; y += 1) {
-    const railOffset = Math.floor(y / 5) % 2;
-    cells.set(cellKey(1 + railOffset, y), { x: 1 + railOffset, y });
-    cells.set(cellKey(lastX - 1 - railOffset, y), {
-      x: lastX - 1 - railOffset,
-      y,
-    });
-  }
-
-  for (let y = 10; y <= lastY - 10; y += 12) {
-    addSegments(cells, [
-      [{ x: 2, y: y - 3 }, { x: 11, y }],
-      [{ x: 11, y }, { x: 2, y: y + 3 }],
-      [{ x: lastX - 2, y: y - 3 }, { x: lastX - 11, y }],
-      [{ x: lastX - 11, y }, { x: lastX - 2, y: y + 3 }],
-    ]);
-  }
-
-  // 중앙의 불연속 공명 균열은 살아 움직이는 공격 지형처럼 보이게 한다.
-  for (let y = 7; y <= lastY - 7; y += 8) {
-    const direction = Math.floor(y / 8) % 2 === 0 ? -1 : 1;
-    addSegment(cells, [
-      { x: middleX + direction * 2, y },
-      { x: middleX - direction * 2, y: Math.min(lastY - 7, y + 5) },
-    ]);
-  }
-
+  addFilledPolygon(cells, monolith);
   return [...cells.values()];
 }

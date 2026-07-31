@@ -24,6 +24,7 @@ import { resolvePlayerAnimationKey } from "./playerAnimation";
 import {
   createEnemyThreatCells,
   createHazardThreatCells,
+  resolveEnemyThreatFrame,
   THREAT_PIXEL_SIZE,
 } from "./threatPixelArt";
 import { SOUND_WAVE_COLORS, THREAT_COLOR } from "./viewPalette";
@@ -181,13 +182,14 @@ export class GameViewAdapter {
         1,
         enemy.echoTime / Math.max(enemy.echoDuration, 0.001),
       );
-      this.drawEnemy(view.graphics, enemy, alpha);
+      this.drawEnemy(view.graphics, enemy, state.elapsedTime, alpha);
     }
   }
 
   private drawEnemy(
     graphics: Phaser.GameObjects.Graphics,
     enemy: EnemyState,
+    elapsedSeconds: number,
     alpha: number,
   ): void {
     graphics.clear();
@@ -196,7 +198,8 @@ export class GameViewAdapter {
       enemy.action === "alert" || enemy.action === "attack"
         ? enemy.attackFacing
         : enemy.facing;
-    for (const cell of createEnemyThreatCells(enemy.action, facing)) {
+    const frame = resolveEnemyThreatFrame(enemy, elapsedSeconds);
+    for (const cell of createEnemyThreatCells(frame, facing)) {
       graphics.fillRect(
         cell.x * THREAT_PIXEL_SIZE,
         cell.y * THREAT_PIXEL_SIZE,
