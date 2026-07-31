@@ -67,7 +67,7 @@ body {
 
 .hud-health {
   display: flex;
-  gap: 3px;
+  gap: 9px;
   align-items: center;
 }
 
