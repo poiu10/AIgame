@@ -700,7 +700,7 @@ describe("combat loop", () => {
     }
   }
 
-  it("emits a small red warning wave and attacks after 0.3 seconds", () => {
+  it("emits a small red warning wave and attacks after 0.4 seconds", () => {
     const state = createOverlappingEnemyAttackState();
 
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);

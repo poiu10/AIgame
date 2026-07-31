@@ -39,7 +39,7 @@ export const ENEMY_CONFIG = {
   maxFallSpeed: 1700,
   attackRangeX: 136,
   attackRangeY: 86,
-  alertSeconds: 0.3,
+  alertSeconds: 0.4,
   alertWaveDistance: 240,
   alertWaveIntensity: 1,
   attackSeconds: 0.58,
