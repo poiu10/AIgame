@@ -28,6 +28,7 @@ import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
 import {
   createEchoMark,
+  createExposedEchoMarks,
   emitSound,
   PLAYER_SOUND_SOURCE_ID,
   updateSoundPropagation,
@@ -567,6 +568,39 @@ describe("sound propagation", () => {
     expect(horizontal.end).toEqual({ x: 240, y: 200 });
     expect(vertical.start).toEqual({ x: 200, y: 200 });
     expect(vertical.end).toEqual({ x: 200, y: 240 });
+  });
+
+  it("removes echo mark sections covered by adjacent terrain", () => {
+    const wall = {
+      id: "wall",
+      bounds: { x: 200, y: 200, width: 40, height: 120 },
+    };
+    const floor = {
+      id: "floor",
+      bounds: { x: 200, y: 280, width: 100, height: 40 },
+    };
+
+    const verticalMarks = createExposedEchoMarks(
+      wall,
+      [wall, floor],
+      { x: 240, y: 270 },
+      { x: 1, y: 0 },
+      1,
+    );
+    const horizontalMarks = createExposedEchoMarks(
+      floor,
+      [wall, floor],
+      { x: 250, y: 280 },
+      { x: 0, y: -1 },
+      1,
+    );
+
+    expect(verticalMarks).toHaveLength(1);
+    expect(verticalMarks[0].start).toEqual({ x: 240, y: 222 });
+    expect(verticalMarks[0].end).toEqual({ x: 240, y: 280 });
+    expect(horizontalMarks).toHaveLength(1);
+    expect(horizontalMarks[0].start).toEqual({ x: 240, y: 280 });
+    expect(horizontalMarks[0].end).toEqual({ x: 298, y: 280 });
   });
 });
 

@@ -12,6 +12,9 @@ import type {
 
 export const PLAYER_SOUND_SOURCE_ID = "player";
 
+const ADJACENT_TERRAIN_PROBE_DISTANCE = 0.5;
+const ECHO_MARK_MINIMUM_LENGTH = 0.01;
+
 export function emitSound(
   state: GameState,
   kind: SoundKind,
@@ -95,14 +98,102 @@ export function createEchoMark(
   };
 }
 
+function subtractCoveredRange(
+  ranges: Array<[number, number]>,
+  coveredStart: number,
+  coveredEnd: number,
+): Array<[number, number]> {
+  return ranges.flatMap(([start, end]) => {
+    const overlapStart = Math.max(start, coveredStart);
+    const overlapEnd = Math.min(end, coveredEnd);
+    if (overlapEnd - overlapStart <= ECHO_MARK_MINIMUM_LENGTH) {
+      return [[start, end]];
+    }
+
+    const remaining: Array<[number, number]> = [];
+    if (overlapStart - start > ECHO_MARK_MINIMUM_LENGTH) {
+      remaining.push([start, overlapStart]);
+    }
+    if (end - overlapEnd > ECHO_MARK_MINIMUM_LENGTH) {
+      remaining.push([overlapEnd, end]);
+    }
+    return remaining;
+  });
+}
+
+export function createExposedEchoMarks(
+  block: TerrainBlock,
+  terrain: TerrainBlock[],
+  position: Vector2State,
+  normal: Vector2State,
+  intensity: number,
+): EchoMarkState[] {
+  const mark = createEchoMark(block, position, normal, intensity);
+  const vertical = Math.abs(normal.x) > 0.5;
+  const surfaceCoordinate = vertical ? mark.start.x : mark.start.y;
+  const outwardNormal = vertical ? normal.x : normal.y;
+  const probeCoordinate =
+    surfaceCoordinate + outwardNormal * ADJACENT_TERRAIN_PROBE_DISTANCE;
+  let exposedRanges: Array<[number, number]> = vertical
+    ? [[mark.start.y, mark.end.y]]
+    : [[mark.start.x, mark.end.x]];
+
+  for (const other of terrain) {
+    if (other.id === block.id) {
+      continue;
+    }
+
+    const bounds = other.bounds;
+    const blocksSurface = vertical
+      ? probeCoordinate >= bounds.x &&
+        probeCoordinate <= bounds.x + bounds.width
+      : probeCoordinate >= bounds.y &&
+        probeCoordinate <= bounds.y + bounds.height;
+    if (!blocksSurface) {
+      continue;
+    }
+
+    exposedRanges = vertical
+      ? subtractCoveredRange(
+          exposedRanges,
+          bounds.y,
+          bounds.y + bounds.height,
+        )
+      : subtractCoveredRange(
+          exposedRanges,
+          bounds.x,
+          bounds.x + bounds.width,
+        );
+  }
+
+  return exposedRanges.map(([start, end]) => ({
+    ...mark,
+    start: vertical
+      ? { x: mark.start.x, y: start }
+      : { x: start, y: mark.start.y },
+    end: vertical
+      ? { x: mark.end.x, y: end }
+      : { x: end, y: mark.end.y },
+  }));
+}
+
 function addEchoMark(
   state: GameState,
+  world: WorldDefinition,
   block: TerrainBlock,
   position: Vector2State,
   normal: Vector2State,
   intensity: number,
 ): void {
-  state.echoMarks.push(createEchoMark(block, position, normal, intensity));
+  state.echoMarks.push(
+    ...createExposedEchoMarks(
+      block,
+      world.terrain,
+      position,
+      normal,
+      intensity,
+    ),
+  );
 
   if (state.echoMarks.length > SOUND_CONFIG.maximumEchoMarks) {
     state.echoMarks.splice(
@@ -269,7 +360,7 @@ export function updateSoundPropagation(
         };
         ray.reflectionCount += 1;
         ray.pathKey += `|${block.id}:${hit.normal.x},${hit.normal.y}`;
-        addEchoMark(state, block, hit.point, hit.normal, ray.intensity);
+        addEchoMark(state, world, block, hit.point, hit.normal, ray.intensity);
       } else {
         ray.position = segmentEnd;
         ray.remainingDistance -= allowedTravel;
