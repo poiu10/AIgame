@@ -44,6 +44,9 @@ const flatWorld: WorldDefinition = {
   enemies: [],
 };
 
+const flatWorldGroundedPlayerY =
+  flatWorld.terrain[0].bounds.y - PLAYER_CONFIG.height / 2;
+
 function stepMany(
   world: WorldDefinition,
   count: number,
@@ -78,10 +81,17 @@ describe("AABB ray casting", () => {
 });
 
 describe("player controller", () => {
+  it("uses reduced integer hitbox dimensions", () => {
+    expect(PLAYER_CONFIG.width).toBe(36);
+    expect(PLAYER_CONFIG.height).toBe(94);
+    expect(Number.isInteger(PLAYER_CONFIG.width)).toBe(true);
+    expect(Number.isInteger(PLAYER_CONFIG.height)).toBe(true);
+  });
+
   it("lands on platforms and jumps from the grounded state", () => {
     let state = stepMany(flatWorld, 40);
     expect(state.player.grounded).toBe(true);
-    expect(state.player.position.y).toBeCloseTo(648);
+    expect(state.player.position.y).toBeCloseTo(flatWorldGroundedPlayerY);
 
     state = stepSimulation(
       state,
@@ -96,7 +106,10 @@ describe("player controller", () => {
   it("scales the landing wave with the tracked fall height", () => {
     function landWithApex(airborneApexY: number) {
       const state = createInitialGameState(flatWorld);
-      state.player.position = { x: 200, y: 640 };
+      state.player.position = {
+        x: 200,
+        y: flatWorldGroundedPlayerY - 8,
+      };
       state.player.velocity = { x: 0, y: 1200 };
       state.player.grounded = false;
       state.player.airborneApexY = airborneApexY;
@@ -114,8 +127,12 @@ describe("player controller", () => {
 
     const shallowFallHeight = 88;
     const deepFallHeight = 448;
-    const shallowWaveDistance = landWithApex(648 - shallowFallHeight);
-    const deepWaveDistance = landWithApex(648 - deepFallHeight);
+    const shallowWaveDistance = landWithApex(
+      flatWorldGroundedPlayerY - shallowFallHeight,
+    );
+    const deepWaveDistance = landWithApex(
+      flatWorldGroundedPlayerY - deepFallHeight,
+    );
 
     expect(deepWaveDistance).toBeGreaterThan(shallowWaveDistance);
     expect(deepWaveDistance - shallowWaveDistance).toBeCloseTo(
@@ -364,14 +381,14 @@ describe("player controller", () => {
       verticalOffset: 0,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
-      x: 230,
+      x: 218,
       y: 340,
       width: 128,
       height: 120,
     });
 
     state.player.attackFacing = -1;
-    expect(getPlayerAttackBounds(state.player).x).toBe(42);
+    expect(getPlayerAttackBounds(state.player).x).toBe(54);
 
     state.player.attackAirborne = true;
     expect(PLAYER_AIR_ATTACK_HITBOX).toEqual({
@@ -380,7 +397,7 @@ describe("player controller", () => {
       verticalOffset: -8,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
-      x: 42,
+      x: 54,
       y: 322,
       width: 128,
       height: 140,
@@ -389,7 +406,7 @@ describe("player controller", () => {
 
   it("does not keep moving after death", () => {
     const state = createInitialGameState(flatWorld);
-    state.player.position = { x: 360, y: 648 };
+    state.player.position = { x: 360, y: flatWorldGroundedPlayerY };
     state.player.velocity = { x: 640, y: -240 };
     state.player.grounded = true;
     state.player.action = "dead";
@@ -566,7 +583,7 @@ describe("combat loop", () => {
 
   function createOverlappingEnemyAttackState() {
     const state = createInitialGameState(enemyAttackWorld);
-    state.player.position = { x: 200, y: 648 };
+    state.player.position = { x: 200, y: flatWorldGroundedPlayerY };
     state.player.grounded = true;
     state.enemies[0].grounded = true;
     return state;
@@ -662,7 +679,7 @@ describe("combat loop", () => {
       ],
     };
     let state = createInitialGameState(combatWorld);
-    state.player.position = { x: 200, y: 648 };
+    state.player.position = { x: 200, y: flatWorldGroundedPlayerY };
     state.player.grounded = true;
     state.enemies[0].health = 1;
     state.enemies[0].grounded = true;
@@ -687,7 +704,7 @@ describe("combat loop", () => {
 
   it("keeps terrain attack impacts without emitting an attack wave", () => {
     const state = createInitialGameState(flatWorld);
-    state.player.position = { x: 200, y: 648 };
+    state.player.position = { x: 200, y: flatWorldGroundedPlayerY };
     state.player.grounded = true;
     state.player.action = "attack";
     state.player.actionTime = PLAYER_CONFIG.attackActiveStart;
@@ -826,7 +843,10 @@ describe("tutorial stage", () => {
     const state = createInitialGameState(TUTORIAL_STAGE);
     const crusher = TUTORIAL_STAGE.hazards?.[0];
     expect(crusher).toBeDefined();
-    state.player.position = { x: crusher!.bounds.x - 20, y: 1248 };
+    state.player.position = {
+      x: crusher!.bounds.x - PLAYER_CONFIG.width / 2,
+      y: 1248,
+    };
     state.player.grounded = true;
     state.player.invulnerabilityTime = 0.5;
 
