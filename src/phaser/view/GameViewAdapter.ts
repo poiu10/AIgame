@@ -25,6 +25,7 @@ import {
   rasterizePixelLine,
   SOUND_PIXEL_SIZE,
 } from "./pixelLine";
+import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 
 const WAVE_COLORS: Record<SoundKind, number> = {
@@ -44,13 +45,16 @@ const WAVE_COLORS: Record<SoundKind, number> = {
 const PLAYER_SPRITE_FEET_Y = 80;
 const STANDARD_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(2);
 const ALERT_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(4);
+const TUTORIAL_TEXT_PIXEL_SIZE = 10;
+const TUTORIAL_TEXT_BOTTOM_Y = -PLAYER_CONFIG.height / 2 - 20;
+const TUTORIAL_TEXT_SHADOW_OFFSET = 4;
 
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
 
   private readonly playerSprite: Phaser.GameObjects.Sprite;
   private readonly playerGraphics: Phaser.GameObjects.Graphics;
-  private readonly tutorialText: Phaser.GameObjects.Text;
+  private readonly tutorialText: Phaser.GameObjects.Graphics;
   private readonly enemyViews = new Map<
     string,
     { container: Phaser.GameObjects.Container; graphics: Phaser.GameObjects.Graphics }
@@ -59,6 +63,7 @@ export class GameViewAdapter {
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
   private readonly debugGraphics: Phaser.GameObjects.Graphics;
+  private currentTutorialPrompt = "";
 
   constructor(
     scene: Phaser.Scene,
@@ -73,16 +78,7 @@ export class GameViewAdapter {
       .setOrigin(0.5, PLAYER_SPRITE_FEET_Y / PLAYER_SPRITE_FRAME.height)
       .setScale(PLAYER_SPRITE_DISPLAY_SCALE);
     this.playerGraphics = scene.add.graphics();
-    this.tutorialText = scene.add
-      .text(0, -PLAYER_CONFIG.height / 2 - 20, "", {
-        color: "#eaffff",
-        fontFamily: "Consolas, monospace",
-        fontSize: "78px",
-        fontStyle: "bold",
-        stroke: "#030608",
-        strokeThickness: 8,
-      })
-      .setOrigin(0.5, 1);
+    this.tutorialText = scene.add.graphics();
     this.playerTarget = scene.add
       .container(world.playerSpawn.x, world.playerSpawn.y, [
         this.playerSprite,
@@ -113,9 +109,37 @@ export class GameViewAdapter {
 
   private drawTutorialText(state: GameState): void {
     const section = this.world.tutorialSections?.[state.tutorialStep];
-    this.tutorialText.setText(
-      state.status === "playing" ? (section?.prompt ?? "") : "",
-    );
+    const prompt = state.status === "playing" ? (section?.prompt ?? "") : "";
+    if (prompt === this.currentTutorialPrompt) {
+      return;
+    }
+    this.currentTutorialPrompt = prompt;
+
+    const pixelText = rasterizePixelText(prompt);
+    const originX = -(pixelText.width * TUTORIAL_TEXT_PIXEL_SIZE) / 2;
+    const originY =
+      TUTORIAL_TEXT_BOTTOM_Y - pixelText.height * TUTORIAL_TEXT_PIXEL_SIZE;
+
+    this.tutorialText.clear();
+    this.tutorialText.fillStyle(0x030608, 0.9);
+    for (const cell of pixelText.cells) {
+      this.tutorialText.fillRect(
+        originX + cell.x * TUTORIAL_TEXT_PIXEL_SIZE + TUTORIAL_TEXT_SHADOW_OFFSET,
+        originY + cell.y * TUTORIAL_TEXT_PIXEL_SIZE + TUTORIAL_TEXT_SHADOW_OFFSET,
+        TUTORIAL_TEXT_PIXEL_SIZE,
+        TUTORIAL_TEXT_PIXEL_SIZE,
+      );
+    }
+
+    this.tutorialText.fillStyle(0xeaffff, 1);
+    for (const cell of pixelText.cells) {
+      this.tutorialText.fillRect(
+        originX + cell.x * TUTORIAL_TEXT_PIXEL_SIZE,
+        originY + cell.y * TUTORIAL_TEXT_PIXEL_SIZE,
+        TUTORIAL_TEXT_PIXEL_SIZE,
+        TUTORIAL_TEXT_PIXEL_SIZE,
+      );
+    }
   }
 
   private drawHazards(state: GameState, debugVisible: boolean): void {
