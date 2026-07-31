@@ -6,7 +6,6 @@ import {
 } from "../../game/assets/manifest";
 import type { WorldDefinition } from "../../game/content/world";
 import {
-  ENEMY_CONFIG,
   PLAYER_CONFIG,
   SOUND_CONFIG,
 } from "../../game/simulation/rules/config";
@@ -14,7 +13,6 @@ import type {
   EnemyState,
   GameState,
   PlayerState,
-  SoundKind,
 } from "../../game/simulation/state";
 import {
   getPixelThicknessOffsets,
@@ -23,19 +21,12 @@ import {
 } from "./pixelLine";
 import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
-
-const WAVE_COLORS: Record<SoundKind, number> = {
-  "terrain-step": 0x68e8ff,
-  landing: 0x8af7ff,
-  "attack-hit": 0xff67b1,
-  "enemy-step": 0xffb85c,
-  "enemy-alert": 0xff334f,
-  "enemy-attack": 0xff704d,
-  hurt: 0xff4f7d,
-  death: 0xffffff,
-  ambient: 0x79dfee,
-  hazard: 0xff334f,
-};
+import {
+  createEnemyThreatCells,
+  createHazardThreatCells,
+  THREAT_PIXEL_SIZE,
+} from "./threatPixelArt";
+import { SOUND_WAVE_COLORS, THREAT_COLOR } from "./viewPalette";
 
 const PLAYER_SPRITE_FEET_Y = 80;
 const STANDARD_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(2);
@@ -145,13 +136,18 @@ export class GameViewAdapter {
         1,
         hazard.echoTime / Math.max(hazard.echoDuration, 0.001),
       );
-      this.hazardGraphics.lineStyle(5, 0xff334f, alpha);
-      this.hazardGraphics.strokeRect(
-        definition.bounds.x,
-        definition.bounds.y,
+      this.hazardGraphics.fillStyle(THREAT_COLOR, alpha);
+      for (const cell of createHazardThreatCells(
         definition.bounds.width,
         definition.bounds.height,
-      );
+      )) {
+        this.hazardGraphics.fillRect(
+          definition.bounds.x + cell.x * THREAT_PIXEL_SIZE,
+          definition.bounds.y + cell.y * THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+        );
+      }
     }
   }
 
@@ -195,14 +191,19 @@ export class GameViewAdapter {
     alpha: number,
   ): void {
     graphics.clear();
-    const color = enemy.alive ? 0xffa24d : 0xfff4dc;
-    graphics.lineStyle(4, color, alpha);
-    graphics.strokeRect(
-      -ENEMY_CONFIG.width / 2,
-      -ENEMY_CONFIG.height / 2,
-      ENEMY_CONFIG.width,
-      ENEMY_CONFIG.height,
-    );
+    graphics.fillStyle(THREAT_COLOR, alpha);
+    const facing =
+      enemy.action === "alert" || enemy.action === "attack"
+        ? enemy.attackFacing
+        : enemy.facing;
+    for (const cell of createEnemyThreatCells(enemy.action, facing)) {
+      graphics.fillRect(
+        cell.x * THREAT_PIXEL_SIZE,
+        cell.y * THREAT_PIXEL_SIZE,
+        THREAT_PIXEL_SIZE,
+        THREAT_PIXEL_SIZE,
+      );
+    }
   }
 
   private drawEchoes(state: GameState): void {
@@ -225,7 +226,7 @@ export class GameViewAdapter {
   private drawWaves(state: GameState): void {
     this.waveGraphics.clear();
     for (const wave of state.soundWaves) {
-      const color = WAVE_COLORS[wave.kind];
+      const color = SOUND_WAVE_COLORS[wave.kind];
       const thicknessOffsets =
         wave.kind === "enemy-alert"
           ? ALERT_WAVE_PIXEL_OFFSETS
