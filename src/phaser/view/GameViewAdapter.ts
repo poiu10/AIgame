@@ -120,11 +120,9 @@ export class GameViewAdapter {
         continue;
       }
 
-      const alpha = quantizePixelAlpha(
-        debugVisible
-          ? 0.35
-          : Math.min(1, hazard.echoTime / Math.max(hazard.echoDuration, 0.001)),
-      );
+      const alpha = quantizePixelAlpha(debugVisible
+        ? 0.35
+        : Math.min(1, hazard.echoTime / Math.max(hazard.echoDuration, 0.001)));
       this.hazardGraphics.lineStyle(PIXEL_LINE_WIDTH, 0xff334f, alpha);
       this.hazardGraphics.strokeRect(
         definition.bounds.x,
@@ -191,11 +189,9 @@ export class GameViewAdapter {
         continue;
       }
 
-      const alpha = quantizePixelAlpha(
-        debugVisible
-          ? 0.35
-          : Math.min(1, enemy.echoTime / Math.max(enemy.echoDuration, 0.001)),
-      );
+      const alpha = quantizePixelAlpha(debugVisible
+        ? 0.35
+        : Math.min(1, enemy.echoTime / Math.max(enemy.echoDuration, 0.001)));
       this.drawEnemy(view.graphics, enemy, alpha);
     }
   }

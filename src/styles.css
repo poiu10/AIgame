@@ -3,7 +3,7 @@
   background: #030608;
   font-family: "Courier New", Consolas, monospace;
   font-synthesis: none;
-  --ui-pixel: 2px;
+  --ui-pixel: 3px;
 }
 
 * {
@@ -106,7 +106,7 @@ body {
 
 @media (max-width: 720px) {
   :root {
-    --ui-pixel: 1px;
+    --ui-pixel: 2px;
   }
 
   .hud-debug {
@@ -114,13 +114,7 @@ body {
   }
 }
 
-@media (min-width: 1600px) and (min-height: 900px) {
-  :root {
-    --ui-pixel: 3px;
-  }
-}
-
-@media (min-width: 2240px) and (min-height: 1260px) {
+@media (min-width: 1440px) {
   :root {
     --ui-pixel: 4px;
   }
