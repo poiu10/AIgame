@@ -15,7 +15,7 @@ export function mountHud(container: HTMLDivElement | null): void {
   panel.className = "hud-panel";
   panel.innerHTML = `
     <div class="hud-stats">
-      <span class="hud-health" aria-label="체력"></span>
+      <span class="hud-health" role="img" aria-label="체력"></span>
     </div>
     <div class="hud-debug">개발 도구 · P 강제 음파 · F3 충돌체 · R 리셋</div>
   `;
@@ -31,9 +31,18 @@ export function mountHud(container: HTMLDivElement | null): void {
       return;
     }
 
-    health.textContent = `${"◆".repeat(state.health)}${"◇".repeat(
-      state.maxHealth - state.health,
-    )}`;
+    const maxHealth = Math.max(0, Math.floor(state.maxHealth));
+    const currentHealth = Math.min(maxHealth, Math.max(0, Math.floor(state.health)));
+    const cells = Array.from({ length: maxHealth }, (_, index) => {
+      const cell = document.createElement("span");
+      cell.className = "hud-health-cell";
+      cell.classList.toggle("is-active", index < currentHealth);
+      cell.setAttribute("aria-hidden", "true");
+      return cell;
+    });
+
+    health.setAttribute("aria-label", `체력 ${currentHealth}/${maxHealth}`);
+    health.replaceChildren(...cells);
     debug.classList.toggle("is-active", state.debugVisible);
   });
 }
