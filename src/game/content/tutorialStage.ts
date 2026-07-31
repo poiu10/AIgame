@@ -13,7 +13,6 @@ export const TUTORIAL_STAGE: WorldDefinition = {
     { id: "jump-recovery-high", bounds: { x: 1720, y: 1200, width: 120, height: 200 } },
     { id: "jump-right-hill", bounds: { x: 1840, y: 1100, width: 520, height: 340 } },
     { id: "middle-floor", bounds: { x: 2360, y: 1300, width: 1720, height: 140 } },
-    { id: "combat-ceiling", bounds: { x: 3460, y: 860, width: 600, height: 40 } },
     { id: "trial-pit-floor", bounds: { x: 4080, y: 1400, width: 240, height: 40 } },
     { id: "final-floor", bounds: { x: 4320, y: 1300, width: 720, height: 140 } },
     { id: "right-wall", bounds: { x: 5040, y: 0, width: 64, height: 1440 } },

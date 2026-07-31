@@ -740,6 +740,9 @@ describe("tutorial stage", () => {
         .filter((block) => block.id.startsWith("jump-recovery-"))
         .map((block) => block.bounds.y),
     ).toEqual([1200]);
+    expect(
+      TUTORIAL_STAGE.terrain.some((block) => block.id === "combat-ceiling"),
+    ).toBe(false);
   });
 
   it("advances the guidance as the player reaches each lesson", () => {
