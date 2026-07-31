@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ENEMY_CONFIG } from "../src/game/simulation/rules/config";
+import { ENEMY_ATTACK_HITBOX } from "../src/game/simulation/rules/combat";
 import type { EnemyState } from "../src/game/simulation/state";
 import {
   createEnemyThreatCells,
@@ -61,7 +62,7 @@ describe("threat pixel art", () => {
       Math.abs(Math.min(...idle.map((cell) => cell.x))) / 2,
     );
     expect(Math.min(...facingLeft.map((cell) => cell.x))).toBe(
-      -Math.max(...idle.map((cell) => cell.x)),
+      -Math.max(...idle.map((cell) => cell.x)) - 1,
     );
   });
 
@@ -95,6 +96,41 @@ describe("threat pixel art", () => {
     expect(Math.max(...striking.map((cell) => cell.x))).toBeGreaterThan(
       Math.max(...walkFrames[0].map((cell) => cell.x)),
     );
+  });
+
+  it("snaps the strike arm to the hitbox edge before retracting", () => {
+    const strikeRight = createEnemyThreatCells("attack-strike", 1);
+    const strikeLeft = createEnemyThreatCells("attack-strike", -1);
+    const followThrough = createEnemyThreatCells(
+      "attack-follow-through",
+      1,
+    );
+    const recover = createEnemyThreatCells("attack-recover", 1);
+    const idle = createEnemyThreatCells("idle", 1);
+    const rightEdge =
+      (Math.max(...strikeRight.map((cell) => cell.x)) + 1) *
+      THREAT_PIXEL_SIZE;
+    const leftEdge =
+      Math.min(...strikeLeft.map((cell) => cell.x)) * THREAT_PIXEL_SIZE;
+    const followThroughEdge =
+      (Math.max(...followThrough.map((cell) => cell.x)) + 1) *
+      THREAT_PIXEL_SIZE;
+    const recoverEdge =
+      (Math.max(...recover.map((cell) => cell.x)) + 1) * THREAT_PIXEL_SIZE;
+    const idleEdge =
+      (Math.max(...idle.map((cell) => cell.x)) + 1) * THREAT_PIXEL_SIZE;
+
+    expect(rightEdge).toBeGreaterThanOrEqual(ENEMY_ATTACK_HITBOX.reach);
+    expect(rightEdge - ENEMY_ATTACK_HITBOX.reach).toBeLessThan(
+      THREAT_PIXEL_SIZE,
+    );
+    expect(leftEdge).toBeLessThanOrEqual(-ENEMY_ATTACK_HITBOX.reach);
+    expect(-ENEMY_ATTACK_HITBOX.reach - leftEdge).toBeLessThan(
+      THREAT_PIXEL_SIZE,
+    );
+    expect(rightEdge).toBeGreaterThan(followThroughEdge);
+    expect(followThroughEdge).toBeGreaterThan(recoverEdge);
+    expect(recoverEdge).toBeGreaterThan(idleEdge);
   });
 
   it("plays a death sequence before settling on the persistent corpse", () => {

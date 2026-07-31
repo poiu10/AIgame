@@ -1,4 +1,5 @@
 import { ENEMY_CONFIG } from "../../game/simulation/rules/config";
+import { ENEMY_ATTACK_HITBOX } from "../../game/simulation/rules/combat";
 import type { EnemyState, Facing } from "../../game/simulation/state";
 import { SOUND_PIXEL_SIZE } from "./pixelLine";
 
@@ -39,6 +40,9 @@ const WALK_FRAMES: readonly EnemyThreatFrame[] = [
   "walk-2",
   "walk-3",
 ];
+
+const ENEMY_ATTACK_REACH_CELL =
+  Math.ceil(ENEMY_ATTACK_HITBOX.reach / THREAT_PIXEL_SIZE) - 1;
 
 function cellKey(x: number, y: number): string {
   return `${x},${y}`;
@@ -250,11 +254,14 @@ function createClawPolygons(
   if (frame === "attack-strike") {
     return [[
       { x: 4, y: -6 + bodyOffsetY },
-      { x: 10, y: -7 + bodyOffsetY },
-      { x: 18, y: -3 + bodyOffsetY },
-      { x: 15, y: 2 + bodyOffsetY },
-      { x: 15, y: -1 + bodyOffsetY },
-      { x: 8, y: -2 + bodyOffsetY },
+      { x: 10, y: -8 + bodyOffsetY },
+      { x: 23, y: -7 + bodyOffsetY },
+      { x: ENEMY_ATTACK_REACH_CELL - 5, y: -5 + bodyOffsetY },
+      { x: ENEMY_ATTACK_REACH_CELL, y: -2 + bodyOffsetY },
+      { x: ENEMY_ATTACK_REACH_CELL - 4, y: 2 + bodyOffsetY },
+      { x: ENEMY_ATTACK_REACH_CELL - 3, y: -1 + bodyOffsetY },
+      { x: 23, y: -2 + bodyOffsetY },
+      { x: 9, y: -2 + bodyOffsetY },
       { x: 5, y: 1 + bodyOffsetY },
     ]];
   }
@@ -262,12 +269,26 @@ function createClawPolygons(
   if (frame === "attack-follow-through") {
     return [[
       { x: 4, y: -5 + bodyOffsetY },
-      { x: 9, y: -3 + bodyOffsetY },
-      { x: 16, y: 4 + bodyOffsetY },
-      { x: 12, y: 8 + bodyOffsetY },
-      { x: 13, y: 4 + bodyOffsetY },
+      { x: 10, y: -4 + bodyOffsetY },
+      { x: 20, y: -1 + bodyOffsetY },
+      { x: 30, y: 5 + bodyOffsetY },
+      { x: 26, y: 10 + bodyOffsetY },
+      { x: 27, y: 5 + bodyOffsetY },
+      { x: 18, y: 2 + bodyOffsetY },
       { x: 7, y: 1 + bodyOffsetY },
       { x: 4, y: 3 + bodyOffsetY },
+    ]];
+  }
+
+  if (frame === "attack-recover") {
+    return [[
+      { x: 3, y: -5 + bodyOffsetY },
+      { x: 8, y: -3 + bodyOffsetY },
+      { x: 17, y: 1 + bodyOffsetY },
+      { x: 14, y: 7 + bodyOffsetY },
+      { x: 14, y: 3 + bodyOffsetY },
+      { x: 7, y: 0 + bodyOffsetY },
+      { x: 4, y: 2 + bodyOffsetY },
     ]];
   }
 
@@ -427,7 +448,7 @@ export function createEnemyThreatCells(
   addPolygons(cells, createEnemyPolygons(frame));
 
   return [...cells.values()].map((cell) => ({
-    x: cell.x * facing,
+    x: facing > 0 ? cell.x : -cell.x - 1,
     y: cell.y,
   }));
 }
