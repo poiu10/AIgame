@@ -12,11 +12,14 @@ export interface RectState {
 
 export interface TerrainBlock {
   id: string;
+  kind?: string;
   bounds: RectState;
 }
 
 export interface EnemySpawn {
   id: string;
+  kind?: string;
+  role?: "enemy" | "boss";
   position: Vector2State;
   patrolMinX: number;
   patrolMaxX: number;
@@ -25,6 +28,7 @@ export interface EnemySpawn {
 
 export interface HazardDefinition {
   id: string;
+  kind?: string;
   bounds: RectState;
 }
 
@@ -57,4 +61,25 @@ export interface WorldDefinition {
   hazards?: HazardDefinition[];
   soundEmitters?: WorldSoundEmitter[];
   tutorialSections?: TutorialSection[];
+}
+
+export interface StageSpawn {
+  id: string;
+  position: Vector2State;
+  facing?: -1 | 1;
+}
+
+export interface StageExit {
+  id: string;
+  bounds: RectState;
+  targetStageId: string;
+  targetSpawnId: string;
+}
+
+export interface StageDefinition extends WorldDefinition {
+  schemaVersion: 1;
+  id: string;
+  name: string;
+  spawns: StageSpawn[];
+  exits: StageExit[];
 }

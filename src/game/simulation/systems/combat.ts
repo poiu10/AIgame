@@ -148,7 +148,10 @@ export function updatePlayerCombat(
     state.events.push({ type: "impact", position: hitPosition, strength: 0.45 });
   }
 
-  if (state.enemies.every((enemy) => !enemy.alive)) {
+  if (
+    state.enemies.length > 0
+    && state.enemies.every((enemy) => !enemy.alive)
+  ) {
     state.status = "completed";
   }
 }

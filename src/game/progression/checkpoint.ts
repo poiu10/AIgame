@@ -1,0 +1,147 @@
+import type { StageDefinition, StageExit } from "../content/world";
+import { PLAYER_CONFIG } from "../simulation/rules/config";
+import { createInitialGameState, type GameState } from "../simulation/state";
+
+export const CHECKPOINT_STORAGE_KEY = "echobound.checkpoint.v1";
+
+export interface StageProgress {
+  defeatedEnemyIds: string[];
+  defeatedBossIds: string[];
+}
+
+export interface CheckpointSave {
+  version: 1;
+  currentStageId: string;
+  playerPosition: { x: number; y: number };
+  playerFacing: -1 | 1;
+  visitedStageIds: string[];
+  completedStageIds: string[];
+  stageProgress: Record<string, StageProgress>;
+}
+
+export interface CheckpointStorage {
+  load(): string | null;
+  save(value: string): void;
+}
+
+export class BrowserCheckpointStorage implements CheckpointStorage {
+  load(): string | null {
+    return window.localStorage.getItem(CHECKPOINT_STORAGE_KEY);
+  }
+
+  save(value: string): void {
+    window.localStorage.setItem(CHECKPOINT_STORAGE_KEY, value);
+  }
+}
+
+function emptyProgress(): StageProgress {
+  return { defeatedEnemyIds: [], defeatedBossIds: [] };
+}
+
+export function createInitialCheckpoint(stage: StageDefinition): CheckpointSave {
+  const spawn = stage.spawns[0];
+  return {
+    version: 1,
+    currentStageId: stage.id,
+    playerPosition: { ...(spawn?.position ?? stage.playerSpawn) },
+    playerFacing: spawn?.facing ?? 1,
+    visitedStageIds: [stage.id],
+    completedStageIds: [],
+    stageProgress: { [stage.id]: emptyProgress() },
+  };
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+export function createTransitionCheckpoint(
+  previous: CheckpointSave,
+  currentStage: StageDefinition,
+  state: GameState,
+  exit: StageExit,
+  targetStage: StageDefinition,
+): CheckpointSave {
+  const deadIds = new Set(state.enemies.filter((enemy) => !enemy.alive).map((enemy) => enemy.id));
+  const priorProgress = previous.stageProgress[currentStage.id] ?? emptyProgress();
+  const defeatedBossIds = currentStage.enemies
+    .filter((spawn) => spawn.role === "boss" && deadIds.has(spawn.id))
+    .map((spawn) => spawn.id);
+  const defeatedEnemyIds = currentStage.enemies
+    .filter((spawn) => spawn.role !== "boss" && deadIds.has(spawn.id))
+    .map((spawn) => spawn.id);
+  const currentProgress: StageProgress = {
+    defeatedEnemyIds: unique([...priorProgress.defeatedEnemyIds, ...defeatedEnemyIds]),
+    defeatedBossIds: unique([...priorProgress.defeatedBossIds, ...defeatedBossIds]),
+  };
+  const allDefeated = currentStage.enemies.length > 0
+    && currentStage.enemies.every((spawn) => deadIds.has(spawn.id)
+      || currentProgress.defeatedEnemyIds.includes(spawn.id)
+      || currentProgress.defeatedBossIds.includes(spawn.id));
+  const targetSpawn = targetStage.spawns.find((spawn) => spawn.id === exit.targetSpawnId);
+  if (!targetSpawn) throw new Error(`${targetStage.id}에 도착점 ${exit.targetSpawnId}이 없습니다.`);
+
+  return {
+    version: 1,
+    currentStageId: targetStage.id,
+    playerPosition: { ...targetSpawn.position },
+    playerFacing: targetSpawn.facing ?? 1,
+    visitedStageIds: unique([...previous.visitedStageIds, targetStage.id]),
+    completedStageIds: allDefeated
+      ? unique([...previous.completedStageIds, currentStage.id])
+      : [...previous.completedStageIds],
+    stageProgress: {
+      ...previous.stageProgress,
+      [currentStage.id]: currentProgress,
+      [targetStage.id]: previous.stageProgress[targetStage.id] ?? emptyProgress(),
+    },
+  };
+}
+
+export function restoreCheckpointState(save: CheckpointSave, stage: StageDefinition): GameState {
+  const state = createInitialGameState(stage);
+  const progress = save.stageProgress[stage.id] ?? emptyProgress();
+  const defeated = new Set([...progress.defeatedEnemyIds, ...progress.defeatedBossIds]);
+  state.enemies = state.enemies.filter((enemy) => !defeated.has(enemy.id));
+  state.player.position = { ...save.playerPosition };
+  state.player.airborneApexY = save.playerPosition.y;
+  state.player.facing = save.playerFacing;
+  state.player.attackFacing = save.playerFacing;
+  state.player.health = PLAYER_CONFIG.maxHealth;
+  state.status = "playing";
+  return state;
+}
+
+export function findTouchedExit(state: GameState, stage: StageDefinition): StageExit | undefined {
+  const halfWidth = PLAYER_CONFIG.width / 2;
+  const halfHeight = PLAYER_CONFIG.height / 2;
+  return stage.exits.find((exit) => {
+    const bounds = exit.bounds;
+    return state.player.position.x + halfWidth > bounds.x
+      && state.player.position.x - halfWidth < bounds.x + bounds.width
+      && state.player.position.y + halfHeight > bounds.y
+      && state.player.position.y - halfHeight < bounds.y + bounds.height;
+  });
+}
+
+export function serializeCheckpoint(save: CheckpointSave): string {
+  return JSON.stringify(save);
+}
+
+export function parseCheckpoint(value: string): CheckpointSave | null {
+  try {
+    const parsed = JSON.parse(value) as CheckpointSave;
+    if (parsed?.version !== 1 || typeof parsed.currentStageId !== "string") return null;
+    if (!Number.isFinite(parsed.playerPosition?.x) || !Number.isFinite(parsed.playerPosition?.y)) return null;
+    if (parsed.playerFacing !== -1 && parsed.playerFacing !== 1) return null;
+    if (!Array.isArray(parsed.visitedStageIds) || !Array.isArray(parsed.completedStageIds)) return null;
+    if (!parsed.stageProgress || typeof parsed.stageProgress !== "object") return null;
+    const progressEntries = Object.values(parsed.stageProgress) as StageProgress[];
+    if (progressEntries.some((entry) =>
+      !Array.isArray(entry?.defeatedEnemyIds) || !Array.isArray(entry?.defeatedBossIds)
+    )) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}

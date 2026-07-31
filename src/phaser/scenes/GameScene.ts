@@ -1,16 +1,21 @@
 import Phaser from "phaser";
-import { TUTORIAL_STAGE } from "../../game/content/tutorialStage";
+import { getStage, INITIAL_STAGE_ID, STAGES } from "../../game/content/stages";
+import type { StageDefinition } from "../../game/content/world";
 import type { InputActions } from "../../game/input/actions";
-import { FIXED_STEP_SECONDS } from "../../game/simulation/rules/config";
-import { createInitialGameState, type GameState } from "../../game/simulation/state";
 import {
-  drainGameEvents,
-  stepSimulation,
-} from "../../game/simulation/systems/simulation";
-import {
-  GAME_HUD_EVENT,
-  type HudState,
-} from "../../ui/hud/mountHud";
+  BrowserCheckpointStorage,
+  createInitialCheckpoint,
+  createTransitionCheckpoint,
+  findTouchedExit,
+  parseCheckpoint,
+  restoreCheckpointState,
+  serializeCheckpoint,
+  type CheckpointSave,
+} from "../../game/progression/checkpoint";
+import { FIXED_STEP_SECONDS, PLAYER_CONFIG } from "../../game/simulation/rules/config";
+import type { GameState } from "../../game/simulation/state";
+import { drainGameEvents, stepSimulation } from "../../game/simulation/systems/simulation";
+import { GAME_HUD_EVENT, type HudState } from "../../ui/hud/mountHud";
 import { GameViewAdapter } from "../view/GameViewAdapter";
 import { SoundSynth } from "../view/SoundSynth";
 
@@ -31,7 +36,10 @@ const EMPTY_PENDING: PendingButtons = {
 };
 
 export class GameScene extends Phaser.Scene {
-  private gameState: GameState = createInitialGameState(TUTORIAL_STAGE);
+  private currentStage!: StageDefinition;
+  private gameState!: GameState;
+  private checkpoint!: CheckpointSave;
+  private readonly checkpointStorage = new BrowserCheckpointStorage();
   private view!: GameViewAdapter;
   private soundSynth!: SoundSynth;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -45,18 +53,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    const camera = this.cameras.main;
-    camera.setBounds(0, 0, TUTORIAL_STAGE.width, TUTORIAL_STAGE.height);
-    this.view = new GameViewAdapter(this, TUTORIAL_STAGE);
     this.soundSynth = new SoundSynth();
-    camera.startFollow(this.view.playerTarget, true, 0.11, 0);
-    camera.setScroll(camera.scrollX, TUTORIAL_STAGE.height - camera.height);
-    camera.setDeadzone(300, camera.height);
+    this.loadCheckpoint();
+    this.configureStageView();
 
     const keyboard = this.input.keyboard;
-    if (!keyboard) {
-      throw new Error("키보드 입력을 초기화할 수 없습니다.");
-    }
+    if (!keyboard) throw new Error("키보드 입력을 초기화할 수 없습니다.");
 
     this.cursors = keyboard.createCursorKeys();
     this.keys = keyboard.addKeys({
@@ -70,27 +72,66 @@ export class GameScene extends Phaser.Scene {
     }) as Record<ActionKey, Phaser.Input.Keyboard.Key>;
 
     keyboard.once("keydown", () => this.soundSynth.unlock());
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.soundSynth.dispose());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.view.destroy();
+      this.soundSynth.dispose();
+    });
     this.view.sync(this.gameState);
     this.publishHud();
   }
 
   update(_time: number, deltaMilliseconds: number): void {
     this.captureButtonEdges();
-    this.accumulator += Math.min(deltaMilliseconds / 1000, 0.1);
+    if (this.pending.restartPressed) {
+      this.restoreCheckpoint();
+      this.pending = { ...EMPTY_PENDING };
+      this.accumulator = 0;
+    }
 
+    this.accumulator += Math.min(deltaMilliseconds / 1000, 0.1);
     let firstStep = true;
+    let stageChanged = false;
     while (this.accumulator >= FIXED_STEP_SECONDS) {
       this.gameState = stepSimulation(
         this.gameState,
         this.readInput(firstStep),
         FIXED_STEP_SECONDS,
-        TUTORIAL_STAGE,
+        this.currentStage,
       );
       this.accumulator -= FIXED_STEP_SECONDS;
+
+      if (
+        this.gameState.player.action === "dead"
+        && this.gameState.player.actionTime >= PLAYER_CONFIG.checkpointRestoreSeconds
+      ) {
+        this.restoreCheckpoint();
+        stageChanged = true;
+      } else {
+        const exit = findTouchedExit(this.gameState, this.currentStage);
+        if (exit) {
+          const targetStage = getStage(exit.targetStageId);
+          this.checkpoint = createTransitionCheckpoint(
+            this.checkpoint,
+            this.currentStage,
+            this.gameState,
+            exit,
+            targetStage,
+          );
+          this.persistCheckpoint();
+          this.currentStage = targetStage;
+          this.gameState = restoreCheckpointState(this.checkpoint, targetStage);
+          this.configureStageView();
+          stageChanged = true;
+        }
+      }
+
       if (firstStep) {
         this.pending = { ...EMPTY_PENDING };
         firstStep = false;
+      }
+      if (stageChanged) {
+        this.accumulator = 0;
+        break;
       }
     }
 
@@ -100,11 +141,51 @@ export class GameScene extends Phaser.Scene {
     this.publishHud();
   }
 
+  private loadCheckpoint(): void {
+    const initialStage = getStage(INITIAL_STAGE_ID);
+    const fallback = createInitialCheckpoint(initialStage);
+    let loaded: CheckpointSave | null = null;
+    try {
+      const stored = this.checkpointStorage.load();
+      loaded = stored ? parseCheckpoint(stored) : null;
+    } catch {
+      loaded = null;
+    }
+    this.checkpoint = loaded && STAGES[loaded.currentStageId] ? loaded : fallback;
+    this.currentStage = getStage(this.checkpoint.currentStageId);
+    this.gameState = restoreCheckpointState(this.checkpoint, this.currentStage);
+  }
+
+  private restoreCheckpoint(): void {
+    const checkpointStage = getStage(this.checkpoint.currentStageId);
+    this.currentStage = checkpointStage;
+    this.gameState = restoreCheckpointState(this.checkpoint, checkpointStage);
+    this.configureStageView();
+  }
+
+  private persistCheckpoint(): void {
+    try {
+      this.checkpointStorage.save(serializeCheckpoint(this.checkpoint));
+    } catch {
+      // localStorage가 차단되어도 현재 세션의 체크포인트는 메모리에 유지한다.
+    }
+  }
+
+  private configureStageView(): void {
+    if (this.view) this.view.destroy();
+    const camera = this.cameras.main;
+    camera.stopFollow();
+    camera.setBounds(0, 0, this.currentStage.width, this.currentStage.height);
+    this.view = new GameViewAdapter(this, this.currentStage);
+    camera.startFollow(this.view.playerTarget, true, 0.11, 0);
+    camera.setScroll(camera.scrollX, this.currentStage.height - camera.height);
+    camera.setDeadzone(300, camera.height);
+  }
+
   private captureButtonEdges(): void {
-    this.pending.jumpPressed ||=
-      Phaser.Input.Keyboard.JustDown(this.keys.SPACE) ||
-      Phaser.Input.Keyboard.JustDown(this.keys.W) ||
-      Phaser.Input.Keyboard.JustDown(this.cursors.up);
+    this.pending.jumpPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.SPACE)
+      || Phaser.Input.Keyboard.JustDown(this.keys.W)
+      || Phaser.Input.Keyboard.JustDown(this.cursors.up);
     this.pending.rollPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.SHIFT);
     this.pending.attackPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.J);
     this.pending.restartPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.R);
@@ -117,27 +198,19 @@ export class GameScene extends Phaser.Scene {
     return {
       moveX: Number(right) - Number(left),
       jumpPressed: edges.jumpPressed,
-      jumpHeld:
-        this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown,
+      jumpHeld: this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown,
       rollPressed: edges.rollPressed,
       attackPressed: edges.attackPressed,
-      restartPressed: edges.restartPressed,
+      restartPressed: false,
     };
   }
 
   private consumeEvents(): void {
     for (const event of drainGameEvents(this.gameState)) {
       if (event.type === "sound") {
-        this.soundSynth.play(
-          event,
-          this.cameras.main.worldView.centerX,
-          this.cameras.main.width,
-        );
+        this.soundSynth.play(event, this.cameras.main.worldView.centerX, this.cameras.main.width);
       } else {
-        this.cameras.main.shake(
-          70,
-          new Phaser.Math.Vector2(0.0015 * event.strength, 0),
-        );
+        this.cameras.main.shake(70, new Phaser.Math.Vector2(0.0015 * event.strength, 0));
       }
     }
   }
@@ -148,9 +221,7 @@ export class GameScene extends Phaser.Scene {
       maxHealth: this.gameState.player.maxHealth,
     };
     const signature = JSON.stringify(hudState);
-    if (signature === this.lastHudSignature) {
-      return;
-    }
+    if (signature === this.lastHudSignature) return;
     this.lastHudSignature = signature;
     window.dispatchEvent(new CustomEvent<HudState>(GAME_HUD_EVENT, { detail: hudState }));
   }

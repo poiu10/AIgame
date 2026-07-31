@@ -6,5 +6,11 @@ export default defineConfig({
   build: {
     outDir: "dist",
     assetsDir: "assets",
+    rollupOptions: {
+      input: {
+        game: "index.html",
+        editor: "editor.html",
+      },
+    },
   },
 });

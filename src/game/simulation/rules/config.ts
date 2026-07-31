@@ -21,6 +21,7 @@ export const PLAYER_CONFIG = {
   attackActiveStart: 0.08,
   attackActiveEnd: 0.18,
   hurtSeconds: 0.3,
+  checkpointRestoreSeconds: 0.9,
   damageInvulnerabilitySeconds: 0.8,
   landingWaveMinimumDistance: 180,
   landingWaveDistancePerPixel: 1,

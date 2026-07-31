@@ -1,9 +1,24 @@
-import type { WorldDefinition } from "./world";
+import type { StageDefinition } from "./world";
 
-export const TUTORIAL_STAGE: WorldDefinition = {
-  width: 5040,
+export const TUTORIAL_STAGE: StageDefinition = {
+  schemaVersion: 1,
+  id: "tutorial",
+  name: "첫 번째 메아리",
+  width: 5740,
   height: 1440,
   playerSpawn: { x: 192, y: 1180 },
+  spawns: [
+    { id: "start", position: { x: 192, y: 1180 }, facing: 1 },
+    { id: "from-stage-1", position: { x: 5480, y: 1258 }, facing: -1 },
+  ],
+  exits: [
+    {
+      id: "to-stage-1",
+      bounds: { x: 5680, y: 1080, width: 60, height: 220 },
+      targetStageId: "stage-1",
+      targetSpawnId: "from-tutorial",
+    },
+  ],
   terrain: [
     { id: "left-wall", bounds: { x: -64, y: 0, width: 64, height: 1440 } },
     { id: "movement-floor", bounds: { x: 0, y: 1300, width: 1840, height: 140 } },
@@ -14,7 +29,9 @@ export const TUTORIAL_STAGE: WorldDefinition = {
     { id: "middle-floor", bounds: { x: 2360, y: 1300, width: 1720, height: 140 } },
     { id: "trial-pit-floor", bounds: { x: 4080, y: 1400, width: 240, height: 40 } },
     { id: "final-floor", bounds: { x: 4320, y: 1300, width: 720, height: 140 } },
-    { id: "right-wall", bounds: { x: 5040, y: 0, width: 64, height: 1440 } },
+    { id: "exit-corridor-floor", bounds: { x: 5040, y: 1300, width: 700, height: 140 } },
+    { id: "exit-corridor-ceiling", bounds: { x: 5040, y: 1020, width: 700, height: 60 } },
+    { id: "right-upper-wall", bounds: { x: 5740, y: 0, width: 64, height: 1020 } },
   ],
   enemies: [
     {

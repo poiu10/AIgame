@@ -125,6 +125,17 @@ export class GameViewAdapter {
     }
   }
 
+  destroy(): void {
+    this.playerTarget.destroy(true);
+    for (const view of this.enemyViews.values()) {
+      view.container.destroy(true);
+    }
+    this.enemyViews.clear();
+    this.waveGraphics.destroy();
+    this.echoGraphics.destroy();
+    this.hazardGraphics.destroy();
+  }
+
   private drawHazards(state: GameState): void {
     this.hazardGraphics.clear();
     for (const definition of this.world.hazards ?? []) {
@@ -187,6 +198,9 @@ export class GameViewAdapter {
   }
 
   private drawEnemies(state: GameState): void {
+    for (const view of this.enemyViews.values()) {
+      view.container.setVisible(false);
+    }
     for (const enemy of state.enemies) {
       const view = this.enemyViews.get(enemy.id);
       if (!view) {

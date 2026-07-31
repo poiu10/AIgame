@@ -729,6 +729,16 @@ describe("sound propagation", () => {
 });
 
 describe("combat loop", () => {
+  it("does not complete an intentionally empty stage when the player attacks", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.action = "attack";
+    state.player.actionTime = PLAYER_CONFIG.attackActiveStart;
+
+    updatePlayerCombat(state, flatWorld);
+
+    expect(state.status).toBe("playing");
+  });
+
   const enemyAttackWorld: WorldDefinition = {
     ...flatWorld,
     enemies: [

@@ -124,6 +124,7 @@ export function updatePlayerMovement(
   }
 
   if (player.action === "dead") {
+    player.actionTime += deltaSeconds;
     player.velocity.x = 0;
     player.velocity.y = 0;
     player.hitboxOffsetX = 0;

@@ -2,7 +2,7 @@ import { TUTORIAL_STAGE } from "../../content/tutorialStage";
 import type { WorldDefinition } from "../../content/world";
 import type { InputActions } from "../../input/actions";
 import { PLAYER_CONFIG } from "../rules/config";
-import { createInitialGameState, type GameState } from "../state";
+import type { GameState } from "../state";
 import { updatePlayerCombat } from "./combat";
 import { updateEnemies } from "./enemies";
 import { updateTutorialProgress, updateWorldEnvironment } from "./environment";
@@ -19,10 +19,6 @@ export function stepSimulation(
   deltaSeconds: number,
   world: WorldDefinition = TUTORIAL_STAGE,
 ): GameState {
-  if (input.restartPressed) {
-    return createInitialGameState(world);
-  }
-
   state.elapsedTime += deltaSeconds;
 
   const movementSounds = updatePlayerMovement(
