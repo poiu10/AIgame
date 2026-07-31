@@ -1,8 +1,9 @@
 import type { WorldDefinition } from "../../content/world";
-import { centerRect, rectanglesOverlap } from "../collision/aabb";
+import { rectanglesOverlap } from "../collision/aabb";
 import { moveBodyAgainstTerrain } from "../collision/motion";
-import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
+import { ENEMY_CONFIG } from "../rules/config";
 import { getEnemyAttackBounds } from "../rules/combat";
+import { getPlayerBounds } from "../rules/player";
 import type { EnemyState, GameState } from "../state";
 import { damagePlayer } from "./combat";
 import { emitSound } from "./sound";
@@ -19,11 +20,7 @@ function playerInAttackRange(state: GameState, enemy: EnemyState): boolean {
 function attackTouchesPlayer(state: GameState, enemy: EnemyState): boolean {
   return rectanglesOverlap(
     getEnemyAttackBounds(enemy),
-    centerRect(
-      state.player.position,
-      PLAYER_CONFIG.width,
-      PLAYER_CONFIG.height,
-    ),
+    getPlayerBounds(state.player),
   );
 }
 

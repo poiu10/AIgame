@@ -48,6 +48,7 @@ export function stepSimulation(
   ) {
     state.player.health = 0;
     state.player.action = "dead";
+    state.player.hitboxOffsetX = 0;
     state.player.velocity.x = 0;
     state.player.velocity.y = 0;
     state.status = "failed";

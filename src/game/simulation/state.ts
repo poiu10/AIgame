@@ -28,6 +28,7 @@ export interface Vector2State {
 export interface PlayerState {
   position: Vector2State;
   velocity: Vector2State;
+  hitboxOffsetX: number;
   facing: Facing;
   attackFacing: Facing;
   attackVariant: GroundAttackVariant;
@@ -145,6 +146,7 @@ export function createInitialGameState(
     player: {
       position: { ...world.playerSpawn },
       velocity: { x: 0, y: 0 },
+      hitboxOffsetX: 0,
       facing: 1,
       attackFacing: 1,
       attackVariant: 0,

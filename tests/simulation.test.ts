@@ -18,6 +18,7 @@ import {
   PLAYER_AIR_ATTACK_HITBOX,
   PLAYER_GROUND_ATTACK_HITBOX,
 } from "../src/game/simulation/rules/combat";
+import { getPlayerBounds } from "../src/game/simulation/rules/player";
 import { createInitialGameState } from "../src/game/simulation/state";
 import {
   damagePlayer,
@@ -89,6 +90,72 @@ describe("player controller", () => {
     expect(Number.isInteger(PLAYER_CONFIG.height)).toBe(true);
     expect(Number.isInteger(PLAYER_CONFIG.width / 2)).toBe(true);
     expect(Number.isInteger(PLAYER_CONFIG.height / 2)).toBe(true);
+  });
+
+  it("temporarily offsets the player hitbox 20px in the movement direction", () => {
+    let state = stepMany(flatWorld, 40);
+    const initialSpriteX = state.player.position.x;
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1 },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.hitboxOffsetX).toBe(20);
+    expect(getPlayerBounds(state.player).x).toBeCloseTo(
+      state.player.position.x + 20 - PLAYER_CONFIG.width / 2,
+    );
+    expect(state.player.position.x).toBeGreaterThan(initialSpriteX);
+
+    for (let index = 0; index < 30; index += 1) {
+      state = stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
+    }
+    expect(state.player.velocity.x).toBe(0);
+    expect(state.player.hitboxOffsetX).toBe(0);
+  });
+
+  it("offsets the player hitbox in the dash direction", () => {
+    let state = stepMany(flatWorld, 40);
+    state.player.facing = -1;
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, rollPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.action).toBe("roll");
+    expect(state.player.velocity.x).toBeLessThan(-800);
+    expect(state.player.hitboxOffsetX).toBe(-20);
+  });
+
+  it("prioritizes the attack direction over opposite movement", () => {
+    let state = stepMany(flatWorld, 40);
+    state.player.facing = 1;
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: -1 },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.action).toBe("attack");
+    expect(state.player.facing).toBe(-1);
+    expect(state.player.attackFacing).toBe(1);
+    expect(state.player.hitboxOffsetX).toBe(20);
+    expect(getPlayerBounds(state.player).x).toBeCloseTo(
+      state.player.position.x + 20 - PLAYER_CONFIG.width / 2,
+    );
   });
 
   it("lands on platforms and jumps from the grounded state", () => {
@@ -902,9 +969,8 @@ describe("tutorial stage", () => {
       TUTORIAL_STAGE,
     );
 
-    expect(state.player.position.x).toBe(
-      crusher!.bounds.x - PLAYER_CONFIG.width / 2,
-    );
+    const rejectedBounds = getPlayerBounds(state.player);
+    expect(rejectedBounds.x + rejectedBounds.width).toBe(crusher!.bounds.x);
     expect(state.player.velocity.x).toBeLessThan(0);
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
   });

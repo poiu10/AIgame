@@ -152,7 +152,7 @@ export class GameViewAdapter {
       player.action === "hurt" || player.action === "dead" ? 0xff5c86 : 0x76efff;
     graphics.lineStyle(4, hitboxColor, 1);
     graphics.strokeRect(
-      -PLAYER_CONFIG.width / 2,
+      player.hitboxOffsetX - PLAYER_CONFIG.width / 2,
       -PLAYER_CONFIG.height / 2,
       PLAYER_CONFIG.width,
       PLAYER_CONFIG.height,

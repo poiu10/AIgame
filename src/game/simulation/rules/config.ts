@@ -3,6 +3,7 @@ export const FIXED_STEP_SECONDS = 1 / 120;
 export const PLAYER_CONFIG = {
   width: 32,
   height: 84,
+  actionHitboxOffset: 20,
   maxHealth: 4,
   acceleration: 3800,
   airAcceleration: 2100,

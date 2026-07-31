@@ -1,6 +1,7 @@
 import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
+import { getPlayerBounds } from "../rules/player";
 import type { GameState } from "../state";
 import { damageEnemy, damagePlayer } from "./combat";
 import { emitSound } from "./sound";
@@ -49,11 +50,7 @@ export function updateWorldEnvironment(
     }
   }
 
-  const playerBounds = centerRect(
-    state.player.position,
-    PLAYER_CONFIG.width,
-    PLAYER_CONFIG.height,
-  );
+  const playerBounds = getPlayerBounds(state.player);
   for (const hazard of world.hazards ?? []) {
     if (
       !rectanglesOverlap(playerBounds, hazard.bounds) ||
@@ -67,8 +64,13 @@ export function updateWorldEnvironment(
     damagePlayer(state, rejectionDirection);
     state.player.position.x =
       rejectionDirection < 0
-        ? hazard.bounds.x - PLAYER_CONFIG.width / 2
-        : hazard.bounds.x + hazard.bounds.width + PLAYER_CONFIG.width / 2;
+        ? hazard.bounds.x -
+          PLAYER_CONFIG.width / 2 -
+          state.player.hitboxOffsetX
+        : hazard.bounds.x +
+          hazard.bounds.width +
+          PLAYER_CONFIG.width / 2 -
+          state.player.hitboxOffsetX;
     state.player.velocity.x = rejectionDirection * 660;
   }
 

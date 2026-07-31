@@ -15,30 +15,46 @@ export interface MotionResult {
   hitWall: boolean;
 }
 
+export interface BodyCollisionOptions {
+  horizontalOffset?: number;
+  previousHorizontalOffset?: number;
+}
+
 export function moveBodyAgainstTerrain(
   body: MovingBody,
   width: number,
   height: number,
   terrain: TerrainBlock[],
   deltaSeconds: number,
+  options: BodyCollisionOptions = {},
 ): MotionResult {
   const startX = body.position.x;
   const startY = body.position.y;
   const wasGrounded = body.grounded;
   const verticalSpeed = body.velocity.y;
+  const horizontalOffset = options.horizontalOffset ?? 0;
+  const previousHorizontalOffset =
+    options.previousHorizontalOffset ?? horizontalOffset;
   let hitWall = false;
 
   body.position.x += body.velocity.x * deltaSeconds;
+  const horizontalMovement =
+    body.position.x - startX + horizontalOffset - previousHorizontalOffset;
   for (const block of terrain) {
-    const bodyBounds = centerRect(body.position, width, height);
+    const bodyBounds = centerRect(
+      { x: body.position.x + horizontalOffset, y: body.position.y },
+      width,
+      height,
+    );
     if (!rectanglesOverlap(bodyBounds, block.bounds)) {
       continue;
     }
 
-    if (body.velocity.x > 0) {
-      body.position.x = block.bounds.x - width / 2;
-    } else if (body.velocity.x < 0) {
-      body.position.x = block.bounds.x + block.bounds.width + width / 2;
+    if (horizontalMovement > 0) {
+      body.position.x = block.bounds.x - width / 2 - horizontalOffset;
+    } else if (horizontalMovement < 0) {
+      body.position.x =
+        block.bounds.x + block.bounds.width + width / 2 - horizontalOffset;
     }
     body.velocity.x = 0;
     hitWall = true;
@@ -47,7 +63,11 @@ export function moveBodyAgainstTerrain(
   body.grounded = false;
   body.position.y += body.velocity.y * deltaSeconds;
   for (const block of terrain) {
-    const bodyBounds = centerRect(body.position, width, height);
+    const bodyBounds = centerRect(
+      { x: body.position.x + horizontalOffset, y: body.position.y },
+      width,
+      height,
+    );
     if (!rectanglesOverlap(bodyBounds, block.bounds)) {
       continue;
     }

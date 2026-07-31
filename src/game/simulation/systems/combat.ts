@@ -25,6 +25,7 @@ export function damagePlayer(
   player.velocity.y = -560;
   player.actionTime = 0;
   player.attackHitIds = [];
+  player.hitboxOffsetX = 0;
 
   if (player.health <= 0) {
     player.health = 0;
