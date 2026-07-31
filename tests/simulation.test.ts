@@ -19,7 +19,10 @@ import {
   PLAYER_GROUND_ATTACK_HITBOX,
 } from "../src/game/simulation/rules/combat";
 import { createInitialGameState } from "../src/game/simulation/state";
-import { damagePlayer } from "../src/game/simulation/systems/combat";
+import {
+  damagePlayer,
+  updatePlayerCombat,
+} from "../src/game/simulation/systems/combat";
 import { getLandingSoundProfile } from "../src/game/simulation/systems/movement";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
@@ -678,7 +681,22 @@ describe("combat loop", () => {
 
     expect(state.enemies[0].alive).toBe(false);
     expect(state.status).toBe("completed");
+    expect(state.soundWaves.some((wave) => wave.kind === "attack-hit")).toBe(true);
     expect(state.soundWaves.some((wave) => wave.kind === "death")).toBe(true);
+  });
+
+  it("keeps terrain attack impacts without emitting an attack wave", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = { x: 200, y: 648 };
+    state.player.grounded = true;
+    state.player.action = "attack";
+    state.player.actionTime = PLAYER_CONFIG.attackActiveStart;
+
+    updatePlayerCombat(state, flatWorld);
+
+    expect(state.player.attackHitIds).toContain("terrain:floor");
+    expect(state.events.some((event) => event.type === "impact")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "attack-hit")).toBe(false);
   });
 
   it("damages enemies on player-damaging terrain without frame-by-frame repeats", () => {

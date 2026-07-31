@@ -143,14 +143,6 @@ export function updatePlayerCombat(
         block.bounds.y + block.bounds.height,
       ),
     };
-    emitSound(
-      state,
-      "attack-hit",
-      hitPosition,
-      460,
-      0.76,
-      PLAYER_SOUND_SOURCE_ID,
-    );
     state.events.push({ type: "impact", position: hitPosition, strength: 0.45 });
   }
 
