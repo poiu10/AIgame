@@ -1,9 +1,8 @@
 :root {
   color: #eaffff;
   background: #030608;
-  font-family: "Courier New", Consolas, monospace;
+  font-family: Inter, Pretendard, ui-sans-serif, system-ui, sans-serif;
   font-synthesis: none;
-  --ui-pixel: 3px;
 }
 
 * {
@@ -20,7 +19,9 @@ body,
 
 body {
   overflow: hidden;
-  background: #030608;
+  background:
+    radial-gradient(circle at 50% 45%, rgb(12 31 38 / 52%), transparent 52%),
+    #030608;
 }
 
 #app {
@@ -39,8 +40,6 @@ body {
 
 #game-container canvas {
   display: block;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
 }
 
 #hud {
@@ -54,8 +53,8 @@ body {
   position: absolute;
   inset: 0;
   padding: clamp(0.85rem, 2.2vw, 1.5rem);
-  letter-spacing: 1px;
-  text-shadow: 2px 2px 0 #030608;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 1rem rgb(92 227 255 / 45%);
 }
 
 .hud-stats {
@@ -67,29 +66,8 @@ body {
 }
 
 .hud-health {
-  display: flex;
-  gap: calc(var(--ui-pixel) * 2);
-  align-items: center;
   color: #76efff;
-}
-
-.hud-health-pip {
-  display: grid;
-  grid-template-columns: repeat(5, var(--ui-pixel));
-  grid-template-rows: repeat(5, var(--ui-pixel));
-}
-
-.hud-health-pip i {
-  width: var(--ui-pixel);
-  height: var(--ui-pixel);
-}
-
-.hud-health-pip i.is-on {
-  background: #427d86;
-}
-
-.hud-health-pip.is-filled i.is-on {
-  background: #76efff;
+  letter-spacing: 0.16em;
 }
 
 .hud-debug {
@@ -105,17 +83,13 @@ body {
 }
 
 @media (max-width: 720px) {
-  :root {
-    --ui-pixel: 2px;
-  }
-
   .hud-debug {
     display: none;
   }
 }
 
-@media (min-width: 1440px) {
-  :root {
-    --ui-pixel: 4px;
+@media (prefers-reduced-motion: reduce) {
+  .hud-panel {
+    text-shadow: none;
   }
 }

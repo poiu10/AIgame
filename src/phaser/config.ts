@@ -9,8 +9,7 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   height: 540,
   backgroundColor: "#030608",
   render: {
-    antialias: false,
-    antialiasGL: false,
+    antialias: true,
     roundPixels: false,
   },
   scene: [BootScene, GameScene],
