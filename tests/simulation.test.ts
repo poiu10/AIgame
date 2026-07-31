@@ -1043,8 +1043,21 @@ describe("tutorial stage", () => {
     expect(state.player.action).toBe("hurt");
     expect(state.soundWaves.some((wave) => wave.kind === "hazard")).toBe(true);
     expect(state.hazards[0].echoTime).toBeGreaterThan(0);
-    expect(state.hazards[0].attackTime).toBeGreaterThan(0);
-    expect(state.hazards[0].attackDuration).toBeGreaterThan(0);
+    expect(state.hazards[0].reactionTime).toBeGreaterThan(0);
+    expect(state.hazards[0].reactionDuration).toBeGreaterThan(0);
+    expect(state.hazards[0].reactionSide).toBe(1);
+    expect(state.hazards[0].reactionOffsetY).toBe(
+      state.player.position.y - crusher!.bounds.y,
+    );
+  });
+
+  it("does not play damage feedback for a periodic hazard wave alone", () => {
+    const state = createInitialGameState(TUTORIAL_STAGE);
+    stepSimulation(state, EMPTY_INPUT, 0.11, TUTORIAL_STAGE);
+
+    expect(state.soundWaves.some((wave) => wave.kind === "hazard")).toBe(true);
+    expect(state.hazards[0].echoTime).toBeGreaterThan(0);
+    expect(state.hazards[0].reactionTime).toBe(0);
   });
 
   it("rejects non-rolling movement even during damage invulnerability", () => {
@@ -1069,6 +1082,7 @@ describe("tutorial stage", () => {
     expect(rejectedBounds.x + rejectedBounds.width).toBe(crusher!.bounds.x);
     expect(state.player.velocity.x).toBeLessThan(0);
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+    expect(state.hazards[0].reactionTime).toBe(0);
   });
 
   it("allows a full roll to cross the resonance crusher without damage", () => {
@@ -1094,5 +1108,6 @@ describe("tutorial stage", () => {
       crusher!.bounds.x + crusher!.bounds.width + PLAYER_CONFIG.width / 2,
     );
     expect(state.player.health).toBe(initialHealth);
+    expect(state.hazards[0].reactionTime).toBe(0);
   });
 });

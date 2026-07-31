@@ -4,10 +4,10 @@ import { ENEMY_ATTACK_HITBOX } from "../src/game/simulation/rules/combat";
 import type { EnemyState } from "../src/game/simulation/state";
 import {
   createEnemyThreatCells,
-  createHazardLightningCells,
+  createHazardDamageLightningCells,
   createHazardThreatCells,
   resolveEnemyThreatFrame,
-  resolveHazardAttackFrame,
+  resolveHazardReactionFrame,
   THREAT_PIXEL_SIZE,
 } from "../src/phaser/view/threatPixelArt";
 import {
@@ -178,44 +178,73 @@ describe("threat pixel art", () => {
     expect(cells.length).toBeGreaterThan(2500);
   });
 
-  it("bursts 3px lightning outside the unchanged hazard silhouette", () => {
+  it("bursts 3px damage lightning from only the contacted side", () => {
     const bodyBefore = createHazardThreatCells(120, 320);
-    const charge = createHazardLightningCells(120, 320, "charge");
-    const strike = createHazardLightningCells(120, 320, "strike");
-    const retract = createHazardLightningCells(120, 320, "retract");
+    const impactLeft = createHazardDamageLightningCells(
+      120,
+      320,
+      "impact",
+      -1,
+      160,
+    );
+    const impactRight = createHazardDamageLightningCells(
+      120,
+      320,
+      "impact",
+      1,
+      160,
+    );
+    const scatter = createHazardDamageLightningCells(
+      120,
+      320,
+      "scatter",
+      -1,
+      160,
+    );
+    const fade = createHazardDamageLightningCells(
+      120,
+      320,
+      "fade",
+      -1,
+      160,
+    );
     const bodyAfter = createHazardThreatCells(120, 320);
 
-    expectUniqueIntegerCells(charge);
-    expectUniqueIntegerCells(strike);
-    expectUniqueIntegerCells(retract);
+    expectUniqueIntegerCells(impactLeft);
+    expectUniqueIntegerCells(impactRight);
+    expectUniqueIntegerCells(scatter);
+    expectUniqueIntegerCells(fade);
     expect(bodyAfter).toEqual(bodyBefore);
-    expect(strike.length).toBeGreaterThan(charge.length);
-    expect(strike.some((cell) => cell.x < 0)).toBe(true);
-    expect(strike.some((cell) => cell.x >= 40)).toBe(true);
-    expect(Math.min(...strike.map((cell) => cell.x))).toBeLessThan(
-      Math.min(...retract.map((cell) => cell.x)),
+    expect(impactLeft.some((cell) => cell.x < 0)).toBe(true);
+    expect(impactLeft.every((cell) => cell.x < 40)).toBe(true);
+    expect(impactRight.some((cell) => cell.x >= 40)).toBe(true);
+    expect(impactRight.every((cell) => cell.x >= 0)).toBe(true);
+    expect(Math.min(...impactLeft.map((cell) => cell.x))).toBeLessThan(
+      Math.min(...scatter.map((cell) => cell.x)),
     );
-    expect(Math.max(...strike.map((cell) => cell.x))).toBeGreaterThan(
-      Math.max(...retract.map((cell) => cell.x)),
+    expect(Math.min(...scatter.map((cell) => cell.x))).toBeLessThan(
+      Math.min(...fade.map((cell) => cell.x)),
     );
   });
 
-  it("selects charge, strike, and retract from hazard attack time", () => {
+  it("selects impact, scatter, and fade from damage reaction time", () => {
     const hazard = {
       id: "hazard-test",
       echoTime: 1,
       echoDuration: 1,
-      attackTime: 1,
-      attackDuration: 1,
+      reactionTime: 1,
+      reactionDuration: 1,
+      reactionSide: -1 as const,
+      reactionOffsetY: 160,
     };
 
-    expect(resolveHazardAttackFrame(hazard)).toBe("charge");
-    hazard.attackTime = 0.6;
-    expect(resolveHazardAttackFrame(hazard)).toBe("strike");
-    hazard.attackTime = 0.2;
-    expect(resolveHazardAttackFrame(hazard)).toBe("retract");
-    hazard.attackTime = 0;
-    expect(resolveHazardAttackFrame(hazard)).toBeNull();
+    expect(resolveHazardReactionFrame(hazard)).toBe("impact");
+    hazard.reactionTime = 0.5;
+    expect(resolveHazardReactionFrame(hazard)).toBe("scatter");
+    hazard.reactionTime = 0.2;
+    expect(resolveHazardReactionFrame(hazard)).toBe("fade");
+    hazard.reactionTime = 0;
+    expect(resolveHazardReactionFrame(hazard)).toBeNull();
   });
 
   it("uses one red for threats and the player blue for enemy footsteps", () => {

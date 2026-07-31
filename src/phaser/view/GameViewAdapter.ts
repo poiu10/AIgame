@@ -23,10 +23,10 @@ import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 import {
   createEnemyThreatCells,
-  createHazardLightningCells,
+  createHazardDamageLightningCells,
   createHazardThreatCells,
   resolveEnemyThreatFrame,
-  resolveHazardAttackFrame,
+  resolveHazardReactionFrame,
   THREAT_PIXEL_SIZE,
 } from "./threatPixelArt";
 import { SOUND_WAVE_COLORS, THREAT_COLOR } from "./viewPalette";
@@ -152,13 +152,15 @@ export class GameViewAdapter {
         );
       }
 
-      const attackFrame = resolveHazardAttackFrame(hazard);
-      if (attackFrame) {
+      const reactionFrame = resolveHazardReactionFrame(hazard);
+      if (reactionFrame) {
         this.hazardGraphics.fillStyle(THREAT_COLOR, Math.min(1, alpha + 0.2));
-        for (const cell of createHazardLightningCells(
+        for (const cell of createHazardDamageLightningCells(
           definition.bounds.width,
           definition.bounds.height,
-          attackFrame,
+          reactionFrame,
+          hazard.reactionSide,
+          hazard.reactionOffsetY,
         )) {
           this.hazardGraphics.fillRect(
             definition.bounds.x + cell.x * THREAT_PIXEL_SIZE,

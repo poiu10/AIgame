@@ -55,7 +55,7 @@ export const ENEMY_CONFIG = {
 } as const;
 
 export const HAZARD_CONFIG = {
-  attackAnimationSeconds: 0.36,
+  damageReactionSeconds: 0.32,
 } as const;
 
 export const SOUND_CONFIG = {

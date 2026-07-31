@@ -15,7 +15,7 @@ export function updateWorldEnvironment(
 ): void {
   for (const hazard of state.hazards) {
     hazard.echoTime = Math.max(0, hazard.echoTime - deltaSeconds);
-    hazard.attackTime = Math.max(0, hazard.attackTime - deltaSeconds);
+    hazard.reactionTime = Math.max(0, hazard.reactionTime - deltaSeconds);
   }
 
   for (const emitterState of state.worldSoundEmitters) {
@@ -47,8 +47,6 @@ export function updateWorldEnvironment(
       if (hazard) {
         hazard.echoTime = HAZARD_REVEAL_SECONDS;
         hazard.echoDuration = HAZARD_REVEAL_SECONDS;
-        hazard.attackTime = HAZARD_CONFIG.attackAnimationSeconds;
-        hazard.attackDuration = HAZARD_CONFIG.attackAnimationSeconds;
       }
     }
   }
@@ -64,7 +62,29 @@ export function updateWorldEnvironment(
 
     const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
     const rejectionDirection = state.player.position.x < hazardCenterX ? -1 : 1;
-    damagePlayer(state, rejectionDirection);
+    const tookDamage = damagePlayer(state, rejectionDirection);
+    if (tookDamage) {
+      const hazardState = state.hazards.find(
+        (candidate) => candidate.id === hazard.id,
+      );
+      if (hazardState) {
+        hazardState.reactionTime = HAZARD_CONFIG.damageReactionSeconds;
+        hazardState.reactionDuration = HAZARD_CONFIG.damageReactionSeconds;
+        hazardState.reactionSide = rejectionDirection;
+        hazardState.reactionOffsetY = Math.max(
+          0,
+          Math.min(
+            hazard.bounds.height,
+            state.player.position.y - hazard.bounds.y,
+          ),
+        );
+        hazardState.echoTime = Math.max(
+          hazardState.echoTime,
+          HAZARD_REVEAL_SECONDS,
+        );
+        hazardState.echoDuration = HAZARD_REVEAL_SECONDS;
+      }
+    }
     state.player.position.x =
       rejectionDirection < 0
         ? hazard.bounds.x -
