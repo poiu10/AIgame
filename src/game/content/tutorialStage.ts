@@ -10,7 +10,6 @@ export const TUTORIAL_STAGE: WorldDefinition = {
     { id: "jump-step", bounds: { x: 500, y: 590, width: 150, height: 60 } },
     { id: "jump-platform", bounds: { x: 710, y: 550, width: 150, height: 24 } },
     { id: "jump-pit-floor", bounds: { x: 680, y: 700, width: 240, height: 20 } },
-    { id: "jump-recovery-low", bounds: { x: 800, y: 650, width: 60, height: 50 } },
     { id: "jump-recovery-high", bounds: { x: 860, y: 600, width: 60, height: 100 } },
     { id: "jump-right-hill", bounds: { x: 920, y: 550, width: 260, height: 170 } },
     { id: "middle-floor", bounds: { x: 1180, y: 650, width: 860, height: 70 } },
