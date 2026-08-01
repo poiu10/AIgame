@@ -23,6 +23,39 @@ describe("standalone map editor", () => {
     expect(editorHtml).toContain('document.execCommand("copy")');
   });
 
+  it("moves selected entities by dragging on the snapped grid", () => {
+    const start = editorHtml.indexOf("function translateEntity(group, original, deltaX, deltaY)");
+    const end = editorHtml.indexOf("\n\n      function snap", start);
+    const translateEntity = new Function(
+      "deepClone",
+      `${editorHtml.slice(start, end)}; return translateEntity;`,
+    )((value) => structuredClone(value)) as (
+      group: string,
+      original: Record<string, any>,
+      deltaX: number,
+      deltaY: number,
+    ) => Record<string, any>;
+
+    expect(translateEntity("terrain", { bounds: { x: 20, y: 40, width: 80, height: 60 } }, 40, -20))
+      .toEqual({ bounds: { x: 60, y: 20, width: 80, height: 60 } });
+    expect(translateEntity("spawns", { position: { x: 100, y: 200 }, facing: 1 }, -20, 40))
+      .toEqual({ position: { x: 80, y: 240 }, facing: 1 });
+    expect(translateEntity("enemies", {
+      position: { x: 300, y: 500 }, patrolMinX: 200, patrolMaxX: 420,
+    }, 60, -40)).toEqual({
+      position: { x: 360, y: 460 }, patrolMinX: 260, patrolMaxX: 480,
+    });
+    expect(editorHtml).toContain('canvas.classList.add("dragging")');
+    expect(editorHtml).toContain('canvas.addEventListener("pointermove"');
+    expect(editorHtml).toContain('canvas.addEventListener("pointercancel"');
+  });
+
+  it("deletes the selection from the button or keyboard", () => {
+    expect(editorHtml).toContain("function deleteSelection()");
+    expect(editorHtml).toContain('$("#delete").addEventListener("click", deleteSelection)');
+    expect(editorHtml).toContain('event.key === "Delete" || event.key === "Backspace"');
+  });
+
   it("contains syntactically valid inline JavaScript", () => {
     const scripts = [...editorHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
     const executableScript = scripts.at(-1)?.[1];

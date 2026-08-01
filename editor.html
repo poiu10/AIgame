@@ -24,6 +24,8 @@
       button, input, select, textarea { font: inherit; }
       button { color: var(--ink); background: #0c1d21; border: 1px solid #24515a; padding: 8px 11px; cursor: pointer; }
       button:hover, button.active { color: #031012; background: var(--cyan); border-color: var(--cyan); }
+      button:disabled { color: #496267; background: #081215; border-color: #132c31; cursor: not-allowed; }
+      button:disabled:hover { color: #496267; background: #081215; border-color: #132c31; }
       input, select, textarea { color: var(--ink); background: #030809; border: 1px solid var(--line); }
       input, select { padding: 6px 7px; }
 
@@ -48,7 +50,9 @@
       .map-toolbar #status { color: var(--cyan); margin-right: auto; }
       .map-toolbar label { display: flex; align-items: center; gap: 7px; font-size: 12px; }
       .canvas-viewport { height: calc(100% - 46px); overflow: auto; padding: 36px; }
-      #map-canvas { display: block; background: #050b0d; border: 1px solid #2b5c65; image-rendering: pixelated; box-shadow: 0 0 48px rgba(50, 222, 236, .07); cursor: crosshair; }
+      #map-canvas { display: block; background: #050b0d; border: 1px solid #2b5c65; image-rendering: pixelated; box-shadow: 0 0 48px rgba(50, 222, 236, .07); cursor: crosshair; touch-action: none; }
+      #map-canvas.selecting { cursor: grab; }
+      #map-canvas.dragging { cursor: grabbing; }
 
       .inspector-panel { grid-row: 2; padding: 18px; border-left: 1px solid var(--line); background: var(--panel); }
       .inspector-panel h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: .12em; }
@@ -80,8 +84,8 @@
       <aside class="tool-rail" aria-label="배치 도구">
         <div id="tool-buttons" class="tool-buttons"></div>
         <div class="rail-actions">
-          <button id="duplicate" type="button">복제</button>
-          <button id="delete" type="button">삭제</button>
+          <button id="duplicate" type="button" disabled>복제</button>
+          <button id="delete" type="button" title="선택 항목 삭제 (Delete 또는 Backspace)" disabled>삭제</button>
         </div>
       </aside>
 
@@ -98,7 +102,7 @@
 
       <aside class="inspector-panel">
         <h2>선택 항목</h2>
-        <p class="inspector-help">항목을 선택하면 게임 스키마 그대로 편집할 수 있습니다. <code>kind</code>에 새 지형·장해물 타입 이름을 넣을 수 있습니다.</p>
+        <p class="inspector-help">선택 도구에서 항목을 끌면 격자 단위로 이동합니다. 선택한 항목은 <code>Delete</code> 또는 <code>Backspace</code>로 삭제할 수 있고, 게임 스키마 그대로 속성을 편집할 수 있습니다.</p>
         <textarea id="inspector" spellcheck="false" aria-label="선택 항목 JSON"></textarea>
         <button id="apply-inspector" type="button">선택 항목 적용</button>
         <div id="validation" class="validation"></div>
@@ -151,7 +155,7 @@
       "use strict";
 
       const EDITOR_OBJECT_CATALOG = [
-        { tool: "select", label: "선택", shortcut: "V", placement: "select", description: "선택하고 JSON 속성을 수정" },
+        { tool: "select", label: "선택", shortcut: "V", placement: "select", description: "선택하거나 드래그해 이동" },
         { tool: "terrain", label: "지형", shortcut: "T", placement: "rectangle", description: "충돌 지형을 드래그" },
         { tool: "hazard", label: "장해물", shortcut: "H", placement: "rectangle", description: "피해 장해물을 드래그" },
         { tool: "enemy", label: "적", shortcut: "E", placement: "point", description: "적과 기본 순찰 범위를 배치" },
@@ -175,6 +179,7 @@
       let tool = "select";
       let selection = null;
       let draft = null;
+      let drag = null;
       let gridSize = 20;
       let zoom = 0.35;
       let idCounter = 1;
@@ -190,6 +195,23 @@
 
       function selectedEntity() {
         return selection ? entities(selection.group)[selection.index] ?? null : null;
+      }
+
+      function translateEntity(group, original, deltaX, deltaY) {
+        const moved = deepClone(original);
+        if (moved.bounds) {
+          moved.bounds.x = original.bounds.x + deltaX;
+          moved.bounds.y = original.bounds.y + deltaY;
+        }
+        if (moved.position) {
+          moved.position.x = original.position.x + deltaX;
+          moved.position.y = original.position.y + deltaY;
+        }
+        if (group === "enemies") {
+          moved.patrolMinX = original.patrolMinX + deltaX;
+          moved.patrolMaxX = original.patrolMaxX + deltaX;
+        }
+        return moved;
       }
 
       function snap(value) { return Math.round(value / gridSize) * gridSize; }
@@ -355,7 +377,10 @@
       }
 
       function syncInspector() {
-        $("#inspector").value = selectedEntity() ? JSON.stringify(selectedEntity(), null, 2) : "";
+        const entity = selectedEntity();
+        $("#inspector").value = entity ? JSON.stringify(entity, null, 2) : "";
+        $("#duplicate").disabled = !entity;
+        $("#delete").disabled = !entity;
         const result = validateStage(stage);
         const validation = $("#validation");
         validation.textContent = result.valid
@@ -372,6 +397,7 @@
 
       function setTool(next) {
         tool = next;
+        canvas.classList.toggle("selecting", tool === "select");
         document.querySelectorAll("[data-tool]").forEach((button) => {
           button.classList.toggle("active", button.dataset.tool === tool);
         });
@@ -428,15 +454,27 @@
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.tool = descriptor.tool;
-        button.innerHTML = `${descriptor.label} <small>${descriptor.shortcut} · ${descriptor.placement === "rectangle" ? "드래그" : "클릭"}</small>`;
+        const gesture = descriptor.placement === "rectangle"
+          ? "드래그"
+          : descriptor.placement === "select" ? "클릭/드래그" : "클릭";
+        button.innerHTML = `${descriptor.label} <small>${descriptor.shortcut} · ${gesture}</small>`;
         button.addEventListener("click", () => setTool(descriptor.tool));
         toolButtons.append(button);
       }
 
       canvas.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
         const point = pointerPosition(event);
-        if (tool === "select") setSelection(hitTest(point.x, point.y));
-        else if (tool === "enemy" || tool === "spawn") addPoint(tool, point.x, point.y);
+        if (tool === "select") {
+          const hit = hitTest(point.x, point.y);
+          setSelection(hit);
+          if (hit) {
+            drag = { startX: point.x, startY: point.y, original: deepClone(selectedEntity()), moved: false };
+            canvas.setPointerCapture(event.pointerId);
+            canvas.classList.add("dragging");
+            event.preventDefault();
+          }
+        } else if (tool === "enemy" || tool === "spawn") addPoint(tool, point.x, point.y);
         else {
           draft = { startX: point.x, startY: point.y, currentX: point.x, currentY: point.y };
           canvas.setPointerCapture(event.pointerId);
@@ -444,19 +482,51 @@
         }
       });
       canvas.addEventListener("pointermove", (event) => {
-        if (!draft) return;
         const point = pointerPosition(event);
-        draft.currentX = point.x;
-        draft.currentY = point.y;
-        render();
+        if (drag && selection) {
+          const deltaX = point.x - drag.startX;
+          const deltaY = point.y - drag.startY;
+          drag.moved ||= deltaX !== 0 || deltaY !== 0;
+          entities(selection.group)[selection.index] = translateEntity(
+            selection.group,
+            drag.original,
+            deltaX,
+            deltaY
+          );
+          syncInspector();
+          render();
+        } else if (draft) {
+          draft.currentX = point.x;
+          draft.currentY = point.y;
+          render();
+        }
       });
-      canvas.addEventListener("pointerup", () => {
-        if (draft && (tool === "terrain" || tool === "hazard" || tool === "exit")) {
+      function finishPointerInteraction(event, cancelled = false) {
+        if (drag) {
+          const completedDrag = drag;
+          if (cancelled && selection) {
+            entities(selection.group)[selection.index] = completedDrag.original;
+            syncInspector();
+            render();
+          }
+          drag = null;
+          canvas.classList.remove("dragging");
+          if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+          if (!cancelled && completedDrag.moved) {
+            $("#status").textContent = "선택 항목을 이동했습니다.";
+          }
+        }
+        if (cancelled && draft) {
+          draft = null;
+          render();
+        } else if (draft && (tool === "terrain" || tool === "hazard" || tool === "exit")) {
           const bounds = normalizeRect(draft);
           draft = null;
           addRectangle(tool, bounds);
         }
-      });
+      }
+      canvas.addEventListener("pointerup", finishPointerInteraction);
+      canvas.addEventListener("pointercancel", (event) => finishPointerInteraction(event, true));
 
       $("#apply-inspector").addEventListener("click", () => {
         if (!selection) return;
@@ -469,11 +539,15 @@
           $("#validation").classList.add("error");
         }
       });
-      $("#delete").addEventListener("click", () => {
+      function deleteSelection() {
         if (!selection) return;
         entities(selection.group).splice(selection.index, 1);
+        drag = null;
+        canvas.classList.remove("dragging");
         setSelection(null);
-      });
+        $("#status").textContent = "선택 항목을 삭제했습니다.";
+      }
+      $("#delete").addEventListener("click", deleteSelection);
       $("#duplicate").addEventListener("click", () => {
         if (!selection) return;
         const copy = deepClone(selectedEntity());
@@ -549,7 +623,10 @@
         if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
         const descriptor = EDITOR_OBJECT_CATALOG.find((item) => item.shortcut.toLowerCase() === event.key.toLowerCase());
         if (descriptor) setTool(descriptor.tool);
-        if (event.key === "Delete") $("#delete").click();
+        if (event.key === "Delete" || event.key === "Backspace") {
+          event.preventDefault();
+          deleteSelection();
+        }
       });
 
       syncStageFields();
