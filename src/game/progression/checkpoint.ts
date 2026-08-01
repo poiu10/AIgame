@@ -103,8 +103,17 @@ export function restoreCheckpointState(save: CheckpointSave, stage: StageDefinit
   const progress = save.stageProgress[stage.id] ?? emptyProgress();
   const defeated = new Set([...progress.defeatedEnemyIds, ...progress.defeatedBossIds]);
   state.enemies = state.enemies.filter((enemy) => !defeated.has(enemy.id));
-  state.player.position = { ...save.playerPosition };
-  state.player.airborneApexY = save.playerPosition.y;
+  const savedPositionIsInStage =
+    save.playerPosition.x >= 0 &&
+    save.playerPosition.x <= stage.width &&
+    save.playerPosition.y >= 0 &&
+    save.playerPosition.y <= stage.height;
+  const fallbackSpawn = stage.spawns[0];
+  const restoredPosition = savedPositionIsInStage
+    ? save.playerPosition
+    : (fallbackSpawn?.position ?? stage.playerSpawn);
+  state.player.position = { ...restoredPosition };
+  state.player.airborneApexY = restoredPosition.y;
   state.player.facing = save.playerFacing;
   state.player.attackFacing = save.playerFacing;
   state.player.health = PLAYER_CONFIG.maxHealth;

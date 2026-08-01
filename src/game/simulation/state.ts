@@ -1,11 +1,25 @@
-import type { WorldDefinition } from "../content/world";
+import {
+  ENEMY_KINDS,
+  HAZARD_KINDS,
+  TERRAIN_KINDS,
+  type RectState,
+  type WorldDefinition,
+} from "../content/world";
 import { TUTORIAL_STAGE } from "../content/tutorialStage";
 import { ENEMY_CONFIG, PLAYER_CONFIG } from "./rules/config";
 
 export type Facing = -1 | 1;
 export type GroundAttackVariant = 0 | 1 | 2;
 export type PlayerAction = "normal" | "roll" | "attack" | "hurt" | "dead";
-export type EnemyAction = "patrol" | "alert" | "attack" | "hurt" | "dead";
+export type EnemyAction =
+  | "sleep"
+  | "patrol"
+  | "fly"
+  | "pursue"
+  | "alert"
+  | "attack"
+  | "hurt"
+  | "dead";
 export type SessionStatus = "playing" | "completed" | "failed";
 export type SoundKind =
   | "terrain-step"
@@ -49,6 +63,7 @@ export interface PlayerState {
 
 export interface EnemyState {
   id: string;
+  kind: string;
   position: Vector2State;
   velocity: Vector2State;
   facing: Facing;
@@ -66,16 +81,31 @@ export interface EnemyState {
   footstepTravel: number;
   echoTime: number;
   echoDuration: number;
+  activated: boolean;
+  timeUntilPulse: number;
+}
+
+export interface TerrainState {
+  id: string;
+  active: boolean;
+  pressed: boolean;
+  echoTime: number;
+  echoDuration: number;
 }
 
 export interface HazardState {
   id: string;
+  kind: string;
+  bounds: RectState;
   echoTime: number;
   echoDuration: number;
   reactionTime: number;
   reactionDuration: number;
   reactionSide: Facing;
   reactionOffsetY: number;
+  growthActive: boolean;
+  growthElapsed: number;
+  timeUntilPulse: number;
 }
 
 export interface WorldSoundEmitterState {
@@ -131,6 +161,7 @@ export interface GameState {
   elapsedTime: number;
   player: PlayerState;
   enemies: EnemyState[];
+  terrain: TerrainState[];
   hazards: HazardState[];
   worldSoundEmitters: WorldSoundEmitterState[];
   tutorialStep: number;
@@ -170,6 +201,7 @@ export function createInitialGameState(
     },
     enemies: world.enemies.map((spawn) => ({
       id: spawn.id,
+      kind: spawn.kind ?? ENEMY_KINDS.stalker,
       position: { ...spawn.position },
       velocity: { x: 0, y: 0 },
       facing: -1,
@@ -178,7 +210,12 @@ export function createInitialGameState(
       health: spawn.health ?? ENEMY_CONFIG.maxHealth,
       maxHealth: spawn.health ?? ENEMY_CONFIG.maxHealth,
       alive: true,
-      action: "patrol",
+      action:
+        spawn.kind === ENEMY_KINDS.sleeper || spawn.kind === ENEMY_KINDS.waker
+          ? "sleep"
+          : spawn.kind === ENEMY_KINDS.flyer
+            ? "fly"
+            : "patrol",
       actionTime: 0,
       attackCooldown: 0,
       hazardInvulnerabilityTime: 0,
@@ -187,15 +224,29 @@ export function createInitialGameState(
       footstepTravel: 0,
       echoTime: 0,
       echoDuration: 0,
+      activated: spawn.kind !== ENEMY_KINDS.waker,
+      timeUntilPulse: spawn.kind === ENEMY_KINDS.sleeper ? 0.45 : 1.15,
+    })),
+    terrain: world.terrain.map((block) => ({
+      id: block.id,
+      active: block.kind !== TERRAIN_KINDS.closesOnButton,
+      pressed: false,
+      echoTime: 0,
+      echoDuration: 0,
     })),
     hazards: (world.hazards ?? []).map((hazard) => ({
       id: hazard.id,
+      kind: hazard.kind ?? HAZARD_KINDS.crusher,
+      bounds: { ...hazard.bounds },
       echoTime: 0,
       echoDuration: 0,
       reactionTime: 0,
       reactionDuration: 0,
       reactionSide: 1,
       reactionOffsetY: 0,
+      growthActive: false,
+      growthElapsed: 0,
+      timeUntilPulse: hazard.kind === HAZARD_KINDS.growing ? 0.35 : Number.POSITIVE_INFINITY,
     })),
     worldSoundEmitters: (world.soundEmitters ?? []).map((emitter) => ({
       id: emitter.id,

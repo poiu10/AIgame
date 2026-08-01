@@ -1,4 +1,5 @@
 import { ENEMY_CONFIG } from "../../game/simulation/rules/config";
+import { ENEMY_KINDS } from "../../game/content/world";
 import { ENEMY_ATTACK_HITBOX } from "../../game/simulation/rules/combat";
 import type {
   EnemyState,
@@ -418,6 +419,82 @@ function createEnemyPolygons(frame: EnemyThreatFrame): CellPolygon[] {
   ];
 }
 
+function createSleepingEnemyPolygons(waker: boolean): CellPolygon[] {
+  const crest = waker ? -8 : -5;
+  return [
+    [
+      { x: -11, y: 4 },
+      { x: -8, y: -2 },
+      { x: -2, y: crest },
+      { x: 5, y: -5 },
+      { x: 11, y: -1 },
+      { x: 9, y: 5 },
+      { x: 3, y: 7 },
+      { x: -6, y: 7 },
+    ],
+    [
+      { x: -8, y: 1 },
+      { x: -14, y: -1 },
+      { x: -17, y: 3 },
+      { x: -12, y: 4 },
+      { x: -8, y: 6 },
+    ],
+    ...(waker
+      ? [[
+          { x: -1, y: -6 },
+          { x: 2, y: -12 },
+          { x: 4, y: -5 },
+        ] satisfies CellPolygon]
+      : []),
+  ];
+}
+
+function createFlyingEnemyPolygons(
+  frame: EnemyThreatFrame,
+  waker: boolean,
+): CellPolygon[] {
+  const raised = frame === "walk-0" || frame === "walk-3";
+  const wingY = raised ? -10 : 2;
+  const wingTipY = raised ? -7 : 8;
+  return [
+    [
+      { x: -6, y: -4 },
+      { x: -1, y: -7 },
+      { x: 6, y: -5 },
+      { x: 10, y: -1 },
+      { x: 6, y: 4 },
+      { x: 0, y: 6 },
+      { x: -6, y: 3 },
+    ],
+    [
+      { x: -3, y: -3 },
+      { x: -11, y: wingY },
+      { x: -9, y: wingTipY },
+      { x: -3, y: 2 },
+    ],
+    [
+      { x: 2, y: -4 },
+      { x: 9, y: wingY - (waker ? 2 : 0) },
+      { x: 8, y: wingTipY },
+      { x: 3, y: 2 },
+    ],
+    [
+      { x: 7, y: -4 },
+      { x: 13, y: -6 },
+      { x: 11, y: -2 },
+      { x: 14, y: 0 },
+      { x: 9, y: 2 },
+    ],
+    ...(waker
+      ? [[
+          { x: -4, y: -5 },
+          { x: -2, y: -12 },
+          { x: 1, y: -6 },
+        ] satisfies CellPolygon]
+      : []),
+  ];
+}
+
 export function resolveEnemyThreatFrame(
   enemy: EnemyState,
   elapsedSeconds: number,
@@ -449,6 +526,9 @@ export function resolveEnemyThreatFrame(
       ? "attack-follow-through"
       : "attack-recover";
   }
+  if (enemy.action === "fly" || enemy.action === "pursue") {
+    return WALK_FRAMES[Math.floor(elapsedSeconds * 7) % WALK_FRAMES.length];
+  }
   if (enemy.grounded && Math.abs(enemy.velocity.x) > 1) {
     return WALK_FRAMES[Math.floor(elapsedSeconds * 9) % WALK_FRAMES.length];
   }
@@ -458,9 +538,20 @@ export function resolveEnemyThreatFrame(
 export function createEnemyThreatCells(
   frame: EnemyThreatFrame,
   facing: Facing,
+  kind: string = ENEMY_KINDS.stalker,
 ): ThreatPixelCell[] {
   const cells = new Map<string, ThreatPixelCell>();
-  addPolygons(cells, createEnemyPolygons(frame));
+  if (kind === ENEMY_KINDS.sleeper && frame === "idle") {
+    addPolygons(cells, createSleepingEnemyPolygons(false));
+  } else if (kind === ENEMY_KINDS.flyer && frame.startsWith("walk-")) {
+    addPolygons(cells, createFlyingEnemyPolygons(frame, false));
+  } else if (kind === ENEMY_KINDS.waker && frame === "idle") {
+    addPolygons(cells, createSleepingEnemyPolygons(true));
+  } else if (kind === ENEMY_KINDS.waker && frame.startsWith("walk-")) {
+    addPolygons(cells, createFlyingEnemyPolygons(frame, true));
+  } else {
+    addPolygons(cells, createEnemyPolygons(frame));
+  }
 
   return [...cells.values()].map((cell) => ({
     x: facing > 0 ? cell.x : -cell.x - 1,
@@ -472,8 +563,8 @@ export function createHazardThreatCells(
   width: number,
   height: number,
 ): ThreatPixelCell[] {
-  const widthCells = Math.max(9, Math.floor(width / THREAT_PIXEL_SIZE));
-  const heightCells = Math.max(17, Math.floor(height / THREAT_PIXEL_SIZE));
+  const widthCells = Math.max(7, Math.floor(width / THREAT_PIXEL_SIZE));
+  const heightCells = Math.max(7, Math.floor(height / THREAT_PIXEL_SIZE));
   const lastX = widthCells - 1;
   const lastY = heightCells - 1;
   const middleX = Math.floor(lastX / 2);
@@ -533,8 +624,8 @@ export function createHazardDamageLightningCells(
   side: Facing,
   contactOffsetY: number,
 ): ThreatPixelCell[] {
-  const widthCells = Math.max(9, Math.floor(width / THREAT_PIXEL_SIZE));
-  const heightCells = Math.max(17, Math.floor(height / THREAT_PIXEL_SIZE));
+  const widthCells = Math.max(7, Math.floor(width / THREAT_PIXEL_SIZE));
+  const heightCells = Math.max(7, Math.floor(height / THREAT_PIXEL_SIZE));
   const lastX = widthCells - 1;
   const cells = new Map<string, ThreatPixelCell>();
   const anchorY = Math.max(

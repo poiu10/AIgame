@@ -3,10 +3,11 @@ import type { WorldDefinition } from "../../content/world";
 import type { InputActions } from "../../input/actions";
 import { PLAYER_CONFIG } from "../rules/config";
 import type { GameState } from "../state";
-import { updatePlayerCombat } from "./combat";
+import { killPlayer, updatePlayerCombat } from "./combat";
 import { updateEnemies } from "./enemies";
 import { updateTutorialProgress, updateWorldEnvironment } from "./environment";
 import { updatePlayerMovement } from "./movement";
+import { withActiveTerrain } from "./stageMechanisms";
 import {
   emitSound,
   PLAYER_SOUND_SOURCE_ID,
@@ -21,9 +22,11 @@ export function stepSimulation(
 ): GameState {
   state.elapsedTime += deltaSeconds;
 
+  const collisionWorld = withActiveTerrain(state, world);
+
   const movementSounds = updatePlayerMovement(
     state,
-    world,
+    collisionWorld,
     input,
     deltaSeconds,
   );
@@ -42,28 +45,15 @@ export function stepSimulation(
     state.player.position.y > world.height + PLAYER_CONFIG.height &&
     state.player.action !== "dead"
   ) {
-    state.player.health = 0;
-    state.player.action = "dead";
-    state.player.hitboxOffsetX = 0;
-    state.player.velocity.x = 0;
-    state.player.velocity.y = 0;
-    state.status = "failed";
-    emitSound(
-      state,
-      "death",
-      state.player.position,
-      720,
-      1,
-      PLAYER_SOUND_SOURCE_ID,
-    );
+    killPlayer(state);
   }
 
-  updateEnemies(state, world, deltaSeconds);
+  updateEnemies(state, collisionWorld, deltaSeconds);
   updatePlayerCombat(state, world);
   updateWorldEnvironment(state, world, deltaSeconds);
   updateTutorialProgress(state, world);
 
-  updateSoundPropagation(state, world, deltaSeconds);
+  updateSoundPropagation(state, withActiveTerrain(state, world), deltaSeconds);
   return state;
 }
 

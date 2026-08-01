@@ -16,6 +16,13 @@ export interface TerrainBlock {
   bounds: RectState;
 }
 
+export const TERRAIN_KINDS = {
+  solid: "solid",
+  button: "trigger-button",
+  closesOnButton: "button-closing-door",
+  opensOnButton: "button-opening-door",
+} as const;
+
 export interface EnemySpawn {
   id: string;
   kind?: string;
@@ -26,11 +33,24 @@ export interface EnemySpawn {
   health?: number;
 }
 
+export const ENEMY_KINDS = {
+  stalker: "echo-stalker",
+  sleeper: "stage-sleeper",
+  flyer: "stage-flyer",
+  waker: "stage-waker",
+} as const;
+
 export interface HazardDefinition {
   id: string;
   kind?: string;
   bounds: RectState;
 }
+
+export const HAZARD_KINDS = {
+  crusher: "resonance-crusher",
+  lethal: "instant-death",
+  growing: "button-growing",
+} as const;
 
 export type WorldSoundKind = "ambient" | "hazard";
 

@@ -130,29 +130,46 @@
         "schemaVersion": 1,
         "id": "stage-1",
         "name": "1스테이지",
-        "width": 4800,
-        "height": 1440,
-        "playerSpawn": { "x": 180, "y": 1258 },
+        "width": 1440,
+        "height": 550,
+        "playerSpawn": { "x": 80, "y": 160 },
         "spawns": [
-          { "id": "from-tutorial", "position": { "x": 180, "y": 1258 }, "facing": 1 },
-          { "id": "east-return", "position": { "x": 4520, "y": 1258 }, "facing": -1 }
+          { "id": "spawn-3", "position": { "x": 80, "y": 160 }, "facing": 1 },
+          { "id": "spawn-13", "position": { "x": 80, "y": 420 }, "facing": 1 }
         ],
         "exits": [
-          {
-            "id": "to-tutorial",
-            "bounds": { "x": 0, "y": 1080, "width": 48, "height": 220 },
-            "targetStageId": "tutorial",
-            "targetSpawnId": "from-stage-1"
-          }
+          { "id": "exit-2", "bounds": { "x": 0, "y": 80, "width": 40, "height": 140 }, "targetStageId": "tutorial", "targetSpawnId": "from-stage-1" },
+          { "id": "exit-19", "bounds": { "x": 0, "y": 340, "width": 40, "height": 140 }, "targetStageId": "stage-2", "targetSpawnId": "from-stage-1" }
         ],
         "terrain": [
-          { "id": "entry-ceiling", "kind": "solid", "bounds": { "x": 0, "y": 1020, "width": 700, "height": 60 } },
-          { "id": "stage-floor", "kind": "solid", "bounds": { "x": 0, "y": 1300, "width": 4800, "height": 140 } },
           { "id": "left-upper-wall", "kind": "solid", "bounds": { "x": -64, "y": 0, "width": 64, "height": 1020 } },
-          { "id": "right-wall", "kind": "solid", "bounds": { "x": 4800, "y": 0, "width": 64, "height": 1440 } }
+          { "id": "right-wall", "kind": "solid", "bounds": { "x": 1440, "y": 0, "width": 64, "height": 550 } },
+          { "id": "terrain-1", "kind": "solid", "bounds": { "x": 0, "y": 480, "width": 260, "height": 80 } },
+          { "id": "terrain-4", "kind": "solid", "bounds": { "x": 0, "y": 0, "width": 1440, "height": 80 } },
+          { "id": "terrain-5", "kind": "solid", "bounds": { "x": 240, "y": 80, "width": 160, "height": 300 } },
+          { "id": "terrain-6", "kind": "solid", "bounds": { "x": 0, "y": 220, "width": 180, "height": 120 } },
+          { "id": "terrain-8", "kind": "solid", "bounds": { "x": 380, "y": 480, "width": 80, "height": 80 } },
+          { "id": "terrain-3", "kind": "solid", "bounds": { "x": 520, "y": 400, "width": 80, "height": 40 } },
+          { "id": "terrain-11", "kind": "solid", "bounds": { "x": 700, "y": 300, "width": 80, "height": 40 } },
+          { "id": "terrain-12", "kind": "solid", "bounds": { "x": 860, "y": 280, "width": 80, "height": 40 } },
+          { "id": "terrain-14", "kind": "solid", "bounds": { "x": 1020, "y": 340, "width": 80, "height": 40 } },
+          { "id": "terrain-17", "kind": "solid", "bounds": { "x": 1220, "y": 340, "width": 120, "height": 40 } },
+          { "id": "terrain-18", "kind": "solid", "bounds": { "x": 1340, "y": 80, "width": 100, "height": 480 } },
+          { "id": "terrain-door1", "kind": "button-closing-door", "bounds": { "x": 180, "y": 220, "width": 60, "height": 40 } },
+          { "id": "terrain-door2", "kind": "button-opening-door", "bounds": { "x": 120, "y": 340, "width": 40, "height": 100 } },
+          { "id": "terrain-botton", "kind": "trigger-button", "bounds": { "x": 1320, "y": 240, "width": 20, "height": 40 } }
         ],
-        "enemies": [],
-        "hazards": [],
+        "enemies": [
+          { "id": "enemy-sleep", "kind": "stage-sleeper", "role": "enemy", "position": { "x": 560, "y": 500 }, "patrolMinX": 560, "patrolMaxX": 560, "health": 1 },
+          { "id": "enemy-fly1", "kind": "stage-flyer", "role": "enemy", "position": { "x": 660, "y": 360 }, "patrolMinX": 560, "patrolMaxX": 760, "health": 2 },
+          { "id": "enemy-fly2", "kind": "stage-flyer", "role": "enemy", "position": { "x": 1160, "y": 300 }, "patrolMinX": 1060, "patrolMaxX": 1260, "health": 2 },
+          { "id": "enemy-wake", "kind": "stage-waker", "role": "enemy", "position": { "x": 620, "y": 120 }, "patrolMinX": 420, "patrolMaxX": 820, "health": 1 }
+        ],
+        "hazards": [
+          { "id": "hazard-7", "kind": "instant-death", "bounds": { "x": 260, "y": 520, "width": 120, "height": 40 } },
+          { "id": "hazard-1", "kind": "instant-death", "bounds": { "x": 460, "y": 520, "width": 880, "height": 40 } },
+          { "id": "hazard-growing", "kind": "button-growing", "bounds": { "x": 1280, "y": 100, "width": 40, "height": 40 } }
+        ],
         "soundEmitters": []
       }
     </script>

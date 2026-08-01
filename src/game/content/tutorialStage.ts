@@ -16,7 +16,7 @@ export const TUTORIAL_STAGE: StageDefinition = {
       id: "to-stage-1",
       bounds: { x: 5680, y: 1080, width: 60, height: 220 },
       targetStageId: "stage-1",
-      targetSpawnId: "from-tutorial",
+      targetSpawnId: "spawn-3",
     },
   ],
   terrain: [

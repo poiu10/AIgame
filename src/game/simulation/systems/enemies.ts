@@ -1,7 +1,11 @@
-import type { WorldDefinition } from "../../content/world";
+import { ENEMY_KINDS, type WorldDefinition } from "../../content/world";
 import { rectanglesOverlap } from "../collision/aabb";
 import { moveBodyAgainstTerrain } from "../collision/motion";
-import { ENEMY_CONFIG } from "../rules/config";
+import {
+  ENEMY_CONFIG,
+  getEnemyBodySize,
+  STAGE_ONE_CONFIG,
+} from "../rules/config";
 import { getEnemyAttackBounds } from "../rules/combat";
 import { getPlayerBounds } from "../rules/player";
 import type { EnemyState, GameState } from "../state";
@@ -24,12 +28,109 @@ function attackTouchesPlayer(state: GameState, enemy: EnemyState): boolean {
   );
 }
 
+function bodyTouchesPlayer(state: GameState, enemy: EnemyState): boolean {
+  const body = getEnemyBodySize(enemy.kind);
+  return rectanglesOverlap(
+    {
+      x: enemy.position.x - body.width / 2,
+      y: enemy.position.y - body.height / 2,
+      width: body.width,
+      height: body.height,
+    },
+    getPlayerBounds(state.player),
+  );
+}
+
+function updateEnemyPulse(
+  state: GameState,
+  enemy: EnemyState,
+  deltaSeconds: number,
+  interval: number,
+  distance: number,
+): void {
+  enemy.timeUntilPulse -= deltaSeconds;
+  if (enemy.timeUntilPulse > 0) return;
+  emitSound(state, "enemy-step", enemy.position, distance, 0.72, enemy.id);
+  enemy.timeUntilPulse += interval;
+}
+
+function updateFlyer(
+  state: GameState,
+  enemy: EnemyState,
+  deltaSeconds: number,
+): void {
+  if (enemy.action === "hurt") {
+    enemy.actionTime += deltaSeconds;
+    enemy.position.x += enemy.velocity.x * deltaSeconds;
+    enemy.position.y += enemy.velocity.y * deltaSeconds;
+    enemy.velocity.x *= Math.max(0, 1 - 7 * deltaSeconds);
+    enemy.velocity.y *= Math.max(0, 1 - 7 * deltaSeconds);
+    if (enemy.actionTime >= ENEMY_CONFIG.hurtSeconds) {
+      enemy.action = "fly";
+      enemy.actionTime = 0;
+      enemy.velocity.y = 0;
+    }
+  } else {
+    enemy.action = "fly";
+    if (enemy.position.x <= enemy.patrolMinX) enemy.facing = 1;
+    if (enemy.position.x >= enemy.patrolMaxX) enemy.facing = -1;
+    enemy.velocity.x = enemy.facing * STAGE_ONE_CONFIG.flyerSpeed;
+    enemy.velocity.y = 0;
+    enemy.position.x = Math.max(
+      enemy.patrolMinX,
+      Math.min(enemy.patrolMaxX, enemy.position.x + enemy.velocity.x * deltaSeconds),
+    );
+  }
+  if (bodyTouchesPlayer(state, enemy)) damagePlayer(state, enemy.facing);
+}
+
+function updateWaker(
+  state: GameState,
+  enemy: EnemyState,
+  deltaSeconds: number,
+): void {
+  if (!enemy.activated) {
+    enemy.action = "sleep";
+    enemy.velocity = { x: 0, y: 0 };
+    return;
+  }
+
+  updateEnemyPulse(
+    state,
+    enemy,
+    deltaSeconds,
+    STAGE_ONE_CONFIG.wakerPulseIntervalSeconds,
+    STAGE_ONE_CONFIG.wakerPulseDistance,
+  );
+  enemy.action = "pursue";
+  const deltaX = state.player.position.x - enemy.position.x;
+  const deltaY = state.player.position.y - enemy.position.y;
+  const distance = Math.hypot(deltaX, deltaY);
+  if (distance > 0.001 && state.status === "playing") {
+    enemy.velocity.x +=
+      (deltaX / distance) * STAGE_ONE_CONFIG.wakerAcceleration * deltaSeconds;
+    enemy.velocity.y +=
+      (deltaY / distance) * STAGE_ONE_CONFIG.wakerAcceleration * deltaSeconds;
+  }
+  const speed = Math.hypot(enemy.velocity.x, enemy.velocity.y);
+  if (speed > STAGE_ONE_CONFIG.wakerMaximumSpeed) {
+    const scale = STAGE_ONE_CONFIG.wakerMaximumSpeed / speed;
+    enemy.velocity.x *= scale;
+    enemy.velocity.y *= scale;
+  }
+  enemy.position.x += enemy.velocity.x * deltaSeconds;
+  enemy.position.y += enemy.velocity.y * deltaSeconds;
+  if (Math.abs(enemy.velocity.x) > 1) enemy.facing = enemy.velocity.x < 0 ? -1 : 1;
+  if (bodyTouchesPlayer(state, enemy)) damagePlayer(state, enemy.facing);
+}
+
 export function updateEnemies(
   state: GameState,
   world: WorldDefinition,
   deltaSeconds: number,
 ): void {
   for (const enemy of state.enemies) {
+    const body = getEnemyBodySize(enemy.kind);
     if (!enemy.alive) {
       enemy.actionTime += deltaSeconds;
       if (!enemy.grounded) {
@@ -40,8 +141,8 @@ export function updateEnemies(
         );
         moveBodyAgainstTerrain(
           enemy,
-          ENEMY_CONFIG.width,
-          ENEMY_CONFIG.height,
+          body.width,
+          body.height,
           world.terrain,
           deltaSeconds,
         );
@@ -57,6 +158,27 @@ export function updateEnemies(
       0,
       enemy.hazardInvulnerabilityTime - deltaSeconds,
     );
+    if (enemy.kind === ENEMY_KINDS.sleeper) {
+      enemy.action = "sleep";
+      enemy.grounded = true;
+      enemy.velocity = { x: 0, y: 0 };
+      updateEnemyPulse(
+        state,
+        enemy,
+        deltaSeconds,
+        STAGE_ONE_CONFIG.sleeperPulseIntervalSeconds,
+        STAGE_ONE_CONFIG.sleeperPulseDistance,
+      );
+      continue;
+    }
+    if (enemy.kind === ENEMY_KINDS.flyer) {
+      updateFlyer(state, enemy, deltaSeconds);
+      continue;
+    }
+    if (enemy.kind === ENEMY_KINDS.waker) {
+      updateWaker(state, enemy, deltaSeconds);
+      continue;
+    }
     if (enemy.action === "alert") {
       enemy.actionTime += deltaSeconds;
       enemy.velocity.x = 0;
@@ -117,8 +239,8 @@ export function updateEnemies(
     );
     const motion = moveBodyAgainstTerrain(
       enemy,
-      ENEMY_CONFIG.width,
-      ENEMY_CONFIG.height,
+      body.width,
+      body.height,
       world.terrain,
       deltaSeconds,
     );

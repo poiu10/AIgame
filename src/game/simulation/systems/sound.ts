@@ -1,6 +1,10 @@
-import type { TerrainBlock, WorldDefinition } from "../../content/world";
+import {
+  ENEMY_KINDS,
+  type TerrainBlock,
+  type WorldDefinition,
+} from "../../content/world";
 import { centerRect, raycastAabb, segmentIntersectsAabb } from "../collision/aabb";
-import { ENEMY_CONFIG, SOUND_CONFIG } from "../rules/config";
+import { ENEMY_CONFIG, getEnemyBodySize, SOUND_CONFIG } from "../rules/config";
 import type {
   EchoMarkState,
   Facing,
@@ -9,6 +13,7 @@ import type {
   SoundRayState,
   Vector2State,
 } from "../state";
+import { getActiveTerrain, revealTerrainMechanism } from "./stageMechanisms";
 
 export const PLAYER_SOUND_SOURCE_ID = "player";
 
@@ -270,6 +275,8 @@ export function updateSoundPropagation(
   world: WorldDefinition,
   deltaSeconds: number,
 ): void {
+  const activeTerrain = getActiveTerrain(state, world);
+  const activeWorld = { ...world, terrain: activeTerrain };
   for (const mark of state.echoMarks) {
     mark.time -= deltaSeconds;
   }
@@ -293,7 +300,7 @@ export function updateSoundPropagation(
         block: TerrainBlock;
       } | null = null;
 
-      for (const block of world.terrain) {
+      for (const block of activeTerrain) {
         const hit = raycastAabb(
           ray.position,
           ray.direction,
@@ -312,7 +319,15 @@ export function updateSoundPropagation(
             y: ray.position.y + ray.direction.y * allowedTravel,
           };
 
+      for (const hazard of state.hazards) {
+        if (segmentIntersectsAabb(ray.position, segmentEnd, hazard.bounds)) {
+          hazard.echoTime = Math.max(hazard.echoTime, SOUND_CONFIG.enemyEchoSeconds);
+          hazard.echoDuration = SOUND_CONFIG.enemyEchoSeconds;
+        }
+      }
+
       for (const enemy of state.enemies) {
+        const body = getEnemyBodySize(enemy.kind);
         const echoPosition = enemy.alive
           ? enemy.position
           : {
@@ -321,8 +336,8 @@ export function updateSoundPropagation(
             };
         const enemyBounds = centerRect(
           echoPosition,
-          enemy.alive ? ENEMY_CONFIG.width : ENEMY_CONFIG.corpseEchoWidth,
-          enemy.alive ? ENEMY_CONFIG.height : ENEMY_CONFIG.corpseEchoHeight,
+          enemy.alive ? body.width : ENEMY_CONFIG.corpseEchoWidth,
+          enemy.alive ? body.height : ENEMY_CONFIG.corpseEchoHeight,
         );
         if (segmentIntersectsAabb(ray.position, segmentEnd, enemyBounds)) {
           if (enemy.echoTime <= SOUND_CONFIG.enemyEchoSeconds) {
@@ -332,6 +347,8 @@ export function updateSoundPropagation(
           if (
             enemy.alive &&
             wave.sourceId === PLAYER_SOUND_SOURCE_ID &&
+            enemy.kind !== ENEMY_KINDS.sleeper &&
+            enemy.kind !== ENEMY_KINDS.waker &&
             !wave.reactedEnemyIds.includes(enemy.id)
           ) {
             const directionTowardSound: Facing =
@@ -350,6 +367,7 @@ export function updateSoundPropagation(
 
       if (nearestHit) {
         const { hit, block } = nearestHit;
+        revealTerrainMechanism(state, world, block.id);
         ray.remainingDistance =
           (ray.remainingDistance - hit.distance) *
           SOUND_CONFIG.reflectionDistanceRetention;
@@ -366,7 +384,7 @@ export function updateSoundPropagation(
         };
         ray.reflectionCount += 1;
         ray.pathKey += `|${block.id}:${hit.normal.x},${hit.normal.y}`;
-        addEchoMark(state, world, block, hit.point, hit.normal, ray.intensity);
+        addEchoMark(state, activeWorld, block, hit.point, hit.normal, ray.intensity);
       } else {
         ray.position = segmentEnd;
         ray.remainingDistance -= allowedTravel;

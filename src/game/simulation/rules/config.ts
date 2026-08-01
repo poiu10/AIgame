@@ -55,6 +55,28 @@ export const ENEMY_CONFIG = {
   footstepDistance: 128,
 } as const;
 
+export const STAGE_ONE_CONFIG = {
+  sleeperPulseIntervalSeconds: 2.2,
+  sleeperPulseDistance: 360,
+  flyerSpeed: 190,
+  wakerAcceleration: 700,
+  wakerMaximumSpeed: 560,
+  wakerPulseIntervalSeconds: 1.15,
+  wakerPulseDistance: 440,
+  growingHazardPulseIntervalSeconds: 1.35,
+  growingHazardPulseDistance: 420,
+} as const;
+
+export function getEnemyBodySize(kind?: string): {
+  width: number;
+  height: number;
+} {
+  if (kind === "stage-sleeper") return { width: 72, height: 40 };
+  if (kind === "stage-flyer") return { width: 66, height: 44 };
+  if (kind === "stage-waker") return { width: 70, height: 52 };
+  return { width: ENEMY_CONFIG.width, height: ENEMY_CONFIG.height };
+}
+
 export const HAZARD_CONFIG = {
   damageReactionSeconds: 0.32,
 } as const;

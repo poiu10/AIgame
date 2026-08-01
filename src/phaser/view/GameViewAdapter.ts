@@ -5,6 +5,7 @@ import {
   PLAYER_SPRITE_FRAME,
 } from "../../game/assets/manifest";
 import type { WorldDefinition } from "../../game/content/world";
+import { TERRAIN_KINDS } from "../../game/content/world";
 import {
   PLAYER_CONFIG,
   SOUND_CONFIG,
@@ -29,7 +30,11 @@ import {
   resolveHazardReactionFrame,
   THREAT_PIXEL_SIZE,
 } from "./threatPixelArt";
-import { SOUND_WAVE_COLORS, THREAT_COLOR } from "./viewPalette";
+import {
+  SOUND_WAVE_COLORS,
+  THREAT_COLOR,
+  TRIGGER_COLOR,
+} from "./viewPalette";
 
 const PLAYER_SPRITE_FEET_Y = 80;
 const STANDARD_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(2);
@@ -50,6 +55,7 @@ export class GameViewAdapter {
   private readonly waveGraphics: Phaser.GameObjects.Graphics;
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
+  private readonly terrainMechanismGraphics: Phaser.GameObjects.Graphics;
   private currentTutorialPrompt = "";
 
   constructor(
@@ -59,6 +65,7 @@ export class GameViewAdapter {
     this.echoGraphics = scene.add.graphics().setDepth(3);
     this.waveGraphics = scene.add.graphics().setDepth(4);
     this.hazardGraphics = scene.add.graphics().setDepth(7);
+    this.terrainMechanismGraphics = scene.add.graphics().setDepth(6);
     this.playerSprite = scene.add
       .sprite(0, PLAYER_CONFIG.height / 2, ASSET_KEYS.player.idle)
       .setOrigin(0.5, PLAYER_SPRITE_FEET_Y / PLAYER_SPRITE_FRAME.height)
@@ -85,6 +92,7 @@ export class GameViewAdapter {
     this.drawPlayer(state.player);
     this.drawTutorialText(state);
     this.drawEnemies(state);
+    this.drawTerrainMechanisms(state);
     this.drawHazards(state);
     this.drawEchoes(state);
     this.drawWaves(state);
@@ -134,15 +142,34 @@ export class GameViewAdapter {
     this.waveGraphics.destroy();
     this.echoGraphics.destroy();
     this.hazardGraphics.destroy();
+    this.terrainMechanismGraphics.destroy();
+  }
+
+  private drawTerrainMechanisms(state: GameState): void {
+    this.terrainMechanismGraphics.clear();
+    for (const definition of this.world.terrain) {
+      if (definition.kind !== TERRAIN_KINDS.button) continue;
+      const terrain = state.terrain.find((candidate) => candidate.id === definition.id);
+      if (!terrain || terrain.echoTime <= 0) continue;
+      const alpha = Math.min(
+        1,
+        terrain.echoTime / Math.max(terrain.echoDuration, 0.001),
+      );
+      const inset = terrain.pressed ? Math.min(10, definition.bounds.width / 2) : 0;
+      this.terrainMechanismGraphics.fillStyle(TRIGGER_COLOR, alpha);
+      this.terrainMechanismGraphics.fillRect(
+        definition.bounds.x + inset,
+        definition.bounds.y,
+        definition.bounds.width - inset,
+        definition.bounds.height,
+      );
+    }
   }
 
   private drawHazards(state: GameState): void {
     this.hazardGraphics.clear();
-    for (const definition of this.world.hazards ?? []) {
-      const hazard = state.hazards.find(
-        (candidate) => candidate.id === definition.id,
-      );
-      if (!hazard || hazard.echoTime <= 0) {
+    for (const hazard of state.hazards) {
+      if (hazard.echoTime <= 0) {
         continue;
       }
 
@@ -152,12 +179,12 @@ export class GameViewAdapter {
       );
       this.hazardGraphics.fillStyle(THREAT_COLOR, alpha);
       for (const cell of createHazardThreatCells(
-        definition.bounds.width,
-        definition.bounds.height,
+        hazard.bounds.width,
+        hazard.bounds.height,
       )) {
         this.hazardGraphics.fillRect(
-          definition.bounds.x + cell.x * THREAT_PIXEL_SIZE,
-          definition.bounds.y + cell.y * THREAT_PIXEL_SIZE,
+          hazard.bounds.x + cell.x * THREAT_PIXEL_SIZE,
+          hazard.bounds.y + cell.y * THREAT_PIXEL_SIZE,
           THREAT_PIXEL_SIZE,
           THREAT_PIXEL_SIZE,
         );
@@ -167,15 +194,15 @@ export class GameViewAdapter {
       if (reactionFrame) {
         this.hazardGraphics.fillStyle(THREAT_COLOR, Math.min(1, alpha + 0.2));
         for (const cell of createHazardDamageLightningCells(
-          definition.bounds.width,
-          definition.bounds.height,
+          hazard.bounds.width,
+          hazard.bounds.height,
           reactionFrame,
           hazard.reactionSide,
           hazard.reactionOffsetY,
         )) {
           this.hazardGraphics.fillRect(
-            definition.bounds.x + cell.x * THREAT_PIXEL_SIZE,
-            definition.bounds.y + cell.y * THREAT_PIXEL_SIZE,
+            hazard.bounds.x + cell.x * THREAT_PIXEL_SIZE,
+            hazard.bounds.y + cell.y * THREAT_PIXEL_SIZE,
             THREAT_PIXEL_SIZE,
             THREAT_PIXEL_SIZE,
           );
@@ -234,7 +261,7 @@ export class GameViewAdapter {
         ? enemy.attackFacing
         : enemy.facing;
     const frame = resolveEnemyThreatFrame(enemy, elapsedSeconds);
-    for (const cell of createEnemyThreatCells(frame, facing)) {
+    for (const cell of createEnemyThreatCells(frame, facing, enemy.kind)) {
       graphics.fillRect(
         cell.x * THREAT_PIXEL_SIZE,
         cell.y * THREAT_PIXEL_SIZE,

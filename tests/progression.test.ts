@@ -38,7 +38,7 @@ describe("stage progression checkpoints", () => {
 
     expect(enteredStageOne.currentStageId).toBe("stage-1");
     expect(enteredStageOne.playerPosition).toEqual(
-      STAGE_ONE.spawns.find((spawn) => spawn.id === "from-tutorial")?.position,
+      STAGE_ONE.spawns.find((spawn) => spawn.id === "spawn-3")?.position,
     );
     expect(enteredStageOne.stageProgress.tutorial.defeatedEnemyIds).toEqual([
       "lesson-sentinel",
@@ -67,6 +67,15 @@ describe("stage progression checkpoints", () => {
     expect(parseCheckpoint(serializeCheckpoint(checkpoint))).toEqual(checkpoint);
     expect(parseCheckpoint('{"version":999}')).toBeNull();
     expect(parseCheckpoint("not-json")).toBeNull();
+  });
+
+  it("falls back to the stage entry when an older checkpoint is outside the map", () => {
+    const checkpoint = createInitialCheckpoint(STAGE_ONE);
+    checkpoint.playerPosition = { x: 180, y: 1258 };
+
+    const restored = restoreCheckpointState(checkpoint, STAGE_ONE);
+
+    expect(restored.player.position).toEqual(STAGE_ONE.spawns[0].position);
   });
 
   it("keeps boss defeats separate from normal enemy defeats", () => {

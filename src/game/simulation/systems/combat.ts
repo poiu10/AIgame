@@ -1,9 +1,26 @@
 import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
-import { ENEMY_CONFIG, PLAYER_CONFIG } from "../rules/config";
+import { ENEMY_CONFIG, getEnemyBodySize, PLAYER_CONFIG } from "../rules/config";
 import { getPlayerAttackBounds } from "../rules/combat";
 import type { EnemyState, Facing, GameState } from "../state";
 import { emitSound, PLAYER_SOUND_SOURCE_ID } from "./sound";
+import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
+
+export function killPlayer(state: GameState): boolean {
+  const player = state.player;
+  if (player.action === "dead" || state.status !== "playing") return false;
+  player.health = 0;
+  player.action = "dead";
+  player.actionTime = 0;
+  player.attackHitIds = [];
+  player.hitboxOffsetX = 0;
+  player.velocity.x = 0;
+  player.velocity.y = 0;
+  state.status = "failed";
+  emitSound(state, "death", player.position, 720, 1, PLAYER_SOUND_SOURCE_ID);
+  state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
+  return true;
+}
 
 export function damagePlayer(
   state: GameState,
@@ -28,16 +45,11 @@ export function damagePlayer(
   player.hitboxOffsetX = 0;
 
   if (player.health <= 0) {
-    player.health = 0;
-    player.action = "dead";
-    player.velocity.x = 0;
-    player.velocity.y = 0;
-    state.status = "failed";
-    emitSound(state, "death", player.position, 720, 1, PLAYER_SOUND_SOURCE_ID);
-  } else {
-    player.action = "hurt";
-    emitSound(state, "hurt", player.position, 500, 0.86, PLAYER_SOUND_SOURCE_ID);
+    killPlayer(state);
+    return true;
   }
+  player.action = "hurt";
+  emitSound(state, "hurt", player.position, 500, 0.86, PLAYER_SOUND_SOURCE_ID);
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
   return true;
 }
@@ -102,19 +114,20 @@ export function updatePlayerCombat(
   const hitbox = getPlayerAttackBounds(player);
 
   state.enemies.forEach((enemy) => {
+    const body = getEnemyBodySize(enemy.kind);
     if (
       !enemy.alive ||
       player.attackHitIds.includes(enemy.id) ||
       !rectanglesOverlap(
         hitbox,
-        centerRect(enemy.position, ENEMY_CONFIG.width, ENEMY_CONFIG.height),
+        centerRect(enemy.position, body.width, body.height),
       )
     ) {
       return;
     }
 
     player.attackHitIds.push(enemy.id);
-    damageEnemy(state, enemy, player.facing);
+    damageEnemy(state, enemy, player.attackFacing);
     emitSound(
       state,
       "attack-hit",
@@ -125,7 +138,7 @@ export function updatePlayerCombat(
     );
   });
 
-  for (const block of world.terrain) {
+  for (const block of getActiveTerrain(state, world)) {
     const hitId = `terrain:${block.id}`;
     if (
       player.attackHitIds.includes(hitId) ||
@@ -135,6 +148,7 @@ export function updatePlayerCombat(
     }
 
     player.attackHitIds.push(hitId);
+    pressTerrainButton(state, world, block.id);
     const hitPosition = {
       x:
         player.facing > 0
