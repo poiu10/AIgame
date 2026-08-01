@@ -49,6 +49,8 @@
       .map-toolbar { height: 46px; padding: 8px 14px; display: flex; align-items: center; gap: 22px; color: var(--muted); border-bottom: 1px solid var(--line); }
       .map-toolbar #status { color: var(--cyan); margin-right: auto; }
       .map-toolbar label { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+      .camera-guide { display: flex; align-items: center; gap: 7px; color: var(--amber); font: 11px ui-monospace, monospace; white-space: nowrap; }
+      .camera-guide::before { width: 18px; border-top: 2px dashed var(--amber); content: ""; }
       .canvas-viewport { height: calc(100% - 46px); overflow: auto; padding: 36px; }
       #map-canvas { display: block; background: #050b0d; border: 1px solid #2b5c65; image-rendering: pixelated; box-shadow: 0 0 48px rgba(50, 222, 236, .07); cursor: crosshair; touch-action: none; }
       #map-canvas.selecting { cursor: grab; }
@@ -92,6 +94,7 @@
       <section class="map-panel">
         <div class="map-toolbar">
           <span id="status">선택 도구</span>
+          <span id="camera-guide" class="camera-guide">게임 화면 상단</span>
           <label>격자 <select id="grid-size"><option>10</option><option selected>20</option><option>40</option><option>60</option></select>px</label>
           <label>확대 <input id="zoom" type="range" min="15" max="100" value="35" /><span id="zoom-value">35%</span></label>
         </div>
@@ -162,6 +165,7 @@
         { tool: "spawn", label: "도착점", shortcut: "S", placement: "point", description: "다른 맵 출구의 도착 위치" },
         { tool: "exit", label: "맵 출구", shortcut: "X", placement: "rectangle", description: "맵 전환 판정 영역" }
       ];
+      const GAME_VIEWPORT = Object.freeze({ width: 960, height: 540 });
 
       const $ = (selector) => {
         const element = document.querySelector(selector);
@@ -306,6 +310,10 @@
         ].join("\n");
       }
 
+      function fixedCameraTop(stageHeight) {
+        return Math.max(0, stageHeight - GAME_VIEWPORT.height);
+      }
+
       function render() {
         canvas.width = stage.width;
         canvas.height = stage.height;
@@ -321,6 +329,39 @@
         for (let y = 0; y <= stage.height; y += gridSize) {
           drawing.beginPath(); drawing.moveTo(0, y); drawing.lineTo(stage.width, y); drawing.stroke();
         }
+
+        const cameraTop = fixedCameraTop(stage.height);
+        drawing.save();
+        drawing.fillStyle = "rgba(85,237,245,.035)";
+        drawing.fillRect(0, cameraTop, stage.width, GAME_VIEWPORT.height);
+        drawing.strokeStyle = "#ffc857";
+        drawing.lineWidth = Math.max(3, 3 / zoom);
+        drawing.setLineDash([18 / zoom, 10 / zoom]);
+        drawing.beginPath();
+        drawing.moveTo(0, cameraTop);
+        drawing.lineTo(stage.width, cameraTop);
+        drawing.stroke();
+        drawing.setLineDash([]);
+
+        const guideFontSize = 12 / zoom;
+        const guidePadding = 6 / zoom;
+        const guideX = 12 / zoom;
+        const guideY = cameraTop + 10 / zoom;
+        const guideLabel = `게임 화면 상단 y=${cameraTop} · 아래 ${GAME_VIEWPORT.height}px 표시`;
+        drawing.font = `700 ${guideFontSize}px ui-monospace, monospace`;
+        drawing.textBaseline = "top";
+        const guideWidth = drawing.measureText(guideLabel).width;
+        drawing.fillStyle = "rgba(5,9,11,.9)";
+        drawing.fillRect(
+          guideX - guidePadding,
+          guideY - guidePadding,
+          guideWidth + guidePadding * 2,
+          guideFontSize + guidePadding * 2
+        );
+        drawing.fillStyle = "#ffc857";
+        drawing.fillText(guideLabel, guideX, guideY);
+        drawing.restore();
+        $("#camera-guide").textContent = `화면 상단 y=${cameraTop} · ${GAME_VIEWPORT.width}×${GAME_VIEWPORT.height}`;
 
         const drawRect = (rect, fill, stroke) => {
           drawing.fillStyle = fill;

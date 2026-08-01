@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import editorHtml from "../editor.html?raw";
 import { STAGE_ONE } from "../src/game/content/stageOne";
+import { GAME_VIEWPORT } from "../src/phaser/viewport";
 
 describe("standalone map editor", () => {
   it("has no module, script source, or stylesheet dependency", () => {
@@ -21,6 +22,27 @@ describe("standalone map editor", () => {
 
   it("contains a local-file clipboard fallback", () => {
     expect(editorHtml).toContain('document.execCommand("copy")');
+  });
+
+  it("shows the fixed vertical camera boundary used by the game", () => {
+    const viewportMatch = editorHtml.match(
+      /const GAME_VIEWPORT = Object\.freeze\(\{ width: (\d+), height: (\d+) \}\)/,
+    );
+    expect(viewportMatch).not.toBeNull();
+    expect(Number(viewportMatch![1])).toBe(GAME_VIEWPORT.width);
+    expect(Number(viewportMatch![2])).toBe(GAME_VIEWPORT.height);
+
+    const start = editorHtml.indexOf("function fixedCameraTop(stageHeight)");
+    const end = editorHtml.indexOf("\n\n      function render", start);
+    const fixedCameraTop = new Function(
+      "GAME_VIEWPORT",
+      `${editorHtml.slice(start, end)}; return fixedCameraTop;`,
+    )(GAME_VIEWPORT) as (stageHeight: number) => number;
+
+    expect(fixedCameraTop(1_440)).toBe(900);
+    expect(fixedCameraTop(400)).toBe(0);
+    expect(editorHtml).toContain('drawing.setLineDash([18 / zoom, 10 / zoom])');
+    expect(editorHtml).toContain('id="camera-guide"');
   });
 
   it("moves selected entities by dragging on the snapped grid", () => {

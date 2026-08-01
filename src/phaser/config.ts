@@ -1,12 +1,13 @@
 import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene";
 import { GameScene } from "./scenes/GameScene";
+import { GAME_VIEWPORT } from "./viewport";
 
 export const gameConfig: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: "game-container",
-  width: 960,
-  height: 540,
+  width: GAME_VIEWPORT.width,
+  height: GAME_VIEWPORT.height,
   backgroundColor: "#030608",
   render: {
     antialias: true,
