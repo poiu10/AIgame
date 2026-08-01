@@ -39,7 +39,10 @@ describe("Stage 1", () => {
     ]));
     expect(STAGE_ONE.enemies.map((enemy) => enemy.health)).toEqual([1, 2, 2, 1]);
     expect(STAGE_ONE.terrain.find((terrain) => terrain.id === "terrain-5")?.bounds)
-      .toEqual({ x: 240, y: 80, width: 160, height: 260 });
+      .toEqual({ x: 240, y: 80, width: 160, height: 220 });
+    expect(
+      STAGE_ONE.hazards?.filter((hazard) => hazard.kind === HAZARD_KINDS.lethal),
+    ).toHaveLength(2);
   });
 
   it("presses the orange button with an attack and swaps both doors", () => {
@@ -84,6 +87,28 @@ describe("Stage 1", () => {
 
     expect(state.player.health).toBe(0);
     expect(state.player.action).toBe("dead");
+  });
+
+  it("reveals only a local red surface mark on fixed lethal hazards", () => {
+    const state = createInitialGameState(STAGE_ONE);
+    emitSound(state, "player-step", { x: 300, y: 480 }, 100, 1, "player");
+
+    for (let index = 0; index < 4; index += 1) {
+      updateSoundPropagation(state, STAGE_ONE, FIXED_STEP_SECONDS);
+    }
+
+    const hazardMarks = state.echoMarks.filter(
+      (mark) => mark.surfaceId === "hazard-7",
+    );
+    expect(hazardMarks.length).toBeGreaterThan(0);
+    expect(hazardMarks.every((mark) => mark.surfaceKind === "hazard")).toBe(true);
+    expect(hazardMarks.every((mark) => mark.start.y === 520 && mark.end.y === 520))
+      .toBe(true);
+    expect(
+      Math.max(...hazardMarks.map((mark) => mark.end.x - mark.start.x)),
+    ).toBeLessThan(120);
+    expect(state.hazards.find((hazard) => hazard.id === "hazard-7")?.echoTime)
+      .toBe(0);
   });
 
   it("keeps the sleeper stationary and pulsing", () => {

@@ -138,6 +138,7 @@ export interface SoundWaveState {
 
 export interface EchoMarkState {
   surfaceId: string;
+  surfaceKind: "terrain" | "hazard";
   start: Vector2State;
   end: Vector2State;
   intensity: number;

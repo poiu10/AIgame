@@ -1,5 +1,7 @@
 import {
   ENEMY_KINDS,
+  HAZARD_KINDS,
+  type HazardDefinition,
   type TerrainBlock,
   type WorldDefinition,
 } from "../../content/world";
@@ -90,10 +92,11 @@ export function emitSound(
 }
 
 export function createEchoMark(
-  block: TerrainBlock,
+  block: TerrainBlock | HazardDefinition,
   position: Vector2State,
   normal: Vector2State,
   intensity: number,
+  surfaceKind: EchoMarkState["surfaceKind"] = "terrain",
 ): EchoMarkState {
   const halfLength = 14 + 34 * intensity;
   let start: Vector2State;
@@ -121,12 +124,22 @@ export function createEchoMark(
 
   return {
     surfaceId: block.id,
+    surfaceKind,
     start,
     end,
     intensity,
     time: SOUND_CONFIG.echoSeconds,
     duration: SOUND_CONFIG.echoSeconds,
   };
+}
+
+function trimEchoMarks(state: GameState): void {
+  if (state.echoMarks.length > SOUND_CONFIG.maximumEchoMarks) {
+    state.echoMarks.splice(
+      0,
+      state.echoMarks.length - SOUND_CONFIG.maximumEchoMarks,
+    );
+  }
 }
 
 function subtractCoveredRange(
@@ -225,13 +238,20 @@ function addEchoMark(
       intensity,
     ),
   );
+  trimEchoMarks(state);
+}
 
-  if (state.echoMarks.length > SOUND_CONFIG.maximumEchoMarks) {
-    state.echoMarks.splice(
-      0,
-      state.echoMarks.length - SOUND_CONFIG.maximumEchoMarks,
-    );
-  }
+function addHazardEchoMark(
+  state: GameState,
+  hazard: HazardDefinition,
+  position: Vector2State,
+  normal: Vector2State,
+  intensity: number,
+): void {
+  state.echoMarks.push(
+    createEchoMark(hazard, position, normal, intensity, "hazard"),
+  );
+  trimEchoMarks(state);
 }
 
 function interpolateRay(a: SoundRayState, b: SoundRayState): SoundRayState {
@@ -345,8 +365,28 @@ export function updateSoundPropagation(
             y: ray.position.y + ray.direction.y * allowedTravel,
           };
 
+      const segmentDistance = Math.hypot(
+        segmentEnd.x - ray.position.x,
+        segmentEnd.y - ray.position.y,
+      );
       for (const hazard of state.hazards) {
-        if (segmentIntersectsAabb(ray.position, segmentEnd, hazard.bounds)) {
+        if (hazard.kind === HAZARD_KINDS.lethal) {
+          const hit = raycastAabb(
+            ray.position,
+            ray.direction,
+            segmentDistance,
+            hazard.bounds,
+          );
+          if (hit) {
+            addHazardEchoMark(
+              state,
+              hazard,
+              hit.point,
+              hit.normal,
+              ray.intensity,
+            );
+          }
+        } else if (segmentIntersectsAabb(ray.position, segmentEnd, hazard.bounds)) {
           hazard.echoTime = Math.max(hazard.echoTime, SOUND_CONFIG.enemyEchoSeconds);
           hazard.echoDuration = SOUND_CONFIG.enemyEchoSeconds;
         }

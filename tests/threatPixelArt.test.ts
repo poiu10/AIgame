@@ -12,6 +12,7 @@ import {
   THREAT_PIXEL_SIZE,
 } from "../src/phaser/view/threatPixelArt";
 import {
+  ECHO_MARK_COLORS,
   PLAYER_FOOTSTEP_WAVE_COLOR,
   PLAYER_ATTACK_WAVE_COLOR,
   SOUND_WAVE_COLORS,
@@ -399,5 +400,7 @@ describe("threat pixel art", () => {
     expect(SOUND_WAVE_COLORS["waker-call"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["crusher-pulse"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);
+    expect(ECHO_MARK_COLORS.terrain).not.toBe(THREAT_COLOR);
+    expect(ECHO_MARK_COLORS.hazard).toBe(THREAT_COLOR);
   });
 });

@@ -107,7 +107,11 @@ export function updateWorldEnvironment(
       continue;
     }
 
-    if (hazard.kind === HAZARD_KINDS.lethal || hazard.kind === HAZARD_KINDS.growing) {
+    if (hazard.kind === HAZARD_KINDS.lethal) {
+      killPlayer(state);
+      break;
+    }
+    if (hazard.kind === HAZARD_KINDS.growing) {
       hazard.echoTime = HAZARD_REVEAL_SECONDS;
       hazard.echoDuration = HAZARD_REVEAL_SECONDS;
       killPlayer(state);

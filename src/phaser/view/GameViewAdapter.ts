@@ -5,7 +5,7 @@ import {
   PLAYER_SPRITE_FRAME,
 } from "../../game/assets/manifest";
 import type { WorldDefinition } from "../../game/content/world";
-import { TERRAIN_KINDS } from "../../game/content/world";
+import { HAZARD_KINDS, TERRAIN_KINDS } from "../../game/content/world";
 import {
   PLAYER_CONFIG,
   SOUND_CONFIG,
@@ -31,6 +31,7 @@ import {
   THREAT_PIXEL_SIZE,
 } from "./threatPixelArt";
 import {
+  ECHO_MARK_COLORS,
   SOUND_WAVE_COLORS,
   THREAT_COLOR,
   TRIGGER_COLOR,
@@ -169,6 +170,9 @@ export class GameViewAdapter {
   private drawHazards(state: GameState): void {
     this.hazardGraphics.clear();
     for (const hazard of state.hazards) {
+      if (hazard.kind === HAZARD_KINDS.lethal) {
+        continue;
+      }
       if (hazard.echoTime <= 0) {
         continue;
       }
@@ -282,7 +286,7 @@ export class GameViewAdapter {
         mark.start.y,
         mark.end.x,
         mark.end.y,
-        0x83f4ff,
+        ECHO_MARK_COLORS[mark.surfaceKind],
         alpha,
       );
     }

@@ -718,6 +718,7 @@ describe("sound propagation", () => {
 
     expect(horizontal.start).toEqual({ x: 200, y: 200 });
     expect(horizontal.end).toEqual({ x: 240, y: 200 });
+    expect(horizontal.surfaceKind).toBe("terrain");
     expect(vertical.start).toEqual({ x: 200, y: 200 });
     expect(vertical.end).toEqual({ x: 200, y: 240 });
   });
