@@ -30,6 +30,13 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["enemy-death"].playbackFraction).toBeUndefined();
   });
 
+  it("uses the supplied kaaaaaak sample for active enemy calls", () => {
+    expect(AUDIO_ASSETS.enemyCall.path).toBe("assets/audio/1kaaaaaak.mp3");
+    expect(SOUND_PLAYBACK_PROFILES["enemy-call"].assetKey).toBe(
+      ASSET_KEYS.audio.enemyCall,
+    );
+  });
+
   it("keeps contextual source volumes restrained", () => {
     expect(Math.max(
       ...Object.values(SOUND_PLAYBACK_PROFILES).map((profile) => profile.volume),

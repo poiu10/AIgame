@@ -8,9 +8,11 @@ import {
 } from "../rules/config";
 import { getEnemyAttackBounds } from "../rules/combat";
 import { getPlayerBounds } from "../rules/player";
-import type { EnemyState, GameState } from "../state";
+import type { EnemyState, GameState, SoundKind } from "../state";
 import { damagePlayer } from "./combat";
 import { emitSound } from "./sound";
+
+type MobileEnemyAction = "patrol" | "fly" | "pursue";
 
 function playerInAttackRange(state: GameState, enemy: EnemyState): boolean {
   return (
@@ -28,30 +30,76 @@ function attackTouchesPlayer(state: GameState, enemy: EnemyState): boolean {
   );
 }
 
-function bodyTouchesPlayer(state: GameState, enemy: EnemyState): boolean {
-  const body = getEnemyBodySize(enemy.kind);
-  return rectanglesOverlap(
-    {
-      x: enemy.position.x - body.width / 2,
-      y: enemy.position.y - body.height / 2,
-      width: body.width,
-      height: body.height,
-    },
-    getPlayerBounds(state.player),
-  );
-}
-
 function updateEnemyPulse(
   state: GameState,
   enemy: EnemyState,
   deltaSeconds: number,
   interval: number,
   distance: number,
+  kind: SoundKind,
+  intensity: number,
 ): void {
   enemy.timeUntilPulse -= deltaSeconds;
   if (enemy.timeUntilPulse > 0) return;
-  emitSound(state, "sleep", enemy.position, distance, 0.72, enemy.id);
+  emitSound(state, kind, enemy.position, distance, intensity, enemy.id);
   enemy.timeUntilPulse += interval;
+}
+
+function beginEnemyAlert(state: GameState, enemy: EnemyState): boolean {
+  if (
+    state.status !== "playing" ||
+    enemy.attackCooldown > 0 ||
+    !playerInAttackRange(state, enemy)
+  ) {
+    return false;
+  }
+
+  enemy.action = "alert";
+  enemy.actionTime = 0;
+  enemy.facing = state.player.position.x < enemy.position.x ? -1 : 1;
+  enemy.attackFacing = enemy.facing;
+  enemy.velocity = { x: 0, y: 0 };
+  emitSound(
+    state,
+    "enemy-alert",
+    enemy.position,
+    ENEMY_CONFIG.alertWaveDistance,
+    ENEMY_CONFIG.alertWaveIntensity,
+    enemy.id,
+  );
+  return true;
+}
+
+function updateEnemyAttackSequence(
+  state: GameState,
+  enemy: EnemyState,
+  deltaSeconds: number,
+  resumeAction: MobileEnemyAction,
+): boolean {
+  if (enemy.action === "alert") {
+    enemy.actionTime += deltaSeconds;
+    enemy.velocity = { x: 0, y: 0 };
+    if (enemy.actionTime >= ENEMY_CONFIG.alertSeconds) {
+      enemy.action = "attack";
+      enemy.actionTime = 0;
+      emitSound(state, "enemy-attack", enemy.position, 680, 1, enemy.id);
+    }
+  } else if (enemy.action === "attack") {
+    enemy.actionTime += deltaSeconds;
+    enemy.velocity = { x: 0, y: 0 };
+    if (enemy.actionTime >= ENEMY_CONFIG.attackSeconds) {
+      enemy.action = resumeAction;
+      enemy.actionTime = 0;
+      enemy.attackCooldown = ENEMY_CONFIG.attackCooldownSeconds;
+    }
+  } else {
+    return false;
+  }
+
+  if (enemy.action === "attack" && attackTouchesPlayer(state, enemy)) {
+    damagePlayer(state, enemy.attackFacing);
+  }
+  return true;
 }
 
 function updateFlyer(
@@ -70,18 +118,20 @@ function updateFlyer(
       enemy.actionTime = 0;
       enemy.velocity.y = 0;
     }
-  } else {
-    enemy.action = "fly";
-    if (enemy.position.x <= enemy.patrolMinX) enemy.facing = 1;
-    if (enemy.position.x >= enemy.patrolMaxX) enemy.facing = -1;
-    enemy.velocity.x = enemy.facing * STAGE_ONE_CONFIG.flyerSpeed;
-    enemy.velocity.y = 0;
-    enemy.position.x = Math.max(
-      enemy.patrolMinX,
-      Math.min(enemy.patrolMaxX, enemy.position.x + enemy.velocity.x * deltaSeconds),
-    );
+    return;
   }
-  if (bodyTouchesPlayer(state, enemy)) damagePlayer(state, enemy.facing);
+  if (updateEnemyAttackSequence(state, enemy, deltaSeconds, "fly")) return;
+  if (beginEnemyAlert(state, enemy)) return;
+
+  enemy.action = "fly";
+  if (enemy.position.x <= enemy.patrolMinX) enemy.facing = 1;
+  if (enemy.position.x >= enemy.patrolMaxX) enemy.facing = -1;
+  enemy.velocity.x = enemy.facing * STAGE_ONE_CONFIG.flyerSpeed;
+  enemy.velocity.y = 0;
+  enemy.position.x = Math.max(
+    enemy.patrolMinX,
+    Math.min(enemy.patrolMaxX, enemy.position.x + enemy.velocity.x * deltaSeconds),
+  );
 }
 
 function updateWaker(
@@ -94,6 +144,21 @@ function updateWaker(
     enemy.velocity = { x: 0, y: 0 };
     return;
   }
+
+  if (enemy.action === "hurt") {
+    enemy.actionTime += deltaSeconds;
+    enemy.position.x += enemy.velocity.x * deltaSeconds;
+    enemy.position.y += enemy.velocity.y * deltaSeconds;
+    enemy.velocity.x *= Math.max(0, 1 - 7 * deltaSeconds);
+    enemy.velocity.y *= Math.max(0, 1 - 7 * deltaSeconds);
+    if (enemy.actionTime >= ENEMY_CONFIG.hurtSeconds) {
+      enemy.action = "pursue";
+      enemy.actionTime = 0;
+    }
+    return;
+  }
+  if (updateEnemyAttackSequence(state, enemy, deltaSeconds, "pursue")) return;
+  if (beginEnemyAlert(state, enemy)) return;
 
   enemy.action = "pursue";
   const deltaX = state.player.position.x - enemy.position.x;
@@ -114,7 +179,6 @@ function updateWaker(
   enemy.position.x += enemy.velocity.x * deltaSeconds;
   enemy.position.y += enemy.velocity.y * deltaSeconds;
   if (Math.abs(enemy.velocity.x) > 1) enemy.facing = enemy.velocity.x < 0 ? -1 : 1;
-  if (bodyTouchesPlayer(state, enemy)) damagePlayer(state, enemy.facing);
 }
 
 export function updateEnemies(
@@ -157,33 +221,41 @@ export function updateEnemies(
         deltaSeconds,
         STAGE_ONE_CONFIG.sleeperPulseIntervalSeconds,
         STAGE_ONE_CONFIG.sleeperPulseDistance,
+        "sleep",
+        0.72,
       );
       continue;
     }
     if (enemy.kind === ENEMY_KINDS.flyer) {
+      updateEnemyPulse(
+        state,
+        enemy,
+        deltaSeconds,
+        STAGE_ONE_CONFIG.activeEnemyPulseIntervalSeconds,
+        STAGE_ONE_CONFIG.activeEnemyPulseDistance,
+        "enemy-call",
+        STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
+      );
       updateFlyer(state, enemy, deltaSeconds);
       continue;
     }
     if (enemy.kind === ENEMY_KINDS.waker) {
+      if (enemy.activated) {
+        updateEnemyPulse(
+          state,
+          enemy,
+          deltaSeconds,
+          STAGE_ONE_CONFIG.activeEnemyPulseIntervalSeconds,
+          STAGE_ONE_CONFIG.activeEnemyPulseDistance,
+          "enemy-call",
+          STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
+        );
+      }
       updateWaker(state, enemy, deltaSeconds);
       continue;
     }
-    if (enemy.action === "alert") {
-      enemy.actionTime += deltaSeconds;
-      enemy.velocity.x = 0;
-      if (enemy.actionTime >= ENEMY_CONFIG.alertSeconds) {
-        enemy.action = "attack";
-        enemy.actionTime = 0;
-        emitSound(state, "enemy-attack", enemy.position, 680, 1, enemy.id);
-      }
-    } else if (enemy.action === "attack") {
-      enemy.actionTime += deltaSeconds;
-      enemy.velocity.x = 0;
-      if (enemy.actionTime >= ENEMY_CONFIG.attackSeconds) {
-        enemy.action = "patrol";
-        enemy.actionTime = 0;
-        enemy.attackCooldown = ENEMY_CONFIG.attackCooldownSeconds;
-      }
+    if (updateEnemyAttackSequence(state, enemy, deltaSeconds, "patrol")) {
+      // 공격 상태는 공통 처리하고, 지상 적의 중력·지형 충돌은 아래에서 유지한다.
     } else if (enemy.action === "hurt") {
       enemy.actionTime += deltaSeconds;
       enemy.velocity.x *= Math.max(0, 1 - 7 * deltaSeconds);
@@ -193,26 +265,7 @@ export function updateEnemies(
       }
     } else {
       enemy.actionTime = 0;
-      const playerDeltaX = state.player.position.x - enemy.position.x;
-      if (
-        state.status === "playing" &&
-        enemy.attackCooldown <= 0 &&
-        playerInAttackRange(state, enemy)
-      ) {
-        enemy.action = "alert";
-        enemy.actionTime = 0;
-        enemy.facing = playerDeltaX < 0 ? -1 : 1;
-        enemy.attackFacing = enemy.facing;
-        enemy.velocity.x = 0;
-        emitSound(
-          state,
-          "enemy-alert",
-          enemy.position,
-          ENEMY_CONFIG.alertWaveDistance,
-          ENEMY_CONFIG.alertWaveIntensity,
-          enemy.id,
-        );
-      } else {
+      if (!beginEnemyAlert(state, enemy)) {
         if (enemy.position.x <= enemy.patrolMinX) {
           enemy.facing = 1;
         } else if (enemy.position.x >= enemy.patrolMaxX) {
@@ -236,10 +289,6 @@ export function updateEnemies(
 
     if (motion.hitWall && enemy.action === "patrol") {
       enemy.facing = enemy.facing === 1 ? -1 : 1;
-    }
-
-    if (enemy.action === "attack" && attackTouchesPlayer(state, enemy)) {
-      damagePlayer(state, enemy.attackFacing);
     }
 
     if (enemy.grounded && enemy.action === "patrol") {

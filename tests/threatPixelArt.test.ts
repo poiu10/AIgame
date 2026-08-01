@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ENEMY_CONFIG } from "../src/game/simulation/rules/config";
+import { ENEMY_KINDS } from "../src/game/content/world";
 import { ENEMY_ATTACK_HITBOX } from "../src/game/simulation/rules/combat";
 import type { EnemyState } from "../src/game/simulation/state";
 import {
@@ -27,9 +28,28 @@ function expectUniqueIntegerCells(cells: readonly { x: number; y: number }[]): v
   }
 }
 
+function countLeadingEdgeBands(
+  cells: readonly { x: number; y: number }[],
+): number {
+  const leadingX = Math.max(...cells.map((cell) => cell.x));
+  const ys = [...new Set(
+    cells
+      .filter((cell) => cell.x >= leadingX - 2)
+      .map((cell) => cell.y),
+  )].sort((a, b) => a - b);
+  let bands = 0;
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const y of ys) {
+    if (y > previous + 1) bands += 1;
+    previous = y;
+  }
+  return bands;
+}
+
 function createEnemy(overrides: Partial<EnemyState> = {}): EnemyState {
   return {
     id: "threat-test",
+    kind: ENEMY_KINDS.stalker,
     position: { x: 0, y: 0 },
     velocity: { x: 0, y: 0 },
     facing: 1,
@@ -46,6 +66,8 @@ function createEnemy(overrides: Partial<EnemyState> = {}): EnemyState {
     footstepTravel: 0,
     echoTime: 1,
     echoDuration: 1,
+    activated: true,
+    timeUntilPulse: 1,
     ...overrides,
   };
 }
@@ -132,6 +154,89 @@ describe("threat pixel art", () => {
     expect(rightEdge).toBeGreaterThan(followThroughEdge);
     expect(followThroughEdge).toBeGreaterThan(recoverEdge);
     expect(recoverEdge).toBeGreaterThan(idleEdge);
+  });
+
+  it("keeps flyer and waker silhouettes distinct through locomotion and attack", () => {
+    const flyerFlight = createEnemyThreatCells(
+      "walk-0",
+      1,
+      ENEMY_KINDS.flyer,
+    );
+    const wakerPursuit = createEnemyThreatCells(
+      "walk-0",
+      1,
+      ENEMY_KINDS.waker,
+    );
+    const stalkerWalk = createEnemyThreatCells(
+      "walk-0",
+      1,
+      ENEMY_KINDS.stalker,
+    );
+    const flyerStrike = createEnemyThreatCells(
+      "attack-strike",
+      1,
+      ENEMY_KINDS.flyer,
+    );
+    const wakerStrike = createEnemyThreatCells(
+      "attack-strike",
+      1,
+      ENEMY_KINDS.waker,
+    );
+    const flyerAlert = createEnemyThreatCells(
+      "alert-1",
+      1,
+      ENEMY_KINDS.flyer,
+    );
+    const wakerAlert = createEnemyThreatCells(
+      "alert-1",
+      1,
+      ENEMY_KINDS.waker,
+    );
+
+    for (const cells of [
+      flyerFlight,
+      wakerPursuit,
+      stalkerWalk,
+      flyerStrike,
+      wakerStrike,
+    ]) {
+      expectUniqueIntegerCells(cells);
+    }
+    expect(new Set([
+      JSON.stringify(flyerFlight),
+      JSON.stringify(wakerPursuit),
+      JSON.stringify(stalkerWalk),
+    ]).size).toBe(3);
+    expect(JSON.stringify(flyerStrike)).not.toBe(JSON.stringify(wakerStrike));
+    expect(flyerAlert).not.toEqual(flyerFlight);
+    expect(wakerAlert).not.toEqual(wakerPursuit);
+    expect(countLeadingEdgeBands(flyerStrike)).toBeGreaterThanOrEqual(3);
+    expect(countLeadingEdgeBands(wakerStrike)).toBeGreaterThanOrEqual(3);
+
+    for (const strike of [flyerStrike, wakerStrike]) {
+      const strikeEdge =
+        (Math.max(...strike.map((cell) => cell.x)) + 1) * THREAT_PIXEL_SIZE;
+      expect(strikeEdge).toBeGreaterThanOrEqual(ENEMY_ATTACK_HITBOX.reach);
+      expect(strikeEdge - ENEMY_ATTACK_HITBOX.reach).toBeLessThan(
+        THREAT_PIXEL_SIZE,
+      );
+    }
+  });
+
+  it("animates the inactive waker as a breathing sleeping silhouette", () => {
+    const waker = createEnemy({
+      kind: ENEMY_KINDS.waker,
+      action: "sleep",
+      activated: false,
+    });
+
+    expect(resolveEnemyThreatFrame(waker, 0)).toBe("sleep-0");
+    expect(resolveEnemyThreatFrame(waker, 0.5)).toBe("sleep-1");
+    const resting = createEnemyThreatCells("sleep-0", 1, ENEMY_KINDS.waker);
+    const breathing = createEnemyThreatCells("sleep-1", 1, ENEMY_KINDS.waker);
+    expectUniqueIntegerCells(resting);
+    expectUniqueIntegerCells(breathing);
+    expect(breathing).not.toEqual(resting);
   });
 
   it("plays a death sequence before settling on the persistent corpse", () => {
@@ -254,6 +359,7 @@ describe("threat pixel art", () => {
       PLAYER_FOOTSTEP_WAVE_COLOR,
     );
     expect(SOUND_WAVE_COLORS["enemy-alert"]).toBe(THREAT_COLOR);
+    expect(SOUND_WAVE_COLORS["enemy-call"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);
   });
 });

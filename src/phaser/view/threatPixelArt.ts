@@ -24,6 +24,8 @@ type CellPolygon = readonly CellPoint[];
 
 export type EnemyThreatFrame =
   | "idle"
+  | "sleep-0"
+  | "sleep-1"
   | "walk-0"
   | "walk-1"
   | "walk-2"
@@ -147,6 +149,45 @@ function addPolyline(
 ): void {
   for (let index = 0; index < points.length - 1; index += 1) {
     addBoundary(cells, points[index], points[index + 1]);
+  }
+}
+
+function fillEnclosedCells(cells: Map<string, ThreatPixelCell>): void {
+  const values = [...cells.values()];
+  if (values.length === 0) return;
+  const minimumX = Math.min(...values.map((cell) => cell.x)) - 1;
+  const maximumX = Math.max(...values.map((cell) => cell.x)) + 1;
+  const minimumY = Math.min(...values.map((cell) => cell.y)) - 1;
+  const maximumY = Math.max(...values.map((cell) => cell.y)) + 1;
+  const outside = new Set<string>();
+  const queue: ThreatPixelCell[] = [{ x: minimumX, y: minimumY }];
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index];
+    const key = cellKey(current.x, current.y);
+    if (outside.has(key) || cells.has(key)) continue;
+    if (
+      current.x < minimumX ||
+      current.x > maximumX ||
+      current.y < minimumY ||
+      current.y > maximumY
+    ) {
+      continue;
+    }
+    outside.add(key);
+    queue.push(
+      { x: current.x - 1, y: current.y },
+      { x: current.x + 1, y: current.y },
+      { x: current.x, y: current.y - 1 },
+      { x: current.x, y: current.y + 1 },
+    );
+  }
+
+  for (let y = minimumY + 1; y < maximumY; y += 1) {
+    for (let x = minimumX + 1; x < maximumX; x += 1) {
+      const key = cellKey(x, y);
+      if (!cells.has(key) && !outside.has(key)) cells.set(key, { x, y });
+    }
   }
 }
 
@@ -419,25 +460,29 @@ function createEnemyPolygons(frame: EnemyThreatFrame): CellPolygon[] {
   ];
 }
 
-function createSleepingEnemyPolygons(waker: boolean): CellPolygon[] {
-  const crest = waker ? -8 : -5;
+function createSleepingEnemyPolygons(
+  waker: boolean,
+  breathing = false,
+): CellPolygon[] {
+  const bodyLift = breathing ? -1 : 0;
+  const crest = waker ? (breathing ? -10 : -8) : -5;
   return [
     [
-      { x: -11, y: 4 },
-      { x: -8, y: -2 },
+      { x: -11, y: 4 + bodyLift },
+      { x: -8, y: -2 + bodyLift },
       { x: -2, y: crest },
-      { x: 5, y: -5 },
-      { x: 11, y: -1 },
-      { x: 9, y: 5 },
-      { x: 3, y: 7 },
-      { x: -6, y: 7 },
+      { x: 5, y: -5 + bodyLift },
+      { x: 11, y: -1 + bodyLift },
+      { x: 9, y: 5 + bodyLift },
+      { x: 3, y: 7 + bodyLift },
+      { x: -6, y: 7 + bodyLift },
     ],
     [
-      { x: -8, y: 1 },
-      { x: -14, y: -1 },
-      { x: -17, y: 3 },
-      { x: -12, y: 4 },
-      { x: -8, y: 6 },
+      { x: -8, y: 1 + bodyLift },
+      { x: -14, y: (breathing ? -2 : -1) + bodyLift },
+      { x: -17, y: 3 + bodyLift },
+      { x: -12, y: 4 + bodyLift },
+      { x: -8, y: 6 + bodyLift },
     ],
     ...(waker
       ? [[
@@ -451,47 +496,275 @@ function createSleepingEnemyPolygons(waker: boolean): CellPolygon[] {
 
 function createFlyingEnemyPolygons(
   frame: EnemyThreatFrame,
-  waker: boolean,
 ): CellPolygon[] {
-  const raised = frame === "walk-0" || frame === "walk-3";
-  const wingY = raised ? -10 : 2;
-  const wingTipY = raised ? -7 : 8;
+  if (frame === "corpse" || frame === "death-collapse") {
+    const top = frame === "corpse" ? 10 : 7;
+    return [[
+      { x: -17, y: 14 },
+      { x: -11, y: top },
+      { x: -3, y: top + 2 },
+      { x: 4, y: top - 1 },
+      { x: 13, y: 11 },
+      { x: 17, y: 14 },
+      { x: 10, y: 16 },
+      { x: -13, y: 16 },
+    ]];
+  }
+
+  const raised =
+    frame === "walk-0" ||
+    frame === "walk-3" ||
+    frame === "alert-1" ||
+    frame === "death-recoil";
+  const folded = frame === "hurt" || frame === "death-fall";
+  const wingTop = raised ? -16 : folded ? -7 : -11;
+  const wingBottom = raised ? -5 : folded ? 7 : 4;
+  const bodyOffsetY = frame === "attack-recover" ? 1 : 0;
+  const frontOpening =
+    frame === "alert-0"
+      ? 4
+      : frame === "alert-1"
+        ? 8
+        : frame === "attack-strike"
+          ? 10
+          : frame === "attack-follow-through"
+            ? 7
+            : frame === "attack-recover"
+              ? 3
+              : 0;
+  const bladeReach =
+    frame === "attack-strike"
+      ? ENEMY_ATTACK_REACH_CELL
+      : frame === "attack-follow-through"
+        ? 30
+        : frame === "attack-recover"
+          ? 20
+          : 0;
+  const frontHalfOpening = Math.ceil(frontOpening / 2);
+  const frontPolygons: CellPolygon[] = frontOpening > 0
+    ? [
+        [
+          { x: 3, y: -5 + bodyOffsetY },
+          { x: 9, y: -7 - frontHalfOpening + bodyOffsetY },
+          { x: 14, y: -5 - frontOpening + bodyOffsetY },
+          { x: 12, y: -2 - frontHalfOpening + bodyOffsetY },
+          { x: 5, y: -1 + bodyOffsetY },
+        ],
+        [
+          { x: 4, y: 0 + bodyOffsetY },
+          { x: 12, y: 2 + frontHalfOpening + bodyOffsetY },
+          { x: 14, y: 4 + frontOpening + bodyOffsetY },
+          { x: 8, y: 5 + frontHalfOpening + bodyOffsetY },
+          { x: 4, y: 3 + bodyOffsetY },
+        ],
+      ]
+    : [[
+        { x: 4, y: -5 + bodyOffsetY },
+        { x: 13, y: -4 + bodyOffsetY },
+        { x: 16, y: -1 + bodyOffsetY },
+        { x: 13, y: 3 + bodyOffsetY },
+        { x: 5, y: 3 + bodyOffsetY },
+      ]];
+  const bladePolygons: CellPolygon[] = bladeReach > 0
+    ? [
+        [
+          { x: 9, y: -5 + bodyOffsetY },
+          { x: bladeReach - 5, y: -13 + bodyOffsetY },
+          { x: bladeReach, y: -12 + bodyOffsetY },
+          { x: bladeReach - 4, y: -9 + bodyOffsetY },
+          { x: 10, y: -1 + bodyOffsetY },
+        ],
+        [
+          { x: 10, y: -2 + bodyOffsetY },
+          { x: bladeReach - 2, y: -2 + bodyOffsetY },
+          { x: bladeReach, y: 0 + bodyOffsetY },
+          { x: bladeReach - 3, y: 2 + bodyOffsetY },
+          { x: 10, y: 2 + bodyOffsetY },
+        ],
+        [
+          { x: 9, y: 2 + bodyOffsetY },
+          { x: bladeReach - 6, y: 9 + bodyOffsetY },
+          { x: bladeReach - 1, y: 12 + bodyOffsetY },
+          { x: bladeReach - 5, y: 13 + bodyOffsetY },
+          { x: 9, y: 5 + bodyOffsetY },
+        ],
+      ]
+    : [];
+
   return [
+    // 좁은 장갑 몸통과 갈라진 꼬리 지느러미.
     [
-      { x: -6, y: -4 },
-      { x: -1, y: -7 },
-      { x: 6, y: -5 },
-      { x: 10, y: -1 },
-      { x: 6, y: 4 },
-      { x: 0, y: 6 },
-      { x: -6, y: 3 },
+      { x: -8, y: -3 + bodyOffsetY },
+      { x: -3, y: -7 + bodyOffsetY },
+      { x: 4, y: -6 + bodyOffsetY },
+      { x: 7, y: -2 + bodyOffsetY },
+      { x: 6, y: 3 + bodyOffsetY },
+      { x: 1, y: 6 + bodyOffsetY },
+      { x: -7, y: 3 + bodyOffsetY },
     ],
     [
-      { x: -3, y: -3 },
-      { x: -11, y: wingY },
-      { x: -9, y: wingTipY },
-      { x: -3, y: 2 },
+      { x: -4, y: -4 + bodyOffsetY },
+      { x: -15, y: wingTop },
+      { x: -10, y: wingBottom },
+      { x: -2, y: 2 + bodyOffsetY },
     ],
     [
-      { x: 2, y: -4 },
-      { x: 9, y: wingY - (waker ? 2 : 0) },
-      { x: 8, y: wingTipY },
-      { x: 3, y: 2 },
+      { x: 1, y: -5 + bodyOffsetY },
+      { x: 8, y: wingTop - 2 },
+      { x: 10, y: wingBottom - 1 },
+      { x: 3, y: 2 + bodyOffsetY },
     ],
     [
-      { x: 7, y: -4 },
-      { x: 13, y: -6 },
-      { x: 11, y: -2 },
-      { x: 14, y: 0 },
-      { x: 9, y: 2 },
+      { x: -7, y: 0 + bodyOffsetY },
+      { x: -16, y: 3 + bodyOffsetY },
+      { x: -12, y: 5 + bodyOffsetY },
+      { x: -17, y: 9 + bodyOffsetY },
+      { x: -7, y: 4 + bodyOffsetY },
     ],
-    ...(waker
-      ? [[
-          { x: -4, y: -5 },
-          { x: -2, y: -12 },
-          { x: 1, y: -6 },
-        ] satisfies CellPolygon]
-      : []),
+    ...frontPolygons,
+    ...bladePolygons,
+  ];
+}
+
+function createWakerPolygons(frame: EnemyThreatFrame): CellPolygon[] {
+  if (frame === "corpse" || frame === "death-collapse") {
+    const top = frame === "corpse" ? 11 : 8;
+    return [[
+      { x: -14, y: 14 },
+      { x: -8, y: top },
+      { x: -1, y: top + 1 },
+      { x: 5, y: top - 2 },
+      { x: 12, y: 12 },
+      { x: 9, y: 16 },
+      { x: -12, y: 16 },
+    ]];
+  }
+
+  const sway =
+    frame === "walk-0" || frame === "walk-3"
+      ? -3
+      : frame === "walk-1"
+        ? 2
+        : 0;
+  const recoil = frame === "hurt" || frame === "death-recoil" ? -2 : 0;
+  const droop = frame === "death-fall" ? 7 : 0;
+  const frontOpening =
+    frame === "alert-0"
+      ? 3
+      : frame === "alert-1"
+        ? 7
+        : frame === "attack-strike"
+          ? 9
+          : frame === "attack-follow-through"
+            ? 6
+            : frame === "attack-recover"
+              ? 2
+              : 0;
+  const tentacleReach =
+    frame === "attack-strike"
+      ? ENEMY_ATTACK_REACH_CELL
+      : frame === "attack-follow-through"
+        ? 29
+        : frame === "attack-recover"
+          ? 18
+          : 0;
+  const frontHalfOpening = Math.ceil(frontOpening / 2);
+  const tentacleInner = Math.max(10, Math.floor(tentacleReach * 0.38));
+  const tentacleMiddle = Math.max(12, Math.floor(tentacleReach * 0.65));
+  const frontPolygons: CellPolygon[] = frontOpening > 0
+    ? [
+        [
+          { x: 2 + recoil, y: -9 + droop },
+          { x: 8, y: -8 - frontHalfOpening + droop },
+          { x: 12, y: -5 - frontOpening + droop },
+          { x: 9, y: -3 - frontHalfOpening + droop },
+          { x: 3 + recoil, y: -2 + droop },
+        ],
+        [
+          { x: 3 + recoil, y: 0 + droop },
+          { x: 10, y: 2 + frontHalfOpening + droop },
+          { x: 12, y: 4 + frontOpening + droop },
+          { x: 7, y: 7 + frontHalfOpening + droop },
+          { x: 2 + recoil, y: 5 + droop },
+        ],
+      ]
+    : [[
+        { x: 2 + recoil, y: -8 + droop },
+        { x: 10, y: -5 + droop },
+        { x: 12, y: -1 + droop },
+        { x: 8, y: 5 + droop },
+        { x: 2 + recoil, y: 5 + droop },
+      ]];
+  const tentaclePolygons: CellPolygon[] = tentacleReach > 0
+    ? [
+        [
+          { x: 8, y: -5 + droop },
+          { x: tentacleInner, y: -9 + droop },
+          { x: tentacleMiddle, y: -6 + droop },
+          { x: tentacleReach, y: -13 + droop },
+          { x: tentacleReach - 2, y: -9 + droop },
+          { x: tentacleMiddle, y: -2 + droop },
+          { x: tentacleInner, y: -5 + droop },
+          { x: 8, y: -2 + droop },
+        ],
+        [
+          { x: 9, y: -2 + droop },
+          { x: tentacleInner, y: 1 + droop },
+          { x: tentacleMiddle, y: -2 + droop },
+          { x: tentacleReach, y: 0 + droop },
+          { x: tentacleReach - 3, y: 3 + droop },
+          { x: tentacleMiddle, y: 2 + droop },
+          { x: tentacleInner, y: 4 + droop },
+          { x: 9, y: 2 + droop },
+        ],
+        [
+          { x: 8, y: 2 + droop },
+          { x: tentacleInner, y: 7 + droop },
+          { x: tentacleMiddle, y: 5 + droop },
+          { x: tentacleReach - 1, y: 12 + droop },
+          { x: tentacleReach - 4, y: 14 + droop },
+          { x: tentacleMiddle, y: 9 + droop },
+          { x: tentacleInner, y: 11 + droop },
+          { x: 8, y: 5 + droop },
+        ],
+      ]
+    : [];
+
+  return [
+    // 세로로 선 부유 핵과 왕관 가시가 비행 적의 넓은 날개와 구분된다.
+    [
+      { x: -7 + recoil, y: -8 + droop },
+      { x: -2 + recoil, y: -13 + droop },
+      { x: 3 + recoil, y: -10 + droop },
+      { x: 5 + recoil, y: -3 + droop },
+      { x: 4 + recoil, y: 5 + droop },
+      { x: 2 + recoil, y: 9 + droop },
+      { x: -5 + recoil, y: 6 + droop },
+      { x: -9 + recoil, y: 0 + droop },
+    ],
+    [
+      { x: -5 + recoil, y: -9 + droop },
+      { x: -2 + recoil, y: -18 + droop },
+      { x: 1 + recoil, y: -11 + droop },
+      { x: 5 + recoil, y: -17 + droop },
+      { x: 6 + recoil, y: -8 + droop },
+    ],
+    // 서로 다른 박자로 흔들리는 뒤쪽 촉수 세 갈래.
+    [
+      { x: -6, y: 3 + droop },
+      { x: -14, y: 5 + sway + droop },
+      { x: -18, y: 10 + sway + droop },
+      { x: -13, y: 8 + sway + droop },
+      { x: -5, y: 7 + droop },
+    ],
+    [
+      { x: -2, y: 6 + droop },
+      { x: -8, y: 12 - sway + droop },
+      { x: -5, y: 17 - sway + droop },
+      { x: 1, y: 8 + droop },
+    ],
+    ...frontPolygons,
+    ...tentaclePolygons,
   ];
 }
 
@@ -511,6 +784,14 @@ export function resolveEnemyThreatFrame(
   }
   if (enemy.action === "hurt") {
     return "hurt";
+  }
+  if (enemy.action === "sleep") {
+    if (enemy.kind === ENEMY_KINDS.waker) {
+      return Math.floor(elapsedSeconds * 2) % 2 === 0
+        ? "sleep-0"
+        : "sleep-1";
+    }
+    return "idle";
   }
   if (enemy.action === "alert") {
     return enemy.actionTime / ENEMY_CONFIG.alertSeconds < 0.55
@@ -543,15 +824,19 @@ export function createEnemyThreatCells(
   const cells = new Map<string, ThreatPixelCell>();
   if (kind === ENEMY_KINDS.sleeper && frame === "idle") {
     addPolygons(cells, createSleepingEnemyPolygons(false));
-  } else if (kind === ENEMY_KINDS.flyer && frame.startsWith("walk-")) {
-    addPolygons(cells, createFlyingEnemyPolygons(frame, false));
-  } else if (kind === ENEMY_KINDS.waker && frame === "idle") {
-    addPolygons(cells, createSleepingEnemyPolygons(true));
-  } else if (kind === ENEMY_KINDS.waker && frame.startsWith("walk-")) {
-    addPolygons(cells, createFlyingEnemyPolygons(frame, true));
+  } else if (kind === ENEMY_KINDS.flyer) {
+    addPolygons(cells, createFlyingEnemyPolygons(frame));
+  } else if (
+    kind === ENEMY_KINDS.waker &&
+    (frame === "sleep-0" || frame === "sleep-1")
+  ) {
+    addPolygons(cells, createSleepingEnemyPolygons(true, frame === "sleep-1"));
+  } else if (kind === ENEMY_KINDS.waker) {
+    addPolygons(cells, createWakerPolygons(frame));
   } else {
     addPolygons(cells, createEnemyPolygons(frame));
   }
+  fillEnclosedCells(cells);
 
   return [...cells.values()].map((cell) => ({
     x: facing > 0 ? cell.x : -cell.x - 1,

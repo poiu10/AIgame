@@ -7,8 +7,10 @@ import {
   type WorldDefinition,
 } from "../src/game/content/world";
 import {
+  ENEMY_CONFIG,
   FIXED_STEP_SECONDS,
   PLAYER_CONFIG,
+  STAGE_ONE_CONFIG,
 } from "../src/game/simulation/rules/config";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { updatePlayerCombat } from "../src/game/simulation/systems/combat";
@@ -18,7 +20,10 @@ import {
   updateWorldEnvironment,
 } from "../src/game/simulation/systems/environment";
 import { emitSound, updateSoundPropagation } from "../src/game/simulation/systems/sound";
-import { getActiveTerrain } from "../src/game/simulation/systems/stageMechanisms";
+import {
+  getActiveTerrain,
+  pressTerrainButton,
+} from "../src/game/simulation/systems/stageMechanisms";
 
 function getTerrainState(state: ReturnType<typeof createInitialGameState>, id: string) {
   return state.terrain.find((terrain) => terrain.id === id)!;
@@ -106,6 +111,61 @@ describe("Stage 1", () => {
     expect(flyer.facing).toBe(-1);
   });
 
+  it("gives flyers the same warned melee attack as the ground stalker", () => {
+    const state = createInitialGameState(STAGE_ONE);
+    const flyer = state.enemies.find((enemy) => enemy.id === "enemy-fly1")!;
+    flyer.position = { x: 600, y: 300 };
+    state.player.position = { x: 500, y: 300 };
+    const healthBefore = state.player.health;
+
+    updateEnemies(state, STAGE_ONE, FIXED_STEP_SECONDS);
+
+    expect(flyer.action).toBe("alert");
+    expect(flyer.attackFacing).toBe(-1);
+    expect(state.player.health).toBe(healthBefore);
+    expect(state.soundWaves.some(
+      (wave) => wave.kind === "enemy-alert" && wave.sourceId === flyer.id,
+    )).toBe(true);
+
+    updateEnemies(state, STAGE_ONE, ENEMY_CONFIG.alertSeconds);
+
+    expect(flyer.action).toBe("attack");
+    expect(state.player.health).toBe(healthBefore - 1);
+  });
+
+  it("emits periodic calls from flyers and only awakened wakers", () => {
+    const state = createInitialGameState(STAGE_ONE);
+    const flyer = state.enemies.find((enemy) => enemy.id === "enemy-fly1")!;
+    const waker = state.enemies.find((enemy) => enemy.id === "enemy-wake")!;
+    flyer.position = { x: 600, y: 300 };
+    waker.position = { x: 620, y: 120 };
+    state.player.position = { x: 900, y: 120 };
+    flyer.timeUntilPulse = 0;
+    waker.timeUntilPulse = 0;
+
+    updateEnemies(state, STAGE_ONE, FIXED_STEP_SECONDS);
+
+    expect(state.soundWaves.some(
+      (wave) => wave.kind === "enemy-call" && wave.sourceId === flyer.id,
+    )).toBe(true);
+    expect(state.soundWaves.some(
+      (wave) => wave.kind === "enemy-call" && wave.sourceId === waker.id,
+    )).toBe(false);
+    expect(waker.action).toBe("sleep");
+    expect(waker.timeUntilPulse).toBe(0);
+
+    expect(pressTerrainButton(state, STAGE_ONE, "terrain-botton")).toBe(true);
+    updateEnemies(
+      state,
+      STAGE_ONE,
+      STAGE_ONE_CONFIG.wakerPulseWakeDelaySeconds,
+    );
+
+    expect(state.soundWaves.some(
+      (wave) => wave.kind === "enemy-call" && wave.sourceId === waker.id,
+    )).toBe(true);
+  });
+
   it("grows leftward at 50%, 100%, then 120% of walking speed", () => {
     expect(getGrowingHazardSpeed(0)).toBe(PLAYER_CONFIG.maxSpeed * 0.5);
     expect(getGrowingHazardSpeed(2)).toBe(PLAYER_CONFIG.maxSpeed);
@@ -136,7 +196,7 @@ describe("Stage 1", () => {
     expect(hazard.bounds.width).toBeCloseTo(5140);
   });
 
-  it("wakes on the button and smoothly meets a left-running player near x=900", () => {
+  it("wakes on the button, pursues, and starts its warned attack near x=900", () => {
     const world: WorldDefinition = {
       width: 2_000,
       height: 800,
@@ -170,7 +230,7 @@ describe("Stage 1", () => {
 
     let runnerX = 1_320;
     let runnerVelocity = 0;
-    let meetingX = Number.NaN;
+    let encounterX = Number.NaN;
     for (let index = 0; index < 180; index += 1) {
       runnerVelocity = Math.max(
         -PLAYER_CONFIG.maxSpeed,
@@ -179,14 +239,22 @@ describe("Stage 1", () => {
       runnerX += runnerVelocity * FIXED_STEP_SECONDS;
       state.player.position = { x: runnerX, y: 200 };
       updateEnemies(state, world, FIXED_STEP_SECONDS);
-      if (waker.position.x >= runnerX) {
-        meetingX = (waker.position.x + runnerX) / 2;
+      if (waker.action === "alert") {
+        encounterX = (waker.position.x + runnerX) / 2;
         break;
       }
     }
 
-    expect(meetingX).toBeGreaterThan(860);
-    expect(meetingX).toBeLessThan(940);
-    expect(state.soundWaves.some((wave) => wave.sourceId === waker.id)).toBe(false);
+    expect(encounterX).toBeGreaterThan(840);
+    expect(encounterX).toBeLessThan(960);
+    expect(waker.attackFacing).toBe(1);
+    expect(state.soundWaves.some(
+      (wave) => wave.kind === "enemy-alert" && wave.sourceId === waker.id,
+    )).toBe(true);
+
+    const healthBefore = state.player.health;
+    updateEnemies(state, world, ENEMY_CONFIG.alertSeconds);
+    expect(waker.action).toBe("attack");
+    expect(state.player.health).toBe(healthBefore - 1);
   });
 });

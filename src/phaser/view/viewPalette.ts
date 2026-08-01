@@ -11,6 +11,7 @@ export const SOUND_WAVE_COLORS: Readonly<Record<SoundKind, number>> = {
   "enemy-step": PLAYER_FOOTSTEP_WAVE_COLOR,
   "enemy-alert": THREAT_COLOR,
   "enemy-attack": THREAT_COLOR,
+  "enemy-call": THREAT_COLOR,
   "enemy-hit": 0xff67b1,
   "enemy-death": 0xffffff,
   sleep: THREAT_COLOR,

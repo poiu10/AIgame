@@ -6,7 +6,7 @@ import {
   type WorldDefinition,
 } from "../content/world";
 import { TUTORIAL_STAGE } from "../content/tutorialStage";
-import { ENEMY_CONFIG, PLAYER_CONFIG } from "./rules/config";
+import { ENEMY_CONFIG, PLAYER_CONFIG, STAGE_ONE_CONFIG } from "./rules/config";
 
 export type Facing = -1 | 1;
 export type GroundAttackVariant = 0 | 1 | 2;
@@ -28,6 +28,7 @@ export type SoundKind =
   | "enemy-step"
   | "enemy-alert"
   | "enemy-attack"
+  | "enemy-call"
   | "enemy-hit"
   | "enemy-death"
   | "sleep"
@@ -199,7 +200,7 @@ export function createInitialGameState(
       footstepTravel: 0,
       attackHitIds: [],
     },
-    enemies: world.enemies.map((spawn) => ({
+    enemies: world.enemies.map((spawn, spawnIndex) => ({
       id: spawn.id,
       kind: spawn.kind ?? ENEMY_KINDS.stalker,
       position: { ...spawn.position },
@@ -224,7 +225,15 @@ export function createInitialGameState(
       echoTime: 0,
       echoDuration: 0,
       activated: spawn.kind !== ENEMY_KINDS.waker,
-      timeUntilPulse: spawn.kind === ENEMY_KINDS.sleeper ? 0.45 : 1.15,
+      timeUntilPulse:
+        spawn.kind === ENEMY_KINDS.sleeper
+          ? 0.45
+          : spawn.kind === ENEMY_KINDS.flyer
+            ? STAGE_ONE_CONFIG.activeEnemyPulseInitialDelaySeconds +
+              (spawnIndex % 3) * STAGE_ONE_CONFIG.activeEnemyPulseSpawnStaggerSeconds
+            : spawn.kind === ENEMY_KINDS.waker
+              ? STAGE_ONE_CONFIG.wakerPulseWakeDelaySeconds
+              : Number.POSITIVE_INFINITY,
     })),
     terrain: world.terrain.map((block) => ({
       id: block.id,

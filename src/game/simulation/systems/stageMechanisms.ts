@@ -5,7 +5,7 @@ import {
   type TerrainBlock,
   type WorldDefinition,
 } from "../../content/world";
-import { SOUND_CONFIG } from "../rules/config";
+import { SOUND_CONFIG, STAGE_ONE_CONFIG } from "../rules/config";
 import type { GameState } from "../state";
 
 export function getActiveTerrain(
@@ -68,7 +68,7 @@ export function pressTerrainButton(
     enemy.activated = true;
     enemy.action = "pursue";
     enemy.actionTime = 0;
-    enemy.timeUntilPulse = 0;
+    enemy.timeUntilPulse = STAGE_ONE_CONFIG.wakerPulseWakeDelaySeconds;
   }
   return true;
 }

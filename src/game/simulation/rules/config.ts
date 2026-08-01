@@ -57,6 +57,12 @@ export const ENEMY_CONFIG = {
 export const STAGE_ONE_CONFIG = {
   sleeperPulseIntervalSeconds: 2.2,
   sleeperPulseDistance: 360,
+  activeEnemyPulseIntervalSeconds: 3.4,
+  activeEnemyPulseDistance: 520,
+  activeEnemyPulseIntensity: 0.76,
+  activeEnemyPulseInitialDelaySeconds: 0.8,
+  activeEnemyPulseSpawnStaggerSeconds: 0.55,
+  wakerPulseWakeDelaySeconds: 0.45,
   flyerSpeed: 190,
   wakerAcceleration: 700,
   wakerMaximumSpeed: 560,
