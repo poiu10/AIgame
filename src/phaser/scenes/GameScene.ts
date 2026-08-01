@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { getStage, INITIAL_STAGE_ID, STAGES } from "../../game/content/stages";
 import type { StageDefinition } from "../../game/content/world";
 import type { InputActions } from "../../game/input/actions";
+import { RestartHoldTracker } from "../../game/input/restartHold";
 import {
   BrowserCheckpointStorage,
   createInitialCheckpoint,
@@ -25,14 +26,12 @@ interface PendingButtons {
   jumpPressed: boolean;
   rollPressed: boolean;
   attackPressed: boolean;
-  restartPressed: boolean;
 }
 
 const EMPTY_PENDING: PendingButtons = {
   jumpPressed: false,
   rollPressed: false,
   attackPressed: false,
-  restartPressed: false,
 };
 
 export class GameScene extends Phaser.Scene {
@@ -45,6 +44,7 @@ export class GameScene extends Phaser.Scene {
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<ActionKey, Phaser.Input.Keyboard.Key>;
   private pending: PendingButtons = { ...EMPTY_PENDING };
+  private readonly restartHold = new RestartHoldTracker();
   private accumulator = 0;
   private lastHudSignature = "";
 
@@ -82,7 +82,15 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, deltaMilliseconds: number): void {
     this.captureButtonEdges();
-    if (this.pending.restartPressed) {
+    const restartAction = this.restartHold.update(
+      this.keys.R.isDown,
+      deltaMilliseconds / 1000,
+    );
+    if (restartAction === "full-reset") {
+      this.resetGameCompletely();
+      this.pending = { ...EMPTY_PENDING };
+      this.accumulator = 0;
+    } else if (restartAction === "restore-checkpoint") {
       this.restoreCheckpoint();
       this.pending = { ...EMPTY_PENDING };
       this.accumulator = 0;
@@ -164,6 +172,19 @@ export class GameScene extends Phaser.Scene {
     this.configureStageView();
   }
 
+  private resetGameCompletely(): void {
+    try {
+      this.checkpointStorage.clear();
+    } catch {
+      // 저장소가 차단되어도 현재 세션은 최초 실행 상태로 초기화한다.
+    }
+    const initialStage = getStage(INITIAL_STAGE_ID);
+    this.checkpoint = createInitialCheckpoint(initialStage);
+    this.currentStage = initialStage;
+    this.gameState = restoreCheckpointState(this.checkpoint, initialStage);
+    this.configureStageView();
+  }
+
   private persistCheckpoint(): void {
     try {
       this.checkpointStorage.save(serializeCheckpoint(this.checkpoint));
@@ -189,7 +210,6 @@ export class GameScene extends Phaser.Scene {
       || Phaser.Input.Keyboard.JustDown(this.cursors.up);
     this.pending.rollPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.SHIFT);
     this.pending.attackPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.J);
-    this.pending.restartPressed ||= Phaser.Input.Keyboard.JustDown(this.keys.R);
   }
 
   private readInput(includeEdges: boolean): InputActions {

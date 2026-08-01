@@ -22,6 +22,7 @@ export interface CheckpointSave {
 export interface CheckpointStorage {
   load(): string | null;
   save(value: string): void;
+  clear(): void;
 }
 
 export class BrowserCheckpointStorage implements CheckpointStorage {
@@ -31,6 +32,10 @@ export class BrowserCheckpointStorage implements CheckpointStorage {
 
   save(value: string): void {
     window.localStorage.setItem(CHECKPOINT_STORAGE_KEY, value);
+  }
+
+  clear(): void {
+    window.localStorage.removeItem(CHECKPOINT_STORAGE_KEY);
   }
 }
 
