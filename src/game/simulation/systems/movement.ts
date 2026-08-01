@@ -105,6 +105,7 @@ export function updatePlayerMovement(
 ): SoundRequest[] {
   const player = state.player;
   const sounds: SoundRequest[] = [];
+  let startedAttack = false;
 
   player.rollCooldown = Math.max(0, player.rollCooldown - deltaSeconds);
   player.invulnerabilityTime = Math.max(
@@ -148,6 +149,7 @@ export function updatePlayerMovement(
 
   if (player.action === "roll" && input.attackPressed) {
     startPlayerAttack(player, input);
+    startedAttack = true;
   } else if (
     (player.action === "normal" || player.action === "attack") &&
     input.rollPressed &&
@@ -159,6 +161,16 @@ export function updatePlayerMovement(
     player.rollCooldown = PLAYER_CONFIG.rollCooldownSeconds;
   } else if (player.action === "normal" && input.attackPressed) {
     startPlayerAttack(player, input);
+    startedAttack = true;
+  }
+
+  if (startedAttack) {
+    sounds.push({
+      kind: "player-attack",
+      position: { ...player.position },
+      distance: 440,
+      intensity: 0.76,
+    });
   }
 
   if (
@@ -258,7 +270,7 @@ export function updatePlayerMovement(
     if (player.footstepTravel >= PLAYER_CONFIG.footstepDistance) {
       player.footstepTravel %= PLAYER_CONFIG.footstepDistance;
       sounds.push({
-        kind: "terrain-step",
+        kind: "player-step",
         position: {
           x: player.position.x,
           y: player.position.y + PLAYER_CONFIG.height / 2 - 2,

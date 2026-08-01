@@ -28,7 +28,7 @@ function updateGrowingHazard(
   if (hazard.timeUntilPulse <= 0) {
     emitSound(
       state,
-      "hazard",
+      "hazard-pulse",
       { x: hazard.bounds.x, y: hazard.bounds.y + hazard.bounds.height / 2 },
       STAGE_ONE_CONFIG.growingHazardPulseDistance,
       1,

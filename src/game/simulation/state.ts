@@ -22,16 +22,17 @@ export type EnemyAction =
   | "dead";
 export type SessionStatus = "playing" | "completed" | "failed";
 export type SoundKind =
-  | "terrain-step"
+  | "player-step"
   | "landing"
-  | "attack-hit"
+  | "player-attack"
   | "enemy-step"
   | "enemy-alert"
   | "enemy-attack"
-  | "hurt"
-  | "death"
-  | "ambient"
-  | "hazard";
+  | "enemy-hit"
+  | "enemy-death"
+  | "sleep"
+  | "water"
+  | "hazard-pulse";
 
 export interface Vector2State {
   x: number;

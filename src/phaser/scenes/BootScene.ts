@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import {
+  AUDIO_ASSETS,
   PLAYER_SPRITE_FRAME,
   PLAYER_SPRITESHEETS,
 } from "../../game/assets/manifest";
@@ -15,6 +16,9 @@ export class BootScene extends Phaser.Scene {
         frameWidth: PLAYER_SPRITE_FRAME.width,
         frameHeight: PLAYER_SPRITE_FRAME.height,
       });
+    }
+    for (const asset of Object.values(AUDIO_ASSETS)) {
+      this.load.audio(asset.key, asset.path);
     }
   }
 

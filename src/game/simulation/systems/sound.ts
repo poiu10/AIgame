@@ -20,6 +20,19 @@ export const PLAYER_SOUND_SOURCE_ID = "player";
 const ADJACENT_TERRAIN_PROBE_DISTANCE = 0.5;
 const ECHO_MARK_MINIMUM_LENGTH = 0.01;
 
+export function getListenerDistanceScale(
+  listenerPosition: Vector2State,
+  sourcePosition: Vector2State,
+  maximumDistance: number,
+): number {
+  if (maximumDistance <= 0) return 0;
+  const distance = Math.hypot(
+    sourcePosition.x - listenerPosition.x,
+    sourcePosition.y - listenerPosition.y,
+  );
+  return Math.max(0, Math.min(1, 1 - distance / maximumDistance));
+}
+
 export function emitSound(
   state: GameState,
   kind: SoundKind,
@@ -28,6 +41,14 @@ export function emitSound(
   intensity: number,
   sourceId?: string,
 ): void {
+  const listenerScale =
+    sourceId === PLAYER_SOUND_SOURCE_ID
+      ? 1
+      : getListenerDistanceScale(state.player.position, position, maximumDistance);
+  if (listenerScale <= 0) return;
+
+  const audibleDistance = maximumDistance * listenerScale;
+  const audibleIntensity = intensity * listenerScale;
   const rays: SoundRayState[] = [];
   for (let index = 0; index < SOUND_CONFIG.initialRayCount; index += 1) {
     const angle = (index / SOUND_CONFIG.initialRayCount) * Math.PI * 2;
@@ -35,8 +56,8 @@ export function emitSound(
       position: { ...position },
       previousPosition: { ...position },
       direction: { x: Math.cos(angle), y: Math.sin(angle) },
-      remainingDistance: maximumDistance,
-      intensity,
+      remainingDistance: audibleDistance,
+      intensity: audibleIntensity,
       reflectionCount: 0,
       pathKey: "source",
       active: true,
@@ -52,7 +73,12 @@ export function emitSound(
     reactedEnemyIds: [],
   });
   state.nextWaveId += 1;
-  state.events.push({ type: "sound", kind, position: { ...position }, intensity });
+  state.events.push({
+    type: "sound",
+    kind,
+    position: { ...position },
+    intensity: audibleIntensity,
+  });
 
   if (sourceId) {
     const sourceEnemy = state.enemies.find((enemy) => enemy.id === sourceId);

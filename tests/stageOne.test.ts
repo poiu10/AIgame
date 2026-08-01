@@ -56,7 +56,7 @@ describe("Stage 1", () => {
 
   it("reveals the whole button state when a sound ray reaches it", () => {
     const state = createInitialGameState(STAGE_ONE);
-    emitSound(state, "terrain-step", { x: 1260, y: 260 }, 160, 1, "player");
+    emitSound(state, "player-step", { x: 1260, y: 260 }, 160, 1, "player");
     for (let index = 0; index < 12; index += 1) {
       updateSoundPropagation(state, STAGE_ONE, FIXED_STEP_SECONDS);
     }
@@ -82,6 +82,7 @@ describe("Stage 1", () => {
     const state = createInitialGameState(STAGE_ONE);
     const sleeper = state.enemies.find((enemy) => enemy.id === "enemy-sleep")!;
     sleeper.position = { x: 560, y: 535 };
+    state.player.position = { x: 520, y: 535 };
 
     updateEnemies(state, STAGE_ONE, 0.5);
 
@@ -98,7 +99,7 @@ describe("Stage 1", () => {
     expect(flyer.position.x).toBeGreaterThan(660);
     expect(flyer.position.y).toBe(initialY);
 
-    emitSound(state, "terrain-step", { x: 520, y: initialY }, 300, 1, "player");
+    emitSound(state, "player-step", { x: 520, y: initialY }, 300, 1, "player");
     for (let index = 0; index < 20; index += 1) {
       updateSoundPropagation(state, STAGE_ONE, FIXED_STEP_SECONDS);
     }
@@ -186,6 +187,6 @@ describe("Stage 1", () => {
 
     expect(meetingX).toBeGreaterThan(860);
     expect(meetingX).toBeLessThan(940);
-    expect(state.soundWaves.some((wave) => wave.sourceId === waker.id)).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.sourceId === waker.id)).toBe(false);
   });
 });

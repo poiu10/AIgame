@@ -14,6 +14,17 @@ export const ASSET_KEYS = {
     hurt: "character.player.hurt",
     death: "character.player.death",
   },
+  audio: {
+    attack: "audio.attack",
+    landing: "audio.landing",
+    enemyHit: "audio.enemy-hit",
+    walk: "audio.walk",
+    enemyAlert: "audio.enemy-alert",
+    growing: "audio.growing",
+    hazardPulse: "audio.hazard-pulse",
+    sleepingEnemy: "audio.sleeping-enemy",
+    water: "audio.water",
+  },
 } as const;
 
 export const ANIMATION_KEYS = {
@@ -145,5 +156,44 @@ export const PLAYER_SPRITESHEETS = {
     frameCount: 9,
     frameRate: 12,
     repeat: 0,
+  },
+} as const;
+
+export const AUDIO_ASSETS = {
+  attack: {
+    key: ASSET_KEYS.audio.attack,
+    path: "assets/audio/attack.wav",
+  },
+  landing: {
+    key: ASSET_KEYS.audio.landing,
+    path: "assets/audio/down.wav",
+  },
+  enemyHit: {
+    key: ASSET_KEYS.audio.enemyHit,
+    path: "assets/audio/enemy-hit.wav",
+  },
+  walk: {
+    key: ASSET_KEYS.audio.walk,
+    path: "assets/audio/walk.wav",
+  },
+  enemyAlert: {
+    key: ASSET_KEYS.audio.enemyAlert,
+    path: "assets/audio/1grrrrrun.mp3",
+  },
+  growing: {
+    key: ASSET_KEYS.audio.growing,
+    path: "assets/audio/1iiiiiiiiing.mp3",
+  },
+  hazardPulse: {
+    key: ASSET_KEYS.audio.hazardPulse,
+    path: "assets/audio/1jiiiing.mp3",
+  },
+  sleepingEnemy: {
+    key: ASSET_KEYS.audio.sleepingEnemy,
+    path: "assets/audio/1sleep.mp3",
+  },
+  water: {
+    key: ASSET_KEYS.audio.water,
+    path: "assets/audio/1water.mp3",
   },
 } as const;

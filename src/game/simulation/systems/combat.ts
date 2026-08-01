@@ -3,7 +3,7 @@ import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import { ENEMY_CONFIG, getEnemyBodySize, PLAYER_CONFIG } from "../rules/config";
 import { getPlayerAttackBounds } from "../rules/combat";
 import type { EnemyState, Facing, GameState } from "../state";
-import { emitSound, PLAYER_SOUND_SOURCE_ID } from "./sound";
+import { emitSound } from "./sound";
 import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
 
 export function killPlayer(state: GameState): boolean {
@@ -17,7 +17,6 @@ export function killPlayer(state: GameState): boolean {
   player.velocity.x = 0;
   player.velocity.y = 0;
   state.status = "failed";
-  emitSound(state, "death", player.position, 720, 1, PLAYER_SOUND_SOURCE_ID);
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
   return true;
 }
@@ -49,7 +48,6 @@ export function damagePlayer(
     return true;
   }
   player.action = "hurt";
-  emitSound(state, "hurt", player.position, 500, 0.86, PLAYER_SOUND_SOURCE_ID);
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
   return true;
 }
@@ -59,7 +57,7 @@ function defeatEnemy(state: GameState, enemy: EnemyState): void {
   enemy.alive = false;
   enemy.action = "dead";
   enemy.actionTime = 0;
-  emitSound(state, "death", enemy.position, 720, 1, enemy.id);
+  emitSound(state, "enemy-death", enemy.position, 720, 1, enemy.id);
   enemy.echoTime = ENEMY_CONFIG.deathRevealSeconds;
   enemy.echoDuration = ENEMY_CONFIG.deathRevealSeconds;
   if (
@@ -94,6 +92,8 @@ export function damageEnemy(
 
   if (enemy.health <= 0) {
     defeatEnemy(state, enemy);
+  } else {
+    emitSound(state, "enemy-hit", enemy.position, 520, 0.82, enemy.id);
   }
   return true;
 }
@@ -128,14 +128,6 @@ export function updatePlayerCombat(
 
     player.attackHitIds.push(enemy.id);
     damageEnemy(state, enemy, player.attackFacing);
-    emitSound(
-      state,
-      "attack-hit",
-      enemy.position,
-      520,
-      0.9,
-      PLAYER_SOUND_SOURCE_ID,
-    );
   });
 
   for (const block of getActiveTerrain(state, world)) {

@@ -36,6 +36,7 @@ import {
   createEchoMark,
   createExposedEchoMarks,
   emitSound,
+  getListenerDistanceScale,
   PLAYER_SOUND_SOURCE_ID,
   updateSoundPropagation,
 } from "../src/game/simulation/systems/sound";
@@ -514,7 +515,7 @@ describe("sound propagation", () => {
       enemies: [],
     };
     const state = createInitialGameState(corridor);
-    emitSound(state, "debug", { x: 100, y: 100 }, 10_000, 1);
+    emitSound(state, "player-step", { x: 100, y: 100 }, 10_000, 1);
     const trackedRay = state.soundWaves[0].rays[0];
     for (const ray of state.soundWaves[0].rays.slice(1)) {
       ray.active = false;
@@ -542,7 +543,7 @@ describe("sound propagation", () => {
       ],
     };
     const state = createInitialGameState(enemyWorld);
-    emitSound(state, "debug", { x: 200, y: 600 }, 400, 1);
+    emitSound(state, "player-step", { x: 200, y: 600 }, 400, 1);
 
     for (let index = 0; index < 20; index += 1) {
       updateSoundPropagation(state, enemyWorld, FIXED_STEP_SECONDS);
@@ -584,7 +585,7 @@ describe("sound propagation", () => {
     corpse.echoTime = 0;
     emitSound(
       state,
-      "terrain-step",
+      "player-step",
       { x: 200, y: 680 },
       400,
       1,
@@ -624,7 +625,7 @@ describe("sound propagation", () => {
     enemy.grounded = true;
     emitSound(
       state,
-      "terrain-step",
+      "player-step",
       { x: 200, y: 652 },
       480,
       1,
@@ -650,7 +651,7 @@ describe("sound propagation", () => {
       enemies: [],
     };
     const state = createInitialGameState(openWorld);
-    emitSound(state, "debug", openWorld.playerSpawn, 1600, 1);
+    emitSound(state, "player-step", openWorld.playerSpawn, 1600, 1);
     const initialRayCount = state.soundWaves[0].rays.length;
 
     for (let index = 0; index < 90; index += 1) {
@@ -786,7 +787,14 @@ describe("combat loop", () => {
     ).toBeLessThan(ENEMY_CONFIG.alertWaveDistance);
     expect(
       Math.max(...warningWave!.rays.map((ray) => ray.intensity)),
-    ).toBe(ENEMY_CONFIG.alertWaveIntensity);
+    ).toBeCloseTo(
+      ENEMY_CONFIG.alertWaveIntensity *
+        getListenerDistanceScale(
+          state.player.position,
+          state.enemies[0].position,
+          ENEMY_CONFIG.alertWaveDistance,
+        ),
+    );
 
     advanceEnemyAlert(state);
     expect(state.enemies[0].action).toBe("alert");
@@ -908,8 +916,9 @@ describe("combat loop", () => {
 
     expect(state.enemies[0].alive).toBe(false);
     expect(state.status).toBe("completed");
-    expect(state.soundWaves.some((wave) => wave.kind === "attack-hit")).toBe(true);
-    expect(state.soundWaves.some((wave) => wave.kind === "death")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "player-attack")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "enemy-death")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "enemy-hit")).toBe(false);
   });
 
   it("keeps terrain attack impacts without emitting an attack wave", () => {
@@ -923,7 +932,8 @@ describe("combat loop", () => {
 
     expect(state.player.attackHitIds).toContain("terrain:floor");
     expect(state.events.some((event) => event.type === "impact")).toBe(true);
-    expect(state.soundWaves.some((wave) => wave.kind === "attack-hit")).toBe(false);
+    expect(state.soundWaves.some((wave) => wave.kind === "enemy-hit")).toBe(false);
+    expect(state.soundWaves.some((wave) => wave.kind === "enemy-death")).toBe(false);
   });
 
   it("keeps every enemy kind unaffected by hazards", () => {
@@ -1049,7 +1059,7 @@ describe("tutorial stage", () => {
 
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
     expect(state.player.action).toBe("hurt");
-    expect(state.soundWaves.some((wave) => wave.kind === "hazard")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "hazard-pulse")).toBe(true);
     expect(state.hazards[0].echoTime).toBeGreaterThan(0);
     expect(state.hazards[0].reactionTime).toBeGreaterThan(0);
     expect(state.hazards[0].reactionDuration).toBeGreaterThan(0);
@@ -1061,9 +1071,10 @@ describe("tutorial stage", () => {
 
   it("does not play damage feedback for a periodic hazard wave alone", () => {
     const state = createInitialGameState(TUTORIAL_STAGE);
+    state.player.position = { x: 2800, y: 1140 };
     stepSimulation(state, EMPTY_INPUT, 0.11, TUTORIAL_STAGE);
 
-    expect(state.soundWaves.some((wave) => wave.kind === "hazard")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "hazard-pulse")).toBe(true);
     expect(state.hazards[0].echoTime).toBeGreaterThan(0);
     expect(state.hazards[0].reactionTime).toBe(0);
   });

@@ -57,7 +57,7 @@ export const TUTORIAL_STAGE: StageDefinition = {
   soundEmitters: [
     {
       id: "movement-water-drop",
-      kind: "ambient",
+      kind: "water",
       position: { x: 840, y: 1240 },
       intervalSeconds: 2.4,
       initialDelaySeconds: 0.35,
@@ -66,7 +66,7 @@ export const TUTORIAL_STAGE: StageDefinition = {
     },
     {
       id: "jump-water-drop",
-      kind: "ambient",
+      kind: "water",
       position: { x: 1580, y: 1020 },
       intervalSeconds: 2.8,
       initialDelaySeconds: 1.2,
@@ -75,7 +75,7 @@ export const TUTORIAL_STAGE: StageDefinition = {
     },
     {
       id: "resonance-crusher-pulse",
-      kind: "hazard",
+      kind: "hazard-pulse",
       position: { x: 2960, y: 1140 },
       intervalSeconds: 0.82,
       initialDelaySeconds: 0.1,

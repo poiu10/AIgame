@@ -60,10 +60,9 @@ export const STAGE_ONE_CONFIG = {
   flyerSpeed: 190,
   wakerAcceleration: 700,
   wakerMaximumSpeed: 560,
-  wakerPulseIntervalSeconds: 1.15,
-  wakerPulseDistance: 440,
   growingHazardPulseIntervalSeconds: 1.35,
   growingHazardPulseDistance: 420,
+  growingSoundMaximumDistance: 720,
 } as const;
 
 export function getEnemyBodySize(kind?: string): {

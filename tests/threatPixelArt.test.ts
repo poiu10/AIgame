@@ -250,10 +250,10 @@ describe("threat pixel art", () => {
     expect(SOUND_WAVE_COLORS["enemy-step"]).toBe(
       PLAYER_FOOTSTEP_WAVE_COLOR,
     );
-    expect(SOUND_WAVE_COLORS["terrain-step"]).toBe(
+    expect(SOUND_WAVE_COLORS["player-step"]).toBe(
       PLAYER_FOOTSTEP_WAVE_COLOR,
     );
     expect(SOUND_WAVE_COLORS["enemy-alert"]).toBe(THREAT_COLOR);
-    expect(SOUND_WAVE_COLORS.hazard).toBe(THREAT_COLOR);
+    expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);
   });
 });

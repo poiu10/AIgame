@@ -17,7 +17,7 @@ import type { GameState } from "../../game/simulation/state";
 import { drainGameEvents, stepSimulation } from "../../game/simulation/systems/simulation";
 import { GAME_HUD_EVENT, type HudState } from "../../ui/hud/mountHud";
 import { GameViewAdapter } from "../view/GameViewAdapter";
-import { SoundSynth } from "../view/SoundSynth";
+import { SampleSoundPlayer } from "../view/SampleSoundPlayer";
 
 type ActionKey = "W" | "A" | "D" | "SPACE" | "SHIFT" | "J" | "R";
 
@@ -41,7 +41,7 @@ export class GameScene extends Phaser.Scene {
   private checkpoint!: CheckpointSave;
   private readonly checkpointStorage = new BrowserCheckpointStorage();
   private view!: GameViewAdapter;
-  private soundSynth!: SoundSynth;
+  private soundPlayer!: SampleSoundPlayer;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private keys!: Record<ActionKey, Phaser.Input.Keyboard.Key>;
   private pending: PendingButtons = { ...EMPTY_PENDING };
@@ -53,7 +53,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.soundSynth = new SoundSynth();
+    this.soundPlayer = new SampleSoundPlayer(this);
     this.loadCheckpoint();
     this.configureStageView();
 
@@ -71,12 +71,12 @@ export class GameScene extends Phaser.Scene {
       R: Phaser.Input.Keyboard.KeyCodes.R,
     }) as Record<ActionKey, Phaser.Input.Keyboard.Key>;
 
-    keyboard.once("keydown", () => this.soundSynth.unlock());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.view.destroy();
-      this.soundSynth.dispose();
+      this.soundPlayer.dispose();
     });
     this.view.sync(this.gameState);
+    this.soundPlayer.syncGrowingHazard(this.gameState, this.cameras.main.width);
     this.publishHud();
   }
 
@@ -136,6 +136,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.view.sync(this.gameState);
+    this.soundPlayer.syncGrowingHazard(this.gameState, this.cameras.main.width);
     this.cameras.main.setFollowOffset(-this.gameState.player.facing * 144, 0);
     this.consumeEvents();
     this.publishHud();
@@ -208,7 +209,11 @@ export class GameScene extends Phaser.Scene {
   private consumeEvents(): void {
     for (const event of drainGameEvents(this.gameState)) {
       if (event.type === "sound") {
-        this.soundSynth.play(event, this.cameras.main.worldView.centerX, this.cameras.main.width);
+        this.soundPlayer.play(
+          event,
+          this.gameState.player.position.x,
+          this.cameras.main.width,
+        );
       } else {
         this.cameras.main.shake(70, new Phaser.Math.Vector2(0.0015 * event.strength, 0));
       }

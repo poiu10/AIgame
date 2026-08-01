@@ -50,7 +50,7 @@ function updateEnemyPulse(
 ): void {
   enemy.timeUntilPulse -= deltaSeconds;
   if (enemy.timeUntilPulse > 0) return;
-  emitSound(state, "enemy-step", enemy.position, distance, 0.72, enemy.id);
+  emitSound(state, "sleep", enemy.position, distance, 0.72, enemy.id);
   enemy.timeUntilPulse += interval;
 }
 
@@ -95,13 +95,6 @@ function updateWaker(
     return;
   }
 
-  updateEnemyPulse(
-    state,
-    enemy,
-    deltaSeconds,
-    STAGE_ONE_CONFIG.wakerPulseIntervalSeconds,
-    STAGE_ONE_CONFIG.wakerPulseDistance,
-  );
   enemy.action = "pursue";
   const deltaX = state.player.position.x - enemy.position.x;
   const deltaY = state.player.position.y - enemy.position.y;

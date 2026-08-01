@@ -52,7 +52,7 @@ export const HAZARD_KINDS = {
   growing: "button-growing",
 } as const;
 
-export type WorldSoundKind = "ambient" | "hazard";
+export type WorldSoundKind = "water" | "hazard-pulse";
 
 export interface WorldSoundEmitter {
   id: string;
