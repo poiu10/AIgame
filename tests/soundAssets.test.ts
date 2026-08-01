@@ -53,7 +53,7 @@ describe("sample-backed sound", () => {
       terrain: [],
       enemies: [],
     });
-    const source = { x: 200, y: 0 };
+    const source = { x: 400, y: 0 };
     const maximumDistance = 400;
     const distanceScale = getListenerDistanceScale(
       state.player.position,
@@ -78,7 +78,7 @@ describe("sample-backed sound", () => {
       enemies: [],
     });
 
-    emitSound(state, "water", { x: 401, y: 0 }, 400, 1);
+    emitSound(state, "water", { x: 801, y: 0 }, 400, 1);
 
     expect(state.soundWaves).toHaveLength(1);
     expect(state.soundWaves[0].rays[0]).toMatchObject({

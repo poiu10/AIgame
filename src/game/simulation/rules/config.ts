@@ -89,6 +89,7 @@ export const SOUND_CONFIG = {
   speed: 1300,
   initialRayCount: 24,
   maximumRaySpacing: 40,
+  listenerDistanceMultiplier: 2,
   reflectionDistanceRetention: 0.64,
   reflectionIntensityRetention: 0.7,
   minimumRemainingDistance: 60,
