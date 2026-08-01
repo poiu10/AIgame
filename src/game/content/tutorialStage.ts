@@ -65,7 +65,7 @@ export const TUTORIAL_STAGE: StageDefinition = {
       intensity: 0.52,
     },
     {
-      id: "jump-chain",
+      id: "jump-water-drop",
       kind: "ambient",
       position: { x: 1580, y: 1020 },
       intervalSeconds: 2.8,
