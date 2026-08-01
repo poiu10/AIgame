@@ -15,6 +15,9 @@ export interface ThreatPixelCell {
   y: number;
 }
 
+export const SHORT_FLOOR_HAZARD_ID = "hazard-7";
+export const LONG_FLOOR_HAZARD_ID = "hazard-1";
+
 interface CellPoint {
   x: number;
   y: number;
@@ -1103,6 +1106,146 @@ export function createHazardThreatCells(
   const cells = new Map<string, ThreatPixelCell>();
   addFilledPolygon(cells, monolith);
   return [...cells.values()];
+}
+
+function addThreatCell(
+  cells: Map<string, ThreatPixelCell>,
+  x: number,
+  y: number,
+  widthCells: number,
+  heightCells: number,
+): void {
+  if (x < 0 || x >= widthCells || y < 0 || y >= heightCells) return;
+  cells.set(cellKey(x, y), { x, y });
+}
+
+/** 짧은 바닥 장해물 전용 도안. 긴 장해물 도안의 축소본으로 사용하지 않는다. */
+export function createShortFloorHazardThreatCells(): ThreatPixelCell[] {
+  const widthCells = 40;
+  const heightCells = 13;
+  const cells = new Map<string, ThreatPixelCell>();
+
+  for (let y = 7; y < heightCells; y += 1) {
+    for (let x = 0; x < widthCells; x += 1) {
+      addThreatCell(cells, x, y, widthCells, heightCells);
+    }
+  }
+
+  const spikes = [
+    { center: 3, top: 2, left: 0, right: 7 },
+    { center: 13, top: 0, left: 8, right: 18 },
+    { center: 24, top: 2, left: 19, right: 29 },
+    { center: 35, top: 0, left: 30, right: 39 },
+  ] as const;
+  for (const spike of spikes) {
+    for (let y = spike.top; y <= 7; y += 1) {
+      const progress = (y - spike.top) / Math.max(1, 7 - spike.top);
+      const left = Math.round(
+        spike.center + (spike.left - spike.center) * progress,
+      );
+      const right = Math.round(
+        spike.center + (spike.right - spike.center) * progress,
+      );
+      for (let x = left; x <= right; x += 1) {
+        addThreatCell(cells, x, y, widthCells, heightCells);
+      }
+    }
+  }
+
+  for (const notchStart of [1, 11, 21, 31]) {
+    const notches = [
+      { x: notchStart, y: 9 },
+      { x: notchStart + 1, y: 9 },
+      { x: notchStart + 1, y: 10 },
+      { x: notchStart + 2, y: 10 },
+      { x: notchStart + 2, y: 11 },
+      { x: notchStart + 3, y: 11 },
+    ];
+    for (const notch of notches) {
+      cells.delete(cellKey(notch.x, notch.y));
+    }
+  }
+
+  return [...cells.values()];
+}
+
+/** 긴 바닥 장해물 전용 도안. 짧은 장해물을 가로로 늘이지 않고 별도로 구성한다. */
+export function createLongFloorHazardThreatCells(): ThreatPixelCell[] {
+  const widthCells = 293;
+  const heightCells = 13;
+  const cells = new Map<string, ThreatPixelCell>();
+
+  for (let y = 8; y < heightCells; y += 1) {
+    for (let x = 0; x < widthCells; x += 1) {
+      addThreatCell(cells, x, y, widthCells, heightCells);
+    }
+  }
+
+  for (let moduleStart = 0, moduleIndex = 0;
+    moduleStart < widthCells;
+    moduleStart += 18, moduleIndex += 1) {
+    const reversed = moduleIndex % 2 === 1;
+    const bladeCenter = moduleStart + (reversed ? 6 : 4);
+    const bladeTop = moduleIndex % 3 === 0 ? 0 : 1;
+    for (let y = bladeTop; y <= 8; y += 1) {
+      const progress = (y - bladeTop) / Math.max(1, 8 - bladeTop);
+      const halfWidth = Math.round(progress * 5);
+      for (let x = bladeCenter - halfWidth; x <= bladeCenter + halfWidth; x += 1) {
+        addThreatCell(cells, x, y, widthCells, heightCells);
+      }
+    }
+
+    const hookCenter = moduleStart + (reversed ? 13 : 14);
+    for (let y = 3; y <= 8; y += 1) {
+      const progress = (y - 3) / 5;
+      const leftReach = Math.round(progress * (reversed ? 5 : 3));
+      const rightReach = Math.round(progress * (reversed ? 3 : 5));
+      for (let x = hookCenter - leftReach; x <= hookCenter + rightReach; x += 1) {
+        addThreatCell(cells, x, y, widthCells, heightCells);
+      }
+    }
+
+    const hookDirection = reversed ? -1 : 1;
+    for (let offset = 1; offset <= 4; offset += 1) {
+      addThreatCell(
+        cells,
+        hookCenter + hookDirection * offset,
+        Math.max(1, 4 - Math.ceil(offset / 2)),
+        widthCells,
+        heightCells,
+      );
+    }
+
+    const mouthStart = moduleStart + 8;
+    for (const notch of [
+      { x: mouthStart, y: 9 },
+      { x: mouthStart + 1, y: 9 },
+      { x: mouthStart + 2, y: 9 },
+      { x: mouthStart + 1, y: 10 },
+      { x: mouthStart + 2, y: 10 },
+    ]) {
+      cells.delete(cellKey(notch.x, notch.y));
+    }
+  }
+
+  return [...cells.values()];
+}
+
+const SHORT_FLOOR_HAZARD_THREAT_CELLS =
+  createShortFloorHazardThreatCells();
+const LONG_FLOOR_HAZARD_THREAT_CELLS =
+  createLongFloorHazardThreatCells();
+
+export function createFloorHazardThreatCells(
+  hazardId: string,
+): ThreatPixelCell[] {
+  if (hazardId === SHORT_FLOOR_HAZARD_ID) {
+    return SHORT_FLOOR_HAZARD_THREAT_CELLS;
+  }
+  if (hazardId === LONG_FLOOR_HAZARD_ID) {
+    return LONG_FLOOR_HAZARD_THREAT_CELLS;
+  }
+  return [];
 }
 
 export function resolveHazardReactionFrame(

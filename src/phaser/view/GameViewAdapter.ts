@@ -24,6 +24,7 @@ import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 import {
   createEnemyThreatCells,
+  createFloorHazardThreatCells,
   createHazardDamageLightningCells,
   createHazardThreatCells,
   resolveEnemyThreatFrame,
@@ -280,13 +281,41 @@ export class GameViewAdapter {
     for (const mark of state.echoMarks) {
       const life = mark.time / mark.duration;
       const alpha = Math.max(0, life * mark.intensity * 0.95);
+      if (mark.surfaceKind === "hazard") {
+        const hazard = state.hazards.find(
+          (candidate) => candidate.id === mark.surfaceId,
+        );
+        if (!hazard) continue;
+
+        const minimumX = Math.min(mark.start.x, mark.end.x);
+        const maximumX = Math.max(mark.start.x, mark.end.x);
+        const minimumY = Math.min(mark.start.y, mark.end.y);
+        const maximumY = Math.max(mark.start.y, mark.end.y);
+        const horizontal = maximumX - minimumX >= maximumY - minimumY;
+        this.echoGraphics.fillStyle(ECHO_MARK_COLORS.hazard, alpha);
+        for (const cell of createFloorHazardThreatCells(hazard.id)) {
+          const worldX = hazard.bounds.x + cell.x * THREAT_PIXEL_SIZE;
+          const worldY = hazard.bounds.y + cell.y * THREAT_PIXEL_SIZE;
+          const insideRevealedSurface = horizontal
+            ? worldX + THREAT_PIXEL_SIZE >= minimumX && worldX <= maximumX
+            : worldY + THREAT_PIXEL_SIZE >= minimumY && worldY <= maximumY;
+          if (!insideRevealedSurface) continue;
+          this.echoGraphics.fillRect(
+            worldX,
+            worldY,
+            THREAT_PIXEL_SIZE,
+            THREAT_PIXEL_SIZE,
+          );
+        }
+        continue;
+      }
       this.drawPixelLine(
         this.echoGraphics,
         mark.start.x,
         mark.start.y,
         mark.end.x,
         mark.end.y,
-        ECHO_MARK_COLORS[mark.surfaceKind],
+        ECHO_MARK_COLORS.terrain,
         alpha,
       );
     }

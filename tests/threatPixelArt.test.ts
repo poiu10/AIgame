@@ -5,10 +5,15 @@ import { ENEMY_ATTACK_HITBOX } from "../src/game/simulation/rules/combat";
 import type { EnemyState } from "../src/game/simulation/state";
 import {
   createEnemyThreatCells,
+  createFloorHazardThreatCells,
   createHazardDamageLightningCells,
   createHazardThreatCells,
+  createLongFloorHazardThreatCells,
+  createShortFloorHazardThreatCells,
+  LONG_FLOOR_HAZARD_ID,
   resolveEnemyThreatFrame,
   resolveHazardReactionFrame,
+  SHORT_FLOOR_HAZARD_ID,
   THREAT_PIXEL_SIZE,
 } from "../src/phaser/view/threatPixelArt";
 import {
@@ -311,6 +316,36 @@ describe("threat pixel art", () => {
     expect(cells).not.toContainEqual({ x: 39, y: 0 });
     expect(cells).toContainEqual({ x: 19, y: 50 });
     expect(cells.length).toBeGreaterThan(2500);
+  });
+
+  it("authors separate repeating threat patterns for both floor hazards", () => {
+    const shortCells = createShortFloorHazardThreatCells();
+    const longCells = createLongFloorHazardThreatCells();
+    expectUniqueIntegerCells(shortCells);
+    expectUniqueIntegerCells(longCells);
+
+    expect(shortCells.every((cell) => cell.x >= 0 && cell.x < 40)).toBe(true);
+    expect(shortCells.every((cell) => cell.y >= 0 && cell.y < 13)).toBe(true);
+    expect(longCells.every((cell) => cell.x >= 0 && cell.x < 293)).toBe(true);
+    expect(longCells.every((cell) => cell.y >= 0 && cell.y < 13)).toBe(true);
+    expect(new Set(shortCells.map((cell) => cell.y)).size).toBe(13);
+    expect(new Set(longCells.map((cell) => cell.y)).size).toBe(13);
+    expect(longCells.length).toBeGreaterThan(shortCells.length * 5);
+
+    const shortSignature = shortCells
+      .map((cell) => `${cell.x},${cell.y}`)
+      .sort();
+    const longLeadingSignature = longCells
+      .filter((cell) => cell.x < 40)
+      .map((cell) => `${cell.x},${cell.y}`)
+      .sort();
+    expect(longLeadingSignature).not.toEqual(shortSignature);
+    expect(createFloorHazardThreatCells(SHORT_FLOOR_HAZARD_ID)).toEqual(
+      shortCells,
+    );
+    expect(createFloorHazardThreatCells(LONG_FLOOR_HAZARD_ID)).toEqual(
+      longCells,
+    );
   });
 
   it("bursts 3px damage lightning from only the contacted side", () => {
