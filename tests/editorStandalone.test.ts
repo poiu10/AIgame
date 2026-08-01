@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import editorHtml from "../editor.html?raw";
-import { STAGE_ONE } from "../src/game/content/stageOne";
 import { GAME_VIEWPORT } from "../src/phaser/viewport";
 
 describe("standalone map editor", () => {
@@ -12,12 +11,24 @@ describe("standalone map editor", () => {
     expect(editorHtml).toContain('id="initial-stage" type="application/json"');
   });
 
-  it("embeds the same Stage 1 starter data used by the game", () => {
+  it("starts with an empty 1440 by 550 map", () => {
     const match = editorHtml.match(
       /<script id="initial-stage" type="application\/json">([\s\S]*?)<\/script>/,
     );
     expect(match).not.toBeNull();
-    expect(JSON.parse(match![1])).toEqual(STAGE_ONE);
+    const stage = JSON.parse(match![1]);
+    expect(stage).toMatchObject({
+      id: "new-stage",
+      width: 1_440,
+      height: 550,
+      playerSpawn: { x: 0, y: 0 },
+    });
+    expect(stage.terrain).toEqual([]);
+    expect(stage.hazards).toEqual([]);
+    expect(stage.enemies).toEqual([]);
+    expect(stage.spawns).toEqual([]);
+    expect(stage.exits).toEqual([]);
+    expect(stage.soundEmitters).toEqual([]);
   });
 
   it("contains a local-file clipboard fallback", () => {

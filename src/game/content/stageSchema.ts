@@ -46,8 +46,6 @@ export function validateStage(stage: StageDefinition): StageValidationResult {
       errors.push(`출구 ${exit.id}의 대상 스테이지와 도착점이 필요합니다.`);
     }
   }
-  if (stage.spawns.length === 0) errors.push("출구에서 들어올 도착점이 하나 이상 필요합니다.");
-
   return { valid: errors.length === 0, errors };
 }
 

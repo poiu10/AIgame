@@ -7,6 +7,23 @@ import {
 } from "../src/game/content/stageSchema";
 
 describe("external map editor stage schema", () => {
+  it("accepts an empty new map before arrival points are placed", () => {
+    expect(validateStage({
+      schemaVersion: 1,
+      id: "new-stage",
+      name: "새 스테이지",
+      width: 1_440,
+      height: 550,
+      playerSpawn: { x: 0, y: 0 },
+      terrain: [],
+      hazards: [],
+      enemies: [],
+      soundEmitters: [],
+      spawns: [],
+      exits: [],
+    })).toEqual({ valid: true, errors: [] });
+  });
+
   it("accepts the Stage 1 starter map and round-trips JSON", () => {
     expect(validateStage(STAGE_ONE)).toEqual({ valid: true, errors: [] });
     expect(parseStageJson(JSON.stringify(STAGE_ONE))).toEqual(STAGE_ONE);
