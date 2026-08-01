@@ -22,6 +22,7 @@ export const ASSET_KEYS = {
     enemyAlert: "audio.enemy-alert",
     enemyCall: "audio.enemy-call",
     growing: "audio.growing",
+    crusherPulse: "audio.crusher-pulse",
     hazardPulse: "audio.hazard-pulse",
     sleepingEnemy: "audio.sleeping-enemy",
     water: "audio.water",
@@ -188,6 +189,10 @@ export const AUDIO_ASSETS = {
   growing: {
     key: ASSET_KEYS.audio.growing,
     path: "assets/audio/1iiiiiiiiing.mp3",
+  },
+  crusherPulse: {
+    key: ASSET_KEYS.audio.crusherPulse,
+    path: "assets/audio/jiiiingggg.mp3",
   },
   hazardPulse: {
     key: ASSET_KEYS.audio.hazardPulse,

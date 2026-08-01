@@ -75,7 +75,7 @@ export const TUTORIAL_STAGE: StageDefinition = {
     },
     {
       id: "resonance-crusher-pulse",
-      kind: "hazard-pulse",
+      kind: "crusher-pulse",
       position: { x: 2960, y: 1140 },
       intervalSeconds: 0.82,
       initialDelaySeconds: 0.1,

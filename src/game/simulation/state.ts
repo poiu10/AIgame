@@ -33,6 +33,7 @@ export type SoundKind =
   | "enemy-death"
   | "sleep"
   | "water"
+  | "crusher-pulse"
   | "hazard-pulse";
 
 export interface Vector2State {

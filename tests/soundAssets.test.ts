@@ -3,6 +3,7 @@ import { ASSET_KEYS, AUDIO_ASSETS } from "../src/game/assets/manifest";
 import {
   getPlaybackVolume,
   GROWING_LOOP_VOLUME,
+  MELEE_ATTACK_VOLUME,
   SOUND_PLAYBACK_PROFILES,
 } from "../src/game/assets/soundProfiles";
 import { createInitialGameState } from "../src/game/simulation/state";
@@ -41,7 +42,32 @@ describe("sample-backed sound", () => {
     expect(AUDIO_ASSETS.landing.path).toBe("assets/audio/down2.wav");
   });
 
+  it("makes only the resonance crusher pulse louder and slightly higher", () => {
+    expect(AUDIO_ASSETS.crusherPulse.path).toBe(
+      "assets/audio/jiiiingggg.mp3",
+    );
+    expect(SOUND_PLAYBACK_PROFILES["crusher-pulse"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.crusherPulse,
+      volume: 0.315,
+      rate: 1.05,
+    });
+    expect(SOUND_PLAYBACK_PROFILES["hazard-pulse"]).toMatchObject({
+      volume: 0.21,
+      rate: 0.95,
+    });
+  });
+
   it("keeps contextual source volumes restrained", () => {
+    expect(MELEE_ATTACK_VOLUME).toBe(0.14);
+    expect(SOUND_PLAYBACK_PROFILES["player-attack"].volume).toBe(
+      MELEE_ATTACK_VOLUME,
+    );
+    expect(SOUND_PLAYBACK_PROFILES["enemy-attack"].volume).toBe(
+      MELEE_ATTACK_VOLUME,
+    );
+    expect(getPlaybackVolume("player-attack", 1)).toBe(MELEE_ATTACK_VOLUME);
+    expect(getPlaybackVolume("enemy-attack", 1)).toBe(MELEE_ATTACK_VOLUME);
+    expect(SOUND_PLAYBACK_PROFILES["enemy-attack"].rate).toBe(0.9);
     expect(Math.max(
       ...Object.values(SOUND_PLAYBACK_PROFILES).map((profile) => profile.volume),
     )).toBeLessThanOrEqual(0.38);

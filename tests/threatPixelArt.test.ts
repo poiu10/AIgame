@@ -386,6 +386,7 @@ describe("threat pixel art", () => {
     );
     expect(SOUND_WAVE_COLORS["enemy-alert"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["enemy-call"]).toBe(THREAT_COLOR);
+    expect(SOUND_WAVE_COLORS["crusher-pulse"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);
   });
 });

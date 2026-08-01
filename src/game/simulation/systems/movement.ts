@@ -8,7 +8,7 @@ import type {
   Vector2State,
 } from "../state";
 import { moveBodyAgainstTerrain } from "../collision/motion";
-import { PLAYER_CONFIG } from "../rules/config";
+import { MELEE_ATTACK_WAVE_CONFIG, PLAYER_CONFIG } from "../rules/config";
 
 export interface SoundRequest {
   kind: SoundKind;
@@ -168,8 +168,8 @@ export function updatePlayerMovement(
     sounds.push({
       kind: "player-attack",
       position: { ...player.position },
-      distance: PLAYER_CONFIG.attackWaveDistance,
-      intensity: PLAYER_CONFIG.attackWaveIntensity,
+      distance: MELEE_ATTACK_WAVE_CONFIG.distance,
+      intensity: MELEE_ATTACK_WAVE_CONFIG.intensity,
     });
   }
 

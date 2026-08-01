@@ -16,5 +16,6 @@ export const SOUND_WAVE_COLORS: Readonly<Record<SoundKind, number>> = {
   "enemy-death": 0xffffff,
   sleep: THREAT_COLOR,
   water: 0x79dfee,
+  "crusher-pulse": THREAT_COLOR,
   "hazard-pulse": THREAT_COLOR,
 };

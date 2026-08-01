@@ -13,6 +13,7 @@ import { raycastAabb } from "../src/game/simulation/collision/aabb";
 import {
   ENEMY_CONFIG,
   FIXED_STEP_SECONDS,
+  MELEE_ATTACK_WAVE_CONFIG,
   PLAYER_CONFIG,
 } from "../src/game/simulation/rules/config";
 import {
@@ -182,10 +183,9 @@ describe("player controller", () => {
 
     expect(attackSound).toMatchObject({
       position: state.player.position,
-      distance: 160,
-      intensity: PLAYER_CONFIG.attackWaveIntensity,
+      distance: MELEE_ATTACK_WAVE_CONFIG.distance,
+      intensity: MELEE_ATTACK_WAVE_CONFIG.intensity,
     });
-    expect(attackSound!.distance).toBe(PLAYER_CONFIG.attackWaveDistance);
   });
 
   it("lands on platforms and jumps from the grounded state", () => {
@@ -821,6 +821,19 @@ describe("combat loop", () => {
     expect(state.enemies[0].action).toBe("attack");
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
     expect(state.player.action).toBe("hurt");
+    const attackWave = state.soundWaves.find(
+      (wave) => wave.kind === "enemy-attack",
+    );
+    expect(attackWave).toBeDefined();
+    expect(
+      Math.max(...attackWave!.rays.map((ray) => ray.remainingDistance)),
+    ).toBeLessThanOrEqual(MELEE_ATTACK_WAVE_CONFIG.distance);
+    expect(
+      Math.max(...attackWave!.rays.map((ray) => ray.remainingDistance)),
+    ).toBeGreaterThan(MELEE_ATTACK_WAVE_CONFIG.distance - 20);
+    expect(
+      Math.max(...attackWave!.rays.map((ray) => ray.intensity)),
+    ).toBeCloseTo(MELEE_ATTACK_WAVE_CONFIG.intensity);
   });
 
   it("only starts an enemy attack while the stationary player is inside its hitbox", () => {
@@ -1111,7 +1124,7 @@ describe("tutorial stage", () => {
 
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
     expect(state.player.action).toBe("hurt");
-    expect(state.soundWaves.some((wave) => wave.kind === "hazard-pulse")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "crusher-pulse")).toBe(true);
     expect(state.hazards[0].echoTime).toBeGreaterThan(0);
     expect(state.hazards[0].reactionTime).toBeGreaterThan(0);
     expect(state.hazards[0].reactionDuration).toBeGreaterThan(0);
@@ -1126,7 +1139,7 @@ describe("tutorial stage", () => {
     state.player.position = { x: 2800, y: 1140 };
     stepSimulation(state, EMPTY_INPUT, 0.11, TUTORIAL_STAGE);
 
-    expect(state.soundWaves.some((wave) => wave.kind === "hazard-pulse")).toBe(true);
+    expect(state.soundWaves.some((wave) => wave.kind === "crusher-pulse")).toBe(true);
     expect(state.hazards[0].echoTime).toBeGreaterThan(0);
     expect(state.hazards[0].reactionTime).toBe(0);
   });

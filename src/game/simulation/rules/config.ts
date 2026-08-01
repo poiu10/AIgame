@@ -1,5 +1,10 @@
 export const FIXED_STEP_SECONDS = 1 / 120;
 
+export const MELEE_ATTACK_WAVE_CONFIG = {
+  distance: 160,
+  intensity: 0.76,
+} as const;
+
 export const PLAYER_CONFIG = {
   width: 32,
   height: 84,
@@ -20,8 +25,6 @@ export const PLAYER_CONFIG = {
   attackSeconds: 0.31,
   attackActiveStart: 0.08,
   attackActiveEnd: 0.18,
-  attackWaveDistance: 160,
-  attackWaveIntensity: 0.76,
   hurtSeconds: 0.3,
   checkpointRestoreSeconds: 0.9,
   damageInvulnerabilitySeconds: 0.8,

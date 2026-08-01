@@ -4,6 +4,7 @@ import { moveBodyAgainstTerrain } from "../collision/motion";
 import {
   ENEMY_CONFIG,
   getEnemyBodySize,
+  MELEE_ATTACK_WAVE_CONFIG,
   STAGE_ONE_CONFIG,
 } from "../rules/config";
 import { getEnemyAttackBounds } from "../rules/combat";
@@ -82,7 +83,14 @@ function updateEnemyAttackSequence(
     if (enemy.actionTime >= ENEMY_CONFIG.alertSeconds) {
       enemy.action = "attack";
       enemy.actionTime = 0;
-      emitSound(state, "enemy-attack", enemy.position, 680, 1, enemy.id);
+      emitSound(
+        state,
+        "enemy-attack",
+        enemy.position,
+        MELEE_ATTACK_WAVE_CONFIG.distance,
+        MELEE_ATTACK_WAVE_CONFIG.intensity,
+        enemy.id,
+      );
     }
   } else if (enemy.action === "attack") {
     enemy.actionTime += deltaSeconds;

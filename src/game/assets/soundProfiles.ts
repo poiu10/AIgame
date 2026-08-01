@@ -8,6 +8,8 @@ export interface SoundPlaybackProfile {
   playbackFraction?: number;
 }
 
+export const MELEE_ATTACK_VOLUME = 0.14;
+
 export const SOUND_PLAYBACK_PROFILES: Readonly<
   Record<SoundKind, SoundPlaybackProfile>
 > = {
@@ -28,12 +30,12 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
   },
   "player-attack": {
     assetKey: ASSET_KEYS.audio.attack,
-    volume: 0.28,
+    volume: MELEE_ATTACK_VOLUME,
     rate: 1.04,
   },
   "enemy-attack": {
     assetKey: ASSET_KEYS.audio.attack,
-    volume: 0.34,
+    volume: MELEE_ATTACK_VOLUME,
     rate: 0.9,
   },
   "enemy-hit": {
@@ -66,6 +68,11 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     assetKey: ASSET_KEYS.audio.water,
     volume: 0.17,
     rate: 1,
+  },
+  "crusher-pulse": {
+    assetKey: ASSET_KEYS.audio.crusherPulse,
+    volume: 0.315,
+    rate: 1.05,
   },
   "hazard-pulse": {
     assetKey: ASSET_KEYS.audio.hazardPulse,
