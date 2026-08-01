@@ -72,6 +72,34 @@ describe("standalone map editor", () => {
     expect(editorHtml).toContain('canvas.addEventListener("pointercancel"');
   });
 
+  it("resizes rectangular entities from each selected corner", () => {
+    const start = editorHtml.indexOf("function resizeBounds(original, corner, pointerX, pointerY, minimumSize)");
+    const end = editorHtml.indexOf("\n\n      function snap", start);
+    const resizeBounds = new Function(
+      `${editorHtml.slice(start, end)}; return resizeBounds;`,
+    )() as (
+      original: { x: number; y: number; width: number; height: number },
+      corner: "nw" | "ne" | "sw" | "se",
+      pointerX: number,
+      pointerY: number,
+      minimumSize: number,
+    ) => { x: number; y: number; width: number; height: number };
+    const original = { x: 100, y: 100, width: 200, height: 120 };
+
+    expect(resizeBounds(original, "nw", 60, 40, 20))
+      .toEqual({ x: 60, y: 40, width: 240, height: 180 });
+    expect(resizeBounds(original, "ne", 360, 60, 20))
+      .toEqual({ x: 100, y: 60, width: 260, height: 160 });
+    expect(resizeBounds(original, "sw", 40, 280, 20))
+      .toEqual({ x: 40, y: 100, width: 260, height: 180 });
+    expect(resizeBounds(original, "se", 360, 280, 20))
+      .toEqual({ x: 100, y: 100, width: 260, height: 180 });
+    expect(resizeBounds(original, "nw", 500, 500, 20))
+      .toEqual({ x: 280, y: 200, width: 20, height: 20 });
+    expect(editorHtml).toContain("function selectedResizeHandleAt(x, y)");
+    expect(editorHtml).toContain('$("#status").textContent = "선택 항목의 크기를 변경했습니다."');
+  });
+
   it("deletes the selection from the button or keyboard", () => {
     expect(editorHtml).toContain("function deleteSelection()");
     expect(editorHtml).toContain('$("#delete").addEventListener("click", deleteSelection)');

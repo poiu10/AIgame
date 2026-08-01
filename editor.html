@@ -55,6 +55,8 @@
       #map-canvas { display: block; background: #050b0d; border: 1px solid #2b5c65; image-rendering: pixelated; box-shadow: 0 0 48px rgba(50, 222, 236, .07); cursor: crosshair; touch-action: none; }
       #map-canvas.selecting { cursor: grab; }
       #map-canvas.dragging { cursor: grabbing; }
+      #map-canvas.resize-nwse { cursor: nwse-resize; }
+      #map-canvas.resize-nesw { cursor: nesw-resize; }
 
       .inspector-panel { grid-row: 2; padding: 18px; border-left: 1px solid var(--line); background: var(--panel); }
       .inspector-panel h2 { margin: 0 0 8px; font-size: 15px; letter-spacing: .12em; }
@@ -105,7 +107,7 @@
 
       <aside class="inspector-panel">
         <h2>선택 항목</h2>
-        <p class="inspector-help">선택 도구에서 항목을 끌면 격자 단위로 이동합니다. 선택한 항목은 <code>Delete</code> 또는 <code>Backspace</code>로 삭제할 수 있고, 게임 스키마 그대로 속성을 편집할 수 있습니다.</p>
+        <p class="inspector-help">선택 도구에서 항목을 끌면 이동하고, 사각 항목의 흰색 모서리를 끌면 크기가 바뀝니다. 선택한 항목은 <code>Delete</code> 또는 <code>Backspace</code>로 삭제할 수 있습니다.</p>
         <textarea id="inspector" spellcheck="false" aria-label="선택 항목 JSON"></textarea>
         <button id="apply-inspector" type="button">선택 항목 적용</button>
         <div id="validation" class="validation"></div>
@@ -184,6 +186,7 @@
       let selection = null;
       let draft = null;
       let drag = null;
+      let resize = null;
       let gridSize = 20;
       let zoom = 0.35;
       let idCounter = 1;
@@ -218,6 +221,20 @@
         return moved;
       }
 
+      function resizeBounds(original, corner, pointerX, pointerY, minimumSize) {
+        let left = original.x;
+        let top = original.y;
+        let right = original.x + original.width;
+        let bottom = original.y + original.height;
+
+        if (corner.includes("w")) left = Math.min(pointerX, right - minimumSize);
+        if (corner.includes("e")) right = Math.max(pointerX, left + minimumSize);
+        if (corner.includes("n")) top = Math.min(pointerY, bottom - minimumSize);
+        if (corner.includes("s")) bottom = Math.max(pointerY, top + minimumSize);
+
+        return { x: left, y: top, width: right - left, height: bottom - top };
+      }
+
       function snap(value) { return Math.round(value / gridSize) * gridSize; }
       function nextId(prefix) {
         let candidate = `${prefix}-${idCounter++}`;
@@ -237,6 +254,29 @@
       function entityRect(group, entity) {
         if (group === "terrain" || group === "hazards" || group === "exits") return entity.bounds;
         return { x: entity.position.x - 24, y: entity.position.y - 48, width: 48, height: 96 };
+      }
+
+      function resizeHandlePoints(bounds) {
+        return [
+          { corner: "nw", x: bounds.x, y: bounds.y },
+          { corner: "ne", x: bounds.x + bounds.width, y: bounds.y },
+          { corner: "sw", x: bounds.x, y: bounds.y + bounds.height },
+          { corner: "se", x: bounds.x + bounds.width, y: bounds.y + bounds.height }
+        ];
+      }
+
+      function selectedResizeHandleAt(x, y) {
+        const entity = selectedEntity();
+        if (tool !== "select" || !entity?.bounds) return null;
+        const hitRadius = 8 / zoom;
+        return resizeHandlePoints(entity.bounds).find((handle) =>
+          Math.abs(x - handle.x) <= hitRadius && Math.abs(y - handle.y) <= hitRadius
+        )?.corner ?? null;
+      }
+
+      function setResizeCursor(corner) {
+        canvas.classList.toggle("resize-nwse", corner === "nw" || corner === "se");
+        canvas.classList.toggle("resize-nesw", corner === "ne" || corner === "sw");
       }
 
       function isFiniteRect(bounds) {
@@ -405,6 +445,27 @@
             drawing.strokeStyle = "#ffffff";
             drawing.lineWidth = 5;
             drawing.strokeRect(rect.x - 5, rect.y - 5, rect.width + 10, rect.height + 10);
+            if (entity.bounds) {
+              const handleSize = 10 / zoom;
+              const handleOffset = handleSize / 2;
+              drawing.lineWidth = Math.max(2, 2 / zoom);
+              for (const handle of resizeHandlePoints(entity.bounds)) {
+                drawing.fillStyle = "#ffffff";
+                drawing.fillRect(
+                  handle.x - handleOffset,
+                  handle.y - handleOffset,
+                  handleSize,
+                  handleSize
+                );
+                drawing.strokeStyle = "#031012";
+                drawing.strokeRect(
+                  handle.x - handleOffset,
+                  handle.y - handleOffset,
+                  handleSize,
+                  handleSize
+                );
+              }
+            }
           }
         }
         if (draft) drawRect(normalizeRect(draft), "rgba(255,255,255,.08)", "#ffffff");
@@ -432,6 +493,7 @@
 
       function setSelection(next) {
         selection = next;
+        setResizeCursor(null);
         syncInspector();
         render();
       }
@@ -439,18 +501,20 @@
       function setTool(next) {
         tool = next;
         canvas.classList.toggle("selecting", tool === "select");
+        if (tool !== "select") setResizeCursor(null);
         document.querySelectorAll("[data-tool]").forEach((button) => {
           button.classList.toggle("active", button.dataset.tool === tool);
         });
         $("#status").textContent = EDITOR_OBJECT_CATALOG.find((item) => item.tool === tool)?.description ?? tool;
       }
 
-      function pointerPosition(event) {
+      function pointerPosition(event, snapToGrid = true) {
         const rect = canvas.getBoundingClientRect();
-        return {
-          x: snap((event.clientX - rect.left) * canvas.width / rect.width),
-          y: snap((event.clientY - rect.top) * canvas.height / rect.height)
+        const point = {
+          x: (event.clientX - rect.left) * canvas.width / rect.width,
+          y: (event.clientY - rect.top) * canvas.height / rect.height
         };
+        return snapToGrid ? { x: snap(point.x), y: snap(point.y) } : point;
       }
 
       function hitTest(x, y) {
@@ -505,9 +569,18 @@
 
       canvas.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) return;
-        const point = pointerPosition(event);
+        const rawPoint = pointerPosition(event, false);
+        const point = { x: snap(rawPoint.x), y: snap(rawPoint.y) };
         if (tool === "select") {
-          const hit = hitTest(point.x, point.y);
+          const resizeCorner = selectedResizeHandleAt(rawPoint.x, rawPoint.y);
+          if (resizeCorner) {
+            resize = { corner: resizeCorner, original: deepClone(selectedEntity()), changed: false };
+            canvas.setPointerCapture(event.pointerId);
+            setResizeCursor(resizeCorner);
+            event.preventDefault();
+            return;
+          }
+          const hit = hitTest(rawPoint.x, rawPoint.y);
           setSelection(hit);
           if (hit) {
             drag = { startX: point.x, startY: point.y, original: deepClone(selectedEntity()), moved: false };
@@ -523,8 +596,22 @@
         }
       });
       canvas.addEventListener("pointermove", (event) => {
-        const point = pointerPosition(event);
-        if (drag && selection) {
+        const rawPoint = pointerPosition(event, false);
+        const point = { x: snap(rawPoint.x), y: snap(rawPoint.y) };
+        if (resize && selection) {
+          const resized = deepClone(resize.original);
+          resized.bounds = resizeBounds(
+            resize.original.bounds,
+            resize.corner,
+            point.x,
+            point.y,
+            gridSize
+          );
+          resize.changed ||= JSON.stringify(resized.bounds) !== JSON.stringify(resize.original.bounds);
+          entities(selection.group)[selection.index] = resized;
+          syncInspector();
+          render();
+        } else if (drag && selection) {
           const deltaX = point.x - drag.startX;
           const deltaY = point.y - drag.startY;
           drag.moved ||= deltaX !== 0 || deltaY !== 0;
@@ -540,9 +627,25 @@
           draft.currentX = point.x;
           draft.currentY = point.y;
           render();
+        } else {
+          setResizeCursor(selectedResizeHandleAt(rawPoint.x, rawPoint.y));
         }
       });
       function finishPointerInteraction(event, cancelled = false) {
+        if (resize) {
+          const completedResize = resize;
+          if (cancelled && selection) {
+            entities(selection.group)[selection.index] = completedResize.original;
+            syncInspector();
+            render();
+          }
+          resize = null;
+          setResizeCursor(null);
+          if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+          if (!cancelled && completedResize.changed) {
+            $("#status").textContent = "선택 항목의 크기를 변경했습니다.";
+          }
+        }
         if (drag) {
           const completedDrag = drag;
           if (cancelled && selection) {
@@ -568,6 +671,9 @@
       }
       canvas.addEventListener("pointerup", finishPointerInteraction);
       canvas.addEventListener("pointercancel", (event) => finishPointerInteraction(event, true));
+      canvas.addEventListener("pointerleave", () => {
+        if (!drag && !resize && !draft) setResizeCursor(null);
+      });
 
       $("#apply-inspector").addEventListener("click", () => {
         if (!selection) return;
@@ -584,7 +690,9 @@
         if (!selection) return;
         entities(selection.group).splice(selection.index, 1);
         drag = null;
+        resize = null;
         canvas.classList.remove("dragging");
+        setResizeCursor(null);
         setSelection(null);
         $("#status").textContent = "선택 항목을 삭제했습니다.";
       }
