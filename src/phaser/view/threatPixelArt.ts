@@ -49,6 +49,9 @@ const WALK_FRAMES: readonly EnemyThreatFrame[] = [
   "walk-2",
   "walk-3",
 ];
+const GROUNDED_ENEMY_WALK_FRAMES_PER_SECOND =
+  (WALK_FRAMES.length * ENEMY_CONFIG.patrolSpeed) /
+  ENEMY_CONFIG.footstepDistance;
 
 const ENEMY_ATTACK_REACH_CELL =
   Math.ceil(ENEMY_ATTACK_HITBOX.reach / THREAT_PIXEL_SIZE) - 1;
@@ -1022,7 +1025,10 @@ export function resolveEnemyThreatFrame(
     return WALK_FRAMES[Math.floor(elapsedSeconds * 7) % WALK_FRAMES.length];
   }
   if (enemy.grounded && Math.abs(enemy.velocity.x) > 1) {
-    return WALK_FRAMES[Math.floor(elapsedSeconds * 9) % WALK_FRAMES.length];
+    return WALK_FRAMES[
+      Math.floor(elapsedSeconds * GROUNDED_ENEMY_WALK_FRAMES_PER_SECOND) %
+        WALK_FRAMES.length
+    ];
   }
   return "idle";
 }

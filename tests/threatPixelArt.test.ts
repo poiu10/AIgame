@@ -91,10 +91,13 @@ describe("threat pixel art", () => {
 
   it("selects four walking frames and three attack phases", () => {
     const walker = createEnemy({ velocity: { x: 100, y: 0 } });
+    const walkFrameSeconds =
+      ENEMY_CONFIG.footstepDistance / (4 * ENEMY_CONFIG.patrolSpeed);
     expect(resolveEnemyThreatFrame(walker, 0)).toBe("walk-0");
-    expect(resolveEnemyThreatFrame(walker, 1 / 9)).toBe("walk-1");
-    expect(resolveEnemyThreatFrame(walker, 2 / 9)).toBe("walk-2");
-    expect(resolveEnemyThreatFrame(walker, 3 / 9)).toBe("walk-3");
+    expect(resolveEnemyThreatFrame(walker, walkFrameSeconds)).toBe("walk-1");
+    expect(resolveEnemyThreatFrame(walker, walkFrameSeconds * 2)).toBe("walk-2");
+    expect(resolveEnemyThreatFrame(walker, walkFrameSeconds * 3)).toBe("walk-3");
+    expect(resolveEnemyThreatFrame(walker, walkFrameSeconds * 4)).toBe("walk-0");
 
     const attacker = createEnemy({ action: "attack" });
     attacker.actionTime = ENEMY_CONFIG.attackSeconds * 0.2;
