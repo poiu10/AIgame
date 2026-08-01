@@ -89,6 +89,21 @@ describe("Stage 1", () => {
     expect(state.player.action).toBe("dead");
   });
 
+  it("keeps fixed lethal hazards active after every enemy is defeated", () => {
+    const state = createInitialGameState(STAGE_ONE);
+    for (const enemy of state.enemies) enemy.alive = false;
+    const hazard = state.hazards.find((candidate) => candidate.id === "hazard-1")!;
+    state.player.position = {
+      x: hazard.bounds.x + hazard.bounds.width / 2,
+      y: hazard.bounds.y + hazard.bounds.height / 2,
+    };
+
+    updateWorldEnvironment(state, STAGE_ONE, FIXED_STEP_SECONDS);
+
+    expect(state.player.health).toBe(0);
+    expect(state.player.action).toBe("dead");
+  });
+
   it("reveals only a local red surface mark on fixed lethal hazards", () => {
     const state = createInitialGameState(STAGE_ONE);
     emitSound(state, "player-step", { x: 300, y: 480 }, 100, 1, "player");
@@ -236,6 +251,22 @@ describe("Stage 1", () => {
     expect(hazard.bounds.width).toBeCloseTo(4540);
     updateWorldEnvironment(state, world, 1);
     expect(hazard.bounds.width).toBeCloseTo(5140);
+  });
+
+  it("keeps the growing hazard lethal after every enemy is defeated", () => {
+    const state = createInitialGameState(STAGE_ONE);
+    for (const enemy of state.enemies) enemy.alive = false;
+    expect(pressTerrainButton(state, STAGE_ONE, "terrain-botton")).toBe(true);
+    state.player.position = { x: 1250, y: 120 };
+
+    updateWorldEnvironment(state, STAGE_ONE, 0.2);
+
+    const hazard = state.hazards.find(
+      (candidate) => candidate.id === "hazard-growing",
+    )!;
+    expect(hazard.bounds).toEqual({ x: 1230, y: 100, width: 90, height: 40 });
+    expect(state.player.health).toBe(0);
+    expect(state.player.action).toBe("dead");
   });
 
   it("wakes on the button, pursues, and starts its warned attack near x=900", () => {

@@ -9,7 +9,7 @@ import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
 
 export function killPlayer(state: GameState): boolean {
   const player = state.player;
-  if (player.action === "dead" || state.status !== "playing") return false;
+  if (player.action === "dead") return false;
   player.health = 0;
   player.action = "dead";
   player.actionTime = 0;
@@ -17,7 +17,6 @@ export function killPlayer(state: GameState): boolean {
   player.hitboxOffsetX = 0;
   player.velocity.x = 0;
   player.velocity.y = 0;
-  state.status = "failed";
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
   return true;
 }
@@ -30,8 +29,7 @@ export function damagePlayer(
   if (
     player.action === "dead" ||
     player.action === "roll" ||
-    player.invulnerabilityTime > 0 ||
-    state.status !== "playing"
+    player.invulnerabilityTime > 0
   ) {
     return false;
   }
@@ -61,12 +59,6 @@ function defeatEnemy(state: GameState, enemy: EnemyState): void {
   emitSound(state, "enemy-death", enemy.position, 720, 1, enemy.id);
   enemy.echoTime = ENEMY_CONFIG.deathRevealSeconds;
   enemy.echoDuration = ENEMY_CONFIG.deathRevealSeconds;
-  if (
-    state.status === "playing" &&
-    state.enemies.every((candidate) => !candidate.alive)
-  ) {
-    state.status = "completed";
-  }
 }
 
 export function damageEnemy(
@@ -153,13 +145,6 @@ export function updatePlayerCombat(
       ),
     };
     state.events.push({ type: "impact", position: hitPosition, strength: 0.45 });
-  }
-
-  if (
-    state.enemies.length > 0
-    && state.enemies.every((enemy) => !enemy.alive)
-  ) {
-    state.status = "completed";
   }
 }
 

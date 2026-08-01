@@ -122,7 +122,6 @@ export function restoreCheckpointState(save: CheckpointSave, stage: StageDefinit
   state.player.facing = save.playerFacing;
   state.player.attackFacing = save.playerFacing;
   state.player.health = PLAYER_CONFIG.maxHealth;
-  state.status = "playing";
   return state;
 }
 

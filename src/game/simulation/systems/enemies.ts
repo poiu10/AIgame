@@ -48,7 +48,7 @@ function updateEnemyPulse(
 
 function beginEnemyAlert(state: GameState, enemy: EnemyState): boolean {
   if (
-    state.status !== "playing" ||
+    state.player.action === "dead" ||
     enemy.attackCooldown > 0 ||
     !playerInAttackRange(state, enemy)
   ) {
@@ -172,7 +172,7 @@ function updateWaker(
   const deltaX = state.player.position.x - enemy.position.x;
   const deltaY = state.player.position.y - enemy.position.y;
   const distance = Math.hypot(deltaX, deltaY);
-  if (distance > 0.001 && state.status === "playing") {
+  if (distance > 0.001 && state.player.action !== "dead") {
     enemy.velocity.x +=
       (deltaX / distance) * STAGE_ONE_CONFIG.wakerAcceleration * deltaSeconds;
     enemy.velocity.y +=

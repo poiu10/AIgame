@@ -20,7 +20,6 @@ export type EnemyAction =
   | "attack"
   | "hurt"
   | "dead";
-export type SessionStatus = "playing" | "completed" | "failed";
 export type SoundKind =
   | "player-step"
   | "landing"
@@ -172,7 +171,6 @@ export interface GameState {
   soundWaves: SoundWaveState[];
   echoMarks: EchoMarkState[];
   events: GameEvent[];
-  status: SessionStatus;
   nextWaveId: number;
 }
 
@@ -267,7 +265,6 @@ export function createInitialGameState(
     soundWaves: [],
     echoMarks: [],
     events: [],
-    status: "playing",
     nextWaveId: 1,
   };
 }

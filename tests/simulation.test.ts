@@ -511,7 +511,6 @@ describe("player controller", () => {
     state.player.grounded = true;
     state.player.action = "dead";
     state.player.health = 0;
-    state.status = "failed";
     const deathPosition = { ...state.player.position };
 
     stepSimulation(
@@ -758,16 +757,6 @@ describe("sound propagation", () => {
 });
 
 describe("combat loop", () => {
-  it("does not complete an intentionally empty stage when the player attacks", () => {
-    const state = createInitialGameState(flatWorld);
-    state.player.action = "attack";
-    state.player.actionTime = PLAYER_CONFIG.attackActiveStart;
-
-    updatePlayerCombat(state, flatWorld);
-
-    expect(state.status).toBe("playing");
-  });
-
   const enemyAttackWorld: WorldDefinition = {
     ...flatWorld,
     enemies: [
@@ -981,7 +970,7 @@ describe("combat loop", () => {
     }
 
     expect(state.enemies[0].alive).toBe(false);
-    expect(state.status).toBe("completed");
+    expect(state.player.action).not.toBe("dead");
     expect(sawPlayerAttackWave).toBe(true);
     expect(state.soundWaves.some((wave) => wave.kind === "enemy-death")).toBe(true);
     expect(state.soundWaves.some((wave) => wave.kind === "enemy-hit")).toBe(false);
@@ -1030,7 +1019,6 @@ describe("combat loop", () => {
     );
     expect(state.enemies.every((enemy) => enemy.alive)).toBe(true);
     expect(state.events).toEqual([]);
-    expect(state.status).toBe("playing");
   });
 });
 

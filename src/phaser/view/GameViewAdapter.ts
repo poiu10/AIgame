@@ -102,7 +102,7 @@ export class GameViewAdapter {
 
   private drawTutorialText(state: GameState): void {
     const section = this.world.tutorialSections?.[state.tutorialStep];
-    const prompt = state.status === "playing" ? (section?.prompt ?? "") : "";
+    const prompt = state.player.action !== "dead" ? (section?.prompt ?? "") : "";
     if (prompt === this.currentTutorialPrompt) {
       return;
     }
