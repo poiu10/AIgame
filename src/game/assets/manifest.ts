@@ -167,7 +167,7 @@ export const AUDIO_ASSETS = {
   },
   landing: {
     key: ASSET_KEYS.audio.landing,
-    path: "assets/audio/down.wav",
+    path: "assets/audio/down2.wav",
   },
   enemyHit: {
     key: ASSET_KEYS.audio.enemyHit,

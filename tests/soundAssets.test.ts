@@ -37,6 +37,10 @@ describe("sample-backed sound", () => {
     );
   });
 
+  it("uses down2 for landing sounds", () => {
+    expect(AUDIO_ASSETS.landing.path).toBe("assets/audio/down2.wav");
+  });
+
   it("keeps contextual source volumes restrained", () => {
     expect(Math.max(
       ...Object.values(SOUND_PLAYBACK_PROFILES).map((profile) => profile.volume),
