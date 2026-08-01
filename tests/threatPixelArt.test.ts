@@ -239,6 +239,32 @@ describe("threat pixel art", () => {
     expect(breathing).not.toEqual(resting);
   });
 
+  it("gives flyers and wakers four movement poses and distinct death sequences", () => {
+    const movementFrames = ["walk-0", "walk-1", "walk-2", "walk-3"] as const;
+    const deathFrames = [
+      "death-recoil",
+      "death-fall",
+      "death-collapse",
+      "corpse",
+    ] as const;
+
+    for (const kind of [ENEMY_KINDS.flyer, ENEMY_KINDS.waker]) {
+      const movement = movementFrames.map((frame) =>
+        createEnemyThreatCells(frame, 1, kind),
+      );
+      const death = deathFrames.map((frame) =>
+        createEnemyThreatCells(frame, 1, kind),
+      );
+      for (const cells of [...movement, ...death]) expectUniqueIntegerCells(cells);
+      expect(new Set(movement.map((cells) => JSON.stringify(cells))).size).toBe(4);
+      expect(new Set(death.map((cells) => JSON.stringify(cells))).size).toBe(4);
+    }
+
+    expect(createEnemyThreatCells("corpse", 1, ENEMY_KINDS.flyer)).not.toEqual(
+      createEnemyThreatCells("corpse", 1, ENEMY_KINDS.waker),
+    );
+  });
+
   it("plays a death sequence before settling on the persistent corpse", () => {
     const deadEnemy = createEnemy({
       alive: false,

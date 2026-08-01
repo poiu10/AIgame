@@ -3,7 +3,11 @@ import type { WorldDefinition } from "../../content/world";
 import type { InputActions } from "../../input/actions";
 import { PLAYER_CONFIG } from "../rules/config";
 import type { GameState } from "../state";
-import { killPlayer, updatePlayerCombat } from "./combat";
+import {
+  killPlayer,
+  updateEnemyContactDamage,
+  updatePlayerCombat,
+} from "./combat";
 import { updateEnemies } from "./enemies";
 import { updateTutorialProgress, updateWorldEnvironment } from "./environment";
 import { updatePlayerMovement } from "./movement";
@@ -50,6 +54,7 @@ export function stepSimulation(
 
   updateEnemies(state, collisionWorld, deltaSeconds);
   updatePlayerCombat(state, world);
+  updateEnemyContactDamage(state);
   updateWorldEnvironment(state, world, deltaSeconds);
   updateTutorialProgress(state, world);
 

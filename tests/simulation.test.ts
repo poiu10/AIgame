@@ -26,6 +26,7 @@ import { createInitialGameState } from "../src/game/simulation/state";
 import {
   damageEnemy,
   damagePlayer,
+  updateEnemyContactDamage,
   updatePlayerCombat,
 } from "../src/game/simulation/systems/combat";
 import { updateEnemies } from "../src/game/simulation/systems/enemies";
@@ -882,6 +883,37 @@ describe("combat loop", () => {
     stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
 
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+  });
+
+  it("damages the player on contact with a living enemy body", () => {
+    const state = createInitialGameState(enemyAttackWorld);
+    state.player.position = { ...state.enemies[0].position };
+
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, enemyAttackWorld);
+
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+    expect(state.player.action).toBe("hurt");
+    expect(state.player.velocity.x).toBe(-660);
+
+    updateEnemyContactDamage(state);
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+  });
+
+  it("ignores enemy body contact while rolling and after the enemy dies", () => {
+    const rollingState = createInitialGameState(enemyAttackWorld);
+    rollingState.player.position = { ...rollingState.enemies[0].position };
+    rollingState.player.action = "roll";
+
+    updateEnemyContactDamage(rollingState);
+    expect(rollingState.player.health).toBe(PLAYER_CONFIG.maxHealth);
+
+    const corpseState = createInitialGameState(enemyAttackWorld);
+    corpseState.player.position = { ...corpseState.enemies[0].position };
+    corpseState.enemies[0].alive = false;
+    corpseState.enemies[0].action = "dead";
+
+    updateEnemyContactDamage(corpseState);
+    expect(corpseState.player.health).toBe(PLAYER_CONFIG.maxHealth);
   });
 
   it("damages and defeats an enemy with the active attack hitbox", () => {

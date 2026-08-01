@@ -497,29 +497,150 @@ function createSleepingEnemyPolygons(
 function createFlyingEnemyPolygons(
   frame: EnemyThreatFrame,
 ): CellPolygon[] {
-  if (frame === "corpse" || frame === "death-collapse") {
-    const top = frame === "corpse" ? 10 : 7;
+  if (frame === "death-recoil") {
+    return [
+      [
+        { x: -11, y: -1 },
+        { x: -5, y: -9 },
+        { x: 3, y: -8 },
+        { x: 9, y: -3 },
+        { x: 7, y: 4 },
+        { x: -2, y: 6 },
+        { x: -10, y: 3 },
+      ],
+      [
+        { x: -4, y: -6 },
+        { x: -15, y: -18 },
+        { x: -10, y: -1 },
+        { x: -2, y: 1 },
+      ],
+      [
+        { x: 0, y: -6 },
+        { x: 11, y: -13 },
+        { x: 7, y: 1 },
+        { x: 1, y: 2 },
+      ],
+      [
+        { x: -9, y: 1 },
+        { x: -18, y: -4 },
+        { x: -14, y: 4 },
+        { x: -8, y: 5 },
+      ],
+    ];
+  }
+  if (frame === "death-fall") {
+    return [
+      [
+        { x: -13, y: -8 },
+        { x: -6, y: -10 },
+        { x: 3, y: -4 },
+        { x: 11, y: 4 },
+        { x: 7, y: 9 },
+        { x: -2, y: 5 },
+        { x: -10, y: 0 },
+      ],
+      [
+        { x: -4, y: -5 },
+        { x: -8, y: 8 },
+        { x: -2, y: 15 },
+        { x: 1, y: 1 },
+      ],
+      [
+        { x: 1, y: -3 },
+        { x: 8, y: 8 },
+        { x: 14, y: 12 },
+        { x: 7, y: 1 },
+      ],
+      [
+        { x: -10, y: -5 },
+        { x: -18, y: -8 },
+        { x: -14, y: -1 },
+        { x: -8, y: 2 },
+      ],
+    ];
+  }
+  if (frame === "death-collapse") {
+    return [
+      [
+        { x: -17, y: 10 },
+        { x: -12, y: 5 },
+        { x: -6, y: 8 },
+        { x: -1, y: 4 },
+        { x: 5, y: 8 },
+        { x: 13, y: 9 },
+        { x: 17, y: 14 },
+        { x: 10, y: 16 },
+        { x: -14, y: 16 },
+      ],
+      [
+        { x: -8, y: 8 },
+        { x: -4, y: 0 },
+        { x: 0, y: 9 },
+      ],
+      [
+        { x: 3, y: 8 },
+        { x: 9, y: 3 },
+        { x: 10, y: 11 },
+      ],
+    ];
+  }
+  if (frame === "corpse") {
     return [[
-      { x: -17, y: 14 },
-      { x: -11, y: top },
-      { x: -3, y: top + 2 },
-      { x: 4, y: top - 1 },
-      { x: 13, y: 11 },
-      { x: 17, y: 14 },
-      { x: 10, y: 16 },
-      { x: -13, y: 16 },
+      { x: -18, y: 13 },
+      { x: -13, y: 9 },
+      { x: -8, y: 12 },
+      { x: -3, y: 7 },
+      { x: 2, y: 11 },
+      { x: 8, y: 8 },
+      { x: 15, y: 12 },
+      { x: 18, y: 14 },
+      { x: 11, y: 16 },
+      { x: -15, y: 16 },
     ]];
   }
 
-  const raised =
-    frame === "walk-0" ||
-    frame === "walk-3" ||
-    frame === "alert-1" ||
-    frame === "death-recoil";
-  const folded = frame === "hurt" || frame === "death-fall";
-  const wingTop = raised ? -16 : folded ? -7 : -11;
-  const wingBottom = raised ? -5 : folded ? 7 : 4;
-  const bodyOffsetY = frame === "attack-recover" ? 1 : 0;
+  const wingTop =
+    frame === "walk-0"
+      ? -17
+      : frame === "walk-1"
+        ? -12
+        : frame === "walk-2"
+          ? -7
+          : frame === "walk-3"
+            ? -13
+            : frame === "alert-1"
+              ? -16
+              : frame === "hurt"
+                ? -7
+                : -11;
+  const wingBottom =
+    frame === "walk-0"
+      ? -6
+      : frame === "walk-1"
+        ? 0
+        : frame === "walk-2"
+          ? 8
+          : frame === "walk-3"
+            ? 3
+            : frame === "hurt"
+              ? 7
+              : 4;
+  const bodyOffsetY =
+    frame === "walk-1"
+      ? -1
+      : frame === "walk-2" || frame === "attack-recover"
+        ? 1
+        : 0;
+  const tailSwingY =
+    frame === "walk-0"
+      ? -3
+      : frame === "walk-1"
+        ? -1
+        : frame === "walk-2"
+          ? 3
+          : frame === "walk-3"
+            ? 1
+            : 0;
   const frontOpening =
     frame === "alert-0"
       ? 4
@@ -616,9 +737,9 @@ function createFlyingEnemyPolygons(
     ],
     [
       { x: -7, y: 0 + bodyOffsetY },
-      { x: -16, y: 3 + bodyOffsetY },
-      { x: -12, y: 5 + bodyOffsetY },
-      { x: -17, y: 9 + bodyOffsetY },
+      { x: -16, y: 3 + bodyOffsetY + tailSwingY },
+      { x: -12, y: 5 + bodyOffsetY + tailSwingY },
+      { x: -17, y: 9 + bodyOffsetY + tailSwingY },
       { x: -7, y: 4 + bodyOffsetY },
     ],
     ...frontPolygons,
@@ -627,27 +748,117 @@ function createFlyingEnemyPolygons(
 }
 
 function createWakerPolygons(frame: EnemyThreatFrame): CellPolygon[] {
-  if (frame === "corpse" || frame === "death-collapse") {
-    const top = frame === "corpse" ? 11 : 8;
+  if (frame === "death-recoil") {
+    return [
+      [
+        { x: -11, y: -6 },
+        { x: -5, y: -14 },
+        { x: 2, y: -12 },
+        { x: 7, y: -5 },
+        { x: 5, y: 5 },
+        { x: -2, y: 8 },
+        { x: -9, y: 3 },
+      ],
+      [
+        { x: -6, y: -11 },
+        { x: -6, y: -20 },
+        { x: -2, y: -13 },
+        { x: 2, y: -19 },
+        { x: 3, y: -10 },
+      ],
+      [
+        { x: -7, y: 1 },
+        { x: -17, y: -4 },
+        { x: -12, y: 4 },
+        { x: -18, y: 9 },
+        { x: -6, y: 6 },
+      ],
+      [
+        { x: -2, y: 6 },
+        { x: 5, y: 13 },
+        { x: 9, y: 10 },
+        { x: 2, y: 4 },
+      ],
+    ];
+  }
+  if (frame === "death-fall") {
+    return [
+      [
+        { x: -12, y: -8 },
+        { x: -5, y: -11 },
+        { x: 4, y: -5 },
+        { x: 10, y: 3 },
+        { x: 6, y: 9 },
+        { x: -2, y: 5 },
+        { x: -10, y: 0 },
+      ],
+      [
+        { x: -7, y: -8 },
+        { x: -12, y: -17 },
+        { x: -4, y: -11 },
+        { x: 1, y: -16 },
+        { x: 1, y: -6 },
+      ],
+      [
+        { x: -8, y: 0 },
+        { x: -17, y: 6 },
+        { x: -11, y: 8 },
+        { x: -16, y: 14 },
+        { x: -5, y: 6 },
+      ],
+    ];
+  }
+  if (frame === "death-collapse") {
+    return [
+      [
+        { x: -15, y: 10 },
+        { x: -9, y: 5 },
+        { x: -3, y: 8 },
+        { x: 2, y: 4 },
+        { x: 7, y: 9 },
+        { x: 13, y: 12 },
+        { x: 9, y: 16 },
+        { x: -13, y: 16 },
+      ],
+      [
+        { x: -5, y: 7 },
+        { x: -2, y: -1 },
+        { x: 1, y: 8 },
+        { x: 5, y: 1 },
+        { x: 6, y: 10 },
+      ],
+    ];
+  }
+  if (frame === "corpse") {
     return [[
-      { x: -14, y: 14 },
-      { x: -8, y: top },
-      { x: -1, y: top + 1 },
-      { x: 5, y: top - 2 },
-      { x: 12, y: 12 },
-      { x: 9, y: 16 },
-      { x: -12, y: 16 },
+      { x: -16, y: 13 },
+      { x: -11, y: 9 },
+      { x: -6, y: 12 },
+      { x: -1, y: 8 },
+      { x: 4, y: 11 },
+      { x: 9, y: 9 },
+      { x: 14, y: 13 },
+      { x: 10, y: 16 },
+      { x: -14, y: 16 },
     ]];
   }
 
   const sway =
-    frame === "walk-0" || frame === "walk-3"
-      ? -3
+    frame === "walk-0"
+      ? -4
       : frame === "walk-1"
-        ? 2
-        : 0;
-  const recoil = frame === "hurt" || frame === "death-recoil" ? -2 : 0;
-  const droop = frame === "death-fall" ? 7 : 0;
+        ? -1
+        : frame === "walk-2"
+          ? 3
+          : frame === "walk-3"
+            ? 1
+            : 0;
+  const movementShiftX =
+    frame === "walk-0" ? -1 : frame === "walk-2" ? 1 : 0;
+  const movementShiftY =
+    frame === "walk-1" ? -1 : frame === "walk-3" ? 1 : 0;
+  const recoil = frame === "hurt" ? -2 : 0;
+  const droop = 0;
   const frontOpening =
     frame === "alert-0"
       ? 3
@@ -674,26 +885,26 @@ function createWakerPolygons(frame: EnemyThreatFrame): CellPolygon[] {
   const frontPolygons: CellPolygon[] = frontOpening > 0
     ? [
         [
-          { x: 2 + recoil, y: -9 + droop },
-          { x: 8, y: -8 - frontHalfOpening + droop },
-          { x: 12, y: -5 - frontOpening + droop },
-          { x: 9, y: -3 - frontHalfOpening + droop },
-          { x: 3 + recoil, y: -2 + droop },
+          { x: 2 + recoil + movementShiftX, y: -9 + droop + movementShiftY },
+          { x: 8 + movementShiftX, y: -8 - frontHalfOpening + droop + movementShiftY },
+          { x: 12 + movementShiftX, y: -5 - frontOpening + droop + movementShiftY },
+          { x: 9 + movementShiftX, y: -3 - frontHalfOpening + droop + movementShiftY },
+          { x: 3 + recoil + movementShiftX, y: -2 + droop + movementShiftY },
         ],
         [
-          { x: 3 + recoil, y: 0 + droop },
-          { x: 10, y: 2 + frontHalfOpening + droop },
-          { x: 12, y: 4 + frontOpening + droop },
-          { x: 7, y: 7 + frontHalfOpening + droop },
-          { x: 2 + recoil, y: 5 + droop },
+          { x: 3 + recoil + movementShiftX, y: 0 + droop + movementShiftY },
+          { x: 10 + movementShiftX, y: 2 + frontHalfOpening + droop + movementShiftY },
+          { x: 12 + movementShiftX, y: 4 + frontOpening + droop + movementShiftY },
+          { x: 7 + movementShiftX, y: 7 + frontHalfOpening + droop + movementShiftY },
+          { x: 2 + recoil + movementShiftX, y: 5 + droop + movementShiftY },
         ],
       ]
     : [[
-        { x: 2 + recoil, y: -8 + droop },
-        { x: 10, y: -5 + droop },
-        { x: 12, y: -1 + droop },
-        { x: 8, y: 5 + droop },
-        { x: 2 + recoil, y: 5 + droop },
+        { x: 2 + recoil + movementShiftX, y: -8 + droop + movementShiftY },
+        { x: 10 + movementShiftX, y: -5 + droop + movementShiftY },
+        { x: 12 + movementShiftX, y: -1 + droop + movementShiftY },
+        { x: 8 + movementShiftX, y: 5 + droop + movementShiftY },
+        { x: 2 + recoil + movementShiftX, y: 5 + droop + movementShiftY },
       ]];
   const tentaclePolygons: CellPolygon[] = tentacleReach > 0
     ? [
@@ -733,35 +944,35 @@ function createWakerPolygons(frame: EnemyThreatFrame): CellPolygon[] {
   return [
     // 세로로 선 부유 핵과 왕관 가시가 비행 적의 넓은 날개와 구분된다.
     [
-      { x: -7 + recoil, y: -8 + droop },
-      { x: -2 + recoil, y: -13 + droop },
-      { x: 3 + recoil, y: -10 + droop },
-      { x: 5 + recoil, y: -3 + droop },
-      { x: 4 + recoil, y: 5 + droop },
-      { x: 2 + recoil, y: 9 + droop },
-      { x: -5 + recoil, y: 6 + droop },
-      { x: -9 + recoil, y: 0 + droop },
+      { x: -7 + recoil + movementShiftX, y: -8 + droop + movementShiftY },
+      { x: -2 + recoil + movementShiftX, y: -13 + droop + movementShiftY },
+      { x: 3 + recoil + movementShiftX, y: -10 + droop + movementShiftY },
+      { x: 5 + recoil + movementShiftX, y: -3 + droop + movementShiftY },
+      { x: 4 + recoil + movementShiftX, y: 5 + droop + movementShiftY },
+      { x: 2 + recoil + movementShiftX, y: 9 + droop + movementShiftY },
+      { x: -5 + recoil + movementShiftX, y: 6 + droop + movementShiftY },
+      { x: -9 + recoil + movementShiftX, y: 0 + droop + movementShiftY },
     ],
     [
-      { x: -5 + recoil, y: -9 + droop },
-      { x: -2 + recoil, y: -18 + droop },
-      { x: 1 + recoil, y: -11 + droop },
-      { x: 5 + recoil, y: -17 + droop },
-      { x: 6 + recoil, y: -8 + droop },
+      { x: -5 + recoil + movementShiftX, y: -9 + droop + movementShiftY },
+      { x: -2 + recoil + movementShiftX, y: -18 + droop + movementShiftY },
+      { x: 1 + recoil + movementShiftX, y: -11 + droop + movementShiftY },
+      { x: 5 + recoil + movementShiftX, y: -17 + droop + movementShiftY },
+      { x: 6 + recoil + movementShiftX, y: -8 + droop + movementShiftY },
     ],
     // 서로 다른 박자로 흔들리는 뒤쪽 촉수 세 갈래.
     [
-      { x: -6, y: 3 + droop },
-      { x: -14, y: 5 + sway + droop },
-      { x: -18, y: 10 + sway + droop },
-      { x: -13, y: 8 + sway + droop },
-      { x: -5, y: 7 + droop },
+      { x: -6 + movementShiftX, y: 3 + droop + movementShiftY },
+      { x: -14 + movementShiftX, y: 5 + sway + droop + movementShiftY },
+      { x: -18 + movementShiftX, y: 10 + sway + droop + movementShiftY },
+      { x: -13 + movementShiftX, y: 8 + sway + droop + movementShiftY },
+      { x: -5 + movementShiftX, y: 7 + droop + movementShiftY },
     ],
     [
-      { x: -2, y: 6 + droop },
-      { x: -8, y: 12 - sway + droop },
-      { x: -5, y: 17 - sway + droop },
-      { x: 1, y: 8 + droop },
+      { x: -2 + movementShiftX, y: 6 + droop + movementShiftY },
+      { x: -8 + movementShiftX, y: 12 - sway + droop + movementShiftY },
+      { x: -5 + movementShiftX, y: 17 - sway + droop + movementShiftY },
+      { x: 1 + movementShiftX, y: 8 + droop + movementShiftY },
     ],
     ...frontPolygons,
     ...tentaclePolygons,

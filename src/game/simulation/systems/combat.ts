@@ -2,6 +2,7 @@ import type { WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import { ENEMY_CONFIG, getEnemyBodySize, PLAYER_CONFIG } from "../rules/config";
 import { getPlayerAttackBounds } from "../rules/combat";
+import { getPlayerBounds } from "../rules/player";
 import type { EnemyState, Facing, GameState } from "../state";
 import { emitSound } from "./sound";
 import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
@@ -159,5 +160,28 @@ export function updatePlayerCombat(
     && state.enemies.every((enemy) => !enemy.alive)
   ) {
     state.status = "completed";
+  }
+}
+
+export function updateEnemyContactDamage(state: GameState): void {
+  const playerBounds = getPlayerBounds(state.player);
+
+  for (const enemy of state.enemies) {
+    if (!enemy.alive) continue;
+
+    const body = getEnemyBodySize(enemy.kind);
+    if (
+      !rectanglesOverlap(
+        playerBounds,
+        centerRect(enemy.position, body.width, body.height),
+      )
+    ) {
+      continue;
+    }
+
+    const knockbackDirection: Facing =
+      state.player.position.x <= enemy.position.x ? -1 : 1;
+    damagePlayer(state, knockbackDirection);
+    return;
   }
 }
