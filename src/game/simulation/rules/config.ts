@@ -20,6 +20,8 @@ export const PLAYER_CONFIG = {
   attackSeconds: 0.31,
   attackActiveStart: 0.08,
   attackActiveEnd: 0.18,
+  attackWaveDistance: 160,
+  attackWaveIntensity: 0.76,
   hurtSeconds: 0.3,
   checkpointRestoreSeconds: 0.9,
   damageInvulnerabilitySeconds: 0.8,

@@ -168,8 +168,8 @@ export function updatePlayerMovement(
     sounds.push({
       kind: "player-attack",
       position: { ...player.position },
-      distance: 440,
-      intensity: 0.76,
+      distance: PLAYER_CONFIG.attackWaveDistance,
+      intensity: PLAYER_CONFIG.attackWaveIntensity,
     });
   }
 

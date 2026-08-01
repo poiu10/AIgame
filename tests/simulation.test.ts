@@ -30,7 +30,10 @@ import {
   updatePlayerCombat,
 } from "../src/game/simulation/systems/combat";
 import { updateEnemies } from "../src/game/simulation/systems/enemies";
-import { getLandingSoundProfile } from "../src/game/simulation/systems/movement";
+import {
+  getLandingSoundProfile,
+  updatePlayerMovement,
+} from "../src/game/simulation/systems/movement";
 import { stepSimulation } from "../src/game/simulation/systems/simulation";
 import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
 import {
@@ -162,6 +165,27 @@ describe("player controller", () => {
     expect(getPlayerBounds(state.player).x).toBeCloseTo(
       state.player.position.x + 20 - PLAYER_CONFIG.width / 2,
     );
+  });
+
+  it("keeps the player attack wave close to the player", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = { x: 200, y: flatWorldGroundedPlayerY };
+    state.player.grounded = true;
+
+    const sounds = updatePlayerMovement(
+      state,
+      flatWorld,
+      { ...EMPTY_INPUT, attackPressed: true },
+      0,
+    );
+    const attackSound = sounds.find((sound) => sound.kind === "player-attack");
+
+    expect(attackSound).toMatchObject({
+      position: state.player.position,
+      distance: 160,
+      intensity: PLAYER_CONFIG.attackWaveIntensity,
+    });
+    expect(attackSound!.distance).toBe(PLAYER_CONFIG.attackWaveDistance);
   });
 
   it("lands on platforms and jumps from the grounded state", () => {
@@ -926,6 +950,7 @@ describe("combat loop", () => {
     state.enemies[0].health = 1;
     state.enemies[0].grounded = true;
     state.enemies[0].attackCooldown = Number.POSITIVE_INFINITY;
+    let sawPlayerAttackWave = false;
 
     for (let index = 0; index < 24; index += 1) {
       state = stepSimulation(
@@ -936,11 +961,14 @@ describe("combat loop", () => {
         FIXED_STEP_SECONDS,
         combatWorld,
       );
+      sawPlayerAttackWave ||= state.soundWaves.some(
+        (wave) => wave.kind === "player-attack",
+      );
     }
 
     expect(state.enemies[0].alive).toBe(false);
     expect(state.status).toBe("completed");
-    expect(state.soundWaves.some((wave) => wave.kind === "player-attack")).toBe(true);
+    expect(sawPlayerAttackWave).toBe(true);
     expect(state.soundWaves.some((wave) => wave.kind === "enemy-death")).toBe(true);
     expect(state.soundWaves.some((wave) => wave.kind === "enemy-hit")).toBe(false);
   });
