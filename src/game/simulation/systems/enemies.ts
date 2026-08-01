@@ -154,10 +154,6 @@ export function updateEnemies(
     }
 
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - deltaSeconds);
-    enemy.hazardInvulnerabilityTime = Math.max(
-      0,
-      enemy.hazardInvulnerabilityTime - deltaSeconds,
-    );
     if (enemy.kind === ENEMY_KINDS.sleeper) {
       enemy.action = "sleep";
       enemy.grounded = true;

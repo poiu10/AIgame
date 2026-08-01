@@ -75,7 +75,6 @@ export interface EnemyState {
   action: EnemyAction;
   actionTime: number;
   attackCooldown: number;
-  hazardInvulnerabilityTime: number;
   patrolMinX: number;
   patrolMaxX: number;
   footstepTravel: number;
@@ -218,7 +217,6 @@ export function createInitialGameState(
             : "patrol",
       actionTime: 0,
       attackCooldown: 0,
-      hazardInvulnerabilityTime: 0,
       patrolMinX: spawn.patrolMinX,
       patrolMaxX: spawn.patrolMaxX,
       footstepTravel: 0,

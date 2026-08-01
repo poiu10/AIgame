@@ -1,15 +1,13 @@
-import { ENEMY_KINDS, HAZARD_KINDS, type WorldDefinition } from "../../content/world";
-import { centerRect, rectanglesOverlap } from "../collision/aabb";
+import { HAZARD_KINDS, type WorldDefinition } from "../../content/world";
+import { rectanglesOverlap } from "../collision/aabb";
 import {
-  ENEMY_CONFIG,
-  getEnemyBodySize,
   HAZARD_CONFIG,
   PLAYER_CONFIG,
   STAGE_ONE_CONFIG,
 } from "../rules/config";
 import { getPlayerBounds } from "../rules/player";
 import type { GameState } from "../state";
-import { damageEnemy, damagePlayer, killPlayer } from "./combat";
+import { damagePlayer, killPlayer } from "./combat";
 import { emitSound } from "./sound";
 import { updateTerrainMechanismTimers } from "./stageMechanisms";
 
@@ -143,36 +141,6 @@ export function updateWorldEnvironment(
     state.player.velocity.x = rejectionDirection * 660;
   }
 
-  for (const enemy of state.enemies) {
-    if (
-      !enemy.alive ||
-      enemy.hazardInvulnerabilityTime > 0 ||
-      enemy.kind === ENEMY_KINDS.sleeper
-    ) {
-      continue;
-    }
-    const body = getEnemyBodySize(enemy.kind);
-    const enemyBounds = centerRect(
-      enemy.position,
-      body.width,
-      body.height,
-    );
-    for (const hazard of state.hazards) {
-      if (!rectanglesOverlap(enemyBounds, hazard.bounds)) {
-        continue;
-      }
-      const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
-      const rejectionDirection = enemy.position.x < hazardCenterX ? -1 : 1;
-      if (damageEnemy(state, enemy, rejectionDirection)) {
-        enemy.hazardInvulnerabilityTime =
-          ENEMY_CONFIG.hazardDamageCooldownSeconds;
-        if (enemy.alive) {
-          emitSound(state, "hurt", enemy.position, 500, 0.86, enemy.id);
-        }
-      }
-      break;
-    }
-  }
 }
 
 export function updateTutorialProgress(

@@ -41,7 +41,6 @@ function createEnemy(overrides: Partial<EnemyState> = {}): EnemyState {
     action: "patrol",
     actionTime: 0,
     attackCooldown: 0,
-    hazardInvulnerabilityTime: 0,
     patrolMinX: -100,
     patrolMaxX: 100,
     footstepTravel: 0,

@@ -3,7 +3,10 @@ import {
   ANIMATION_KEYS,
   PLAYER_SPRITE_DISPLAY_SCALE,
 } from "../src/game/assets/manifest";
-import type { WorldDefinition } from "../src/game/content/world";
+import {
+  ENEMY_KINDS,
+  type WorldDefinition,
+} from "../src/game/content/world";
 import { TUTORIAL_STAGE } from "../src/game/content/tutorialStage";
 import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
 import { raycastAabb } from "../src/game/simulation/collision/aabb";
@@ -923,18 +926,18 @@ describe("combat loop", () => {
     expect(state.soundWaves.some((wave) => wave.kind === "attack-hit")).toBe(false);
   });
 
-  it("damages enemies on player-damaging terrain without frame-by-frame repeats", () => {
+  it("keeps every enemy kind unaffected by hazards", () => {
+    const enemyKinds = Object.values(ENEMY_KINDS);
     const hazardWorld: WorldDefinition = {
       ...flatWorld,
-      enemies: [
-        {
-          id: "hazard-target",
-          position: { x: 400, y: 652 },
-          patrolMinX: 400,
-          patrolMaxX: 400,
-          health: 2,
-        },
-      ],
+      enemies: enemyKinds.map((kind, index) => ({
+        id: `hazard-target-${kind}`,
+        kind,
+        position: { x: 400 + index, y: 652 },
+        patrolMinX: 400 + index,
+        patrolMaxX: 400 + index,
+        health: 2,
+      })),
       hazards: [
         {
           id: "test-hazard",
@@ -943,20 +946,15 @@ describe("combat loop", () => {
       ],
     };
     const state = createInitialGameState(hazardWorld);
-    const enemy = state.enemies[0];
 
     updateWorldEnvironment(state, hazardWorld, FIXED_STEP_SECONDS);
-    expect(enemy.health).toBe(1);
-    expect(enemy.action).toBe("hurt");
-    expect(enemy.hazardInvulnerabilityTime).toBeGreaterThan(0);
 
-    updateWorldEnvironment(state, hazardWorld, FIXED_STEP_SECONDS);
-    expect(enemy.health).toBe(1);
-
-    enemy.hazardInvulnerabilityTime = 0;
-    updateWorldEnvironment(state, hazardWorld, FIXED_STEP_SECONDS);
-    expect(enemy.alive).toBe(false);
-    expect(state.status).toBe("completed");
+    expect(state.enemies.map((enemy) => enemy.health)).toEqual(
+      enemyKinds.map(() => 2),
+    );
+    expect(state.enemies.every((enemy) => enemy.alive)).toBe(true);
+    expect(state.events).toEqual([]);
+    expect(state.status).toBe("playing");
   });
 });
 

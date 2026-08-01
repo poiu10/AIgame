@@ -45,7 +45,6 @@ export const ENEMY_CONFIG = {
   alertWaveIntensity: 1,
   attackSeconds: 0.58,
   attackCooldownSeconds: 1.15,
-  hazardDamageCooldownSeconds: 0.8,
   hurtSeconds: 0.24,
   deathAnimationSeconds: 0.54,
   deathRevealSeconds: 0.82,

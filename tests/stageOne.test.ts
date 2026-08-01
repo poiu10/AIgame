@@ -78,16 +78,13 @@ describe("Stage 1", () => {
     expect(state.player.action).toBe("dead");
   });
 
-  it("keeps the sleeper stationary, pulsing, and immune to hazards", () => {
+  it("keeps the sleeper stationary and pulsing", () => {
     const state = createInitialGameState(STAGE_ONE);
     const sleeper = state.enemies.find((enemy) => enemy.id === "enemy-sleep")!;
     sleeper.position = { x: 560, y: 535 };
-    const initialHealth = sleeper.health;
 
-    updateWorldEnvironment(state, STAGE_ONE, FIXED_STEP_SECONDS);
     updateEnemies(state, STAGE_ONE, 0.5);
 
-    expect(sleeper.health).toBe(initialHealth);
     expect(sleeper.position).toEqual({ x: 560, y: 535 });
     expect(state.soundWaves.some((wave) => wave.sourceId === sleeper.id)).toBe(true);
   });
