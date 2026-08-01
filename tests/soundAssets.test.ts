@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { ASSET_KEYS, AUDIO_ASSETS } from "../src/game/assets/manifest";
 import {
   getPlaybackVolume,
@@ -13,6 +15,24 @@ import {
 } from "../src/game/simulation/systems/sound";
 
 describe("sample-backed sound", () => {
+  it("keeps only manifest-backed audio files in the deployed asset folder", () => {
+    const audioDirectory = fileURLToPath(
+      new URL("../public/assets/audio/", import.meta.url),
+    );
+    const deployedFiles = readdirSync(audioDirectory)
+      .filter((file) => /\.(?:mp3|wav)$/i.test(file))
+      .sort();
+    const manifestFiles = [
+      ...new Set(
+        Object.values(AUDIO_ASSETS).map((asset) =>
+          asset.path.replace("assets/audio/", ""),
+        ),
+      ),
+    ].sort();
+
+    expect(deployedFiles).toEqual(manifestFiles);
+  });
+
   it("maps every wave kind to one of the loaded audio assets", () => {
     const loadedKeys = new Set(Object.values(AUDIO_ASSETS).map((asset) => asset.key));
     for (const profile of Object.values(SOUND_PLAYBACK_PROFILES)) {

@@ -4,7 +4,6 @@ export interface InputActions {
   jumpHeld: boolean;
   rollPressed: boolean;
   attackPressed: boolean;
-  restartPressed: boolean;
 }
 
 export const EMPTY_INPUT: InputActions = {
@@ -13,5 +12,4 @@ export const EMPTY_INPUT: InputActions = {
   jumpHeld: false,
   rollPressed: false,
   attackPressed: false,
-  restartPressed: false,
 };

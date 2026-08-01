@@ -222,7 +222,6 @@ export class GameScene extends Phaser.Scene {
       jumpHeld: this.cursors.up.isDown || this.keys.W.isDown || this.keys.SPACE.isDown,
       rollPressed: edges.rollPressed,
       attackPressed: edges.attackPressed,
-      restartPressed: false,
     };
   }
 
