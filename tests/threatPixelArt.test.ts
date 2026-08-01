@@ -13,6 +13,7 @@ import {
 } from "../src/phaser/view/threatPixelArt";
 import {
   PLAYER_FOOTSTEP_WAVE_COLOR,
+  PLAYER_ATTACK_WAVE_COLOR,
   SOUND_WAVE_COLORS,
   THREAT_COLOR,
 } from "../src/phaser/view/viewPalette";
@@ -380,7 +381,7 @@ describe("threat pixel art", () => {
     expect(resolveHazardReactionFrame(hazard)).toBeNull();
   });
 
-  it("uses one red for threats and the player blue for enemy footsteps", () => {
+  it("uses the player attack color for enemy attacks and red for other threats", () => {
     expect(SOUND_WAVE_COLORS["enemy-step"]).toBe(
       PLAYER_FOOTSTEP_WAVE_COLOR,
     );
@@ -388,6 +389,12 @@ describe("threat pixel art", () => {
       PLAYER_FOOTSTEP_WAVE_COLOR,
     );
     expect(SOUND_WAVE_COLORS["enemy-alert"]).toBe(THREAT_COLOR);
+    expect(SOUND_WAVE_COLORS["enemy-attack"]).toBe(
+      PLAYER_ATTACK_WAVE_COLOR,
+    );
+    expect(SOUND_WAVE_COLORS["enemy-attack"]).toBe(
+      SOUND_WAVE_COLORS["player-attack"],
+    );
     expect(SOUND_WAVE_COLORS["enemy-call"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["crusher-pulse"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);

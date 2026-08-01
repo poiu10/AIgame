@@ -71,17 +71,17 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
   },
   "crusher-pulse": {
     assetKey: ASSET_KEYS.audio.crusherPulse,
-    volume: 0.315,
+    volume: 0.63,
     rate: 1.05,
   },
   "hazard-pulse": {
     assetKey: ASSET_KEYS.audio.hazardPulse,
-    volume: 0.21,
+    volume: 0.42,
     rate: 0.95,
   },
 };
 
-export const GROWING_LOOP_VOLUME = 0.075;
+export const GROWING_LOOP_VOLUME = 0.15;
 
 export function getPlaybackVolume(
   kind: SoundKind,

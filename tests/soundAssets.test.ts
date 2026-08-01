@@ -42,19 +42,24 @@ describe("sample-backed sound", () => {
     expect(AUDIO_ASSETS.landing.path).toBe("assets/audio/down2.wav");
   });
 
-  it("makes only the resonance crusher pulse louder and slightly higher", () => {
+  it("uses jiiiingggg and doubled volume for both obstacle sounds", () => {
+    expect(AUDIO_ASSETS.growing.path).toBe("assets/audio/jiiiingggg.mp3");
     expect(AUDIO_ASSETS.crusherPulse.path).toBe(
+      "assets/audio/jiiiingggg.mp3",
+    );
+    expect(AUDIO_ASSETS.hazardPulse.path).toBe(
       "assets/audio/jiiiingggg.mp3",
     );
     expect(SOUND_PLAYBACK_PROFILES["crusher-pulse"]).toMatchObject({
       assetKey: ASSET_KEYS.audio.crusherPulse,
-      volume: 0.315,
+      volume: 0.63,
       rate: 1.05,
     });
     expect(SOUND_PLAYBACK_PROFILES["hazard-pulse"]).toMatchObject({
-      volume: 0.21,
+      volume: 0.42,
       rate: 0.95,
     });
+    expect(GROWING_LOOP_VOLUME).toBe(0.15);
   });
 
   it("keeps contextual source volumes restrained", () => {
@@ -69,9 +74,10 @@ describe("sample-backed sound", () => {
     expect(getPlaybackVolume("enemy-attack", 1)).toBe(MELEE_ATTACK_VOLUME);
     expect(SOUND_PLAYBACK_PROFILES["enemy-attack"].rate).toBe(0.9);
     expect(Math.max(
-      ...Object.values(SOUND_PLAYBACK_PROFILES).map((profile) => profile.volume),
+      ...Object.entries(SOUND_PLAYBACK_PROFILES)
+        .filter(([kind]) => kind !== "crusher-pulse" && kind !== "hazard-pulse")
+        .map(([, profile]) => profile.volume),
     )).toBeLessThanOrEqual(0.38);
-    expect(GROWING_LOOP_VOLUME).toBeLessThan(0.1);
     expect(getPlaybackVolume("water", 0.5)).toBeCloseTo(0.085);
   });
 
