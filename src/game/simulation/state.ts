@@ -29,6 +29,7 @@ export type SoundKind =
   | "enemy-alert"
   | "enemy-attack"
   | "enemy-call"
+  | "waker-call"
   | "enemy-hit"
   | "enemy-death"
   | "sleep"

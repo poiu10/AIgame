@@ -240,7 +240,7 @@ export function updateEnemies(
         enemy,
         deltaSeconds,
         STAGE_ONE_CONFIG.activeEnemyPulseIntervalSeconds,
-        STAGE_ONE_CONFIG.activeEnemyPulseDistance,
+        STAGE_ONE_CONFIG.flyerPulseDistance,
         "enemy-call",
         STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
       );
@@ -254,8 +254,8 @@ export function updateEnemies(
           enemy,
           deltaSeconds,
           STAGE_ONE_CONFIG.activeEnemyPulseIntervalSeconds,
-          STAGE_ONE_CONFIG.activeEnemyPulseDistance,
-          "enemy-call",
+          STAGE_ONE_CONFIG.wakerPulseDistance,
+          "waker-call",
           STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
         );
       }

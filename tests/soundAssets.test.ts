@@ -36,10 +36,21 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["enemy-call"].assetKey).toBe(
       ASSET_KEYS.audio.enemyCall,
     );
+    expect(SOUND_PLAYBACK_PROFILES["waker-call"].assetKey).toBe(
+      ASSET_KEYS.audio.enemyCall,
+    );
   });
 
-  it("uses down2 for landing sounds", () => {
-    expect(AUDIO_ASSETS.landing.path).toBe("assets/audio/down2.wav");
+  it("uses down_cut_before_tak for landing sounds", () => {
+    expect(AUDIO_ASSETS.landing.path).toBe(
+      "assets/audio/down_cut_before_tak.wav",
+    );
+  });
+
+  it("halves only the flyer and sleeper periodic volumes", () => {
+    expect(SOUND_PLAYBACK_PROFILES["enemy-call"].volume).toBe(0.12);
+    expect(SOUND_PLAYBACK_PROFILES.sleep.volume).toBe(0.065);
+    expect(SOUND_PLAYBACK_PROFILES["waker-call"].volume).toBe(0.24);
   });
 
   it("uses jiiiingggg and doubled volume for both obstacle sounds", () => {

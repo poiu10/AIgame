@@ -61,9 +61,10 @@ export const ENEMY_CONFIG = {
 
 export const STAGE_ONE_CONFIG = {
   sleeperPulseIntervalSeconds: 2.2,
-  sleeperPulseDistance: 360,
+  sleeperPulseDistance: MELEE_ATTACK_WAVE_CONFIG.distance,
   activeEnemyPulseIntervalSeconds: 3.4,
-  activeEnemyPulseDistance: 520,
+  flyerPulseDistance: MELEE_ATTACK_WAVE_CONFIG.distance,
+  wakerPulseDistance: 520,
   activeEnemyPulseIntensity: 0.76,
   activeEnemyPulseInitialDelaySeconds: 0.8,
   activeEnemyPulseSpawnStaggerSeconds: 0.55,

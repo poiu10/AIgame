@@ -1,6 +1,7 @@
 # Audio sources
 
-- `attack.wav`, `down.wav`, `down2.wav`, `enemy-hit.wav`, `walk.wav`: copied from
+- `attack.wav`, `down.wav`, `down2.wav`, `down_cut_before_tak.wav`,
+  `enemy-hit.wav`, `walk.wav`: copied from
   `sound/400 Sounds Pack`; the supplied credit points to
   <https://ci.itch.io/400-sounds-pack>.
 - `1grrrrrun.mp3`, `1iiiiiiiiing.mp3`, `1jiiiing.mp3`, `jiiiingggg.mp3`,

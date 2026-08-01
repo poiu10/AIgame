@@ -9,6 +9,7 @@ import {
 import {
   ENEMY_CONFIG,
   FIXED_STEP_SECONDS,
+  MELEE_ATTACK_WAVE_CONFIG,
   PLAYER_CONFIG,
   STAGE_ONE_CONFIG,
 } from "../src/game/simulation/rules/config";
@@ -37,6 +38,8 @@ describe("Stage 1", () => {
       expect.objectContaining({ id: "exit-19", targetStageId: "stage-2" }),
     ]));
     expect(STAGE_ONE.enemies.map((enemy) => enemy.health)).toEqual([1, 2, 2, 1]);
+    expect(STAGE_ONE.terrain.find((terrain) => terrain.id === "terrain-5")?.bounds)
+      .toEqual({ x: 240, y: 80, width: 160, height: 260 });
   });
 
   it("presses the orange button with an attack and swaps both doors", () => {
@@ -92,7 +95,13 @@ describe("Stage 1", () => {
     updateEnemies(state, STAGE_ONE, 0.5);
 
     expect(sleeper.position).toEqual({ x: 560, y: 535 });
-    expect(state.soundWaves.some((wave) => wave.sourceId === sleeper.id)).toBe(true);
+    const sleepWave = state.soundWaves.find(
+      (wave) => wave.kind === "sleep" && wave.sourceId === sleeper.id,
+    );
+    expect(sleepWave).toBeDefined();
+    expect(Math.max(...sleepWave!.rays.map((ray) => ray.remainingDistance))).toBe(
+      MELEE_ATTACK_WAVE_CONFIG.distance,
+    );
   });
 
   it("flies horizontally and turns a flyer toward an incoming player wave", () => {
@@ -145,11 +154,15 @@ describe("Stage 1", () => {
 
     updateEnemies(state, STAGE_ONE, FIXED_STEP_SECONDS);
 
-    expect(state.soundWaves.some(
+    const flyerWave = state.soundWaves.find(
       (wave) => wave.kind === "enemy-call" && wave.sourceId === flyer.id,
-    )).toBe(true);
+    );
+    expect(flyerWave).toBeDefined();
+    expect(Math.max(...flyerWave!.rays.map((ray) => ray.remainingDistance))).toBe(
+      MELEE_ATTACK_WAVE_CONFIG.distance,
+    );
     expect(state.soundWaves.some(
-      (wave) => wave.kind === "enemy-call" && wave.sourceId === waker.id,
+      (wave) => wave.kind === "waker-call" && wave.sourceId === waker.id,
     )).toBe(false);
     expect(waker.action).toBe("sleep");
     expect(waker.timeUntilPulse).toBe(0);
@@ -161,9 +174,13 @@ describe("Stage 1", () => {
       STAGE_ONE_CONFIG.wakerPulseWakeDelaySeconds,
     );
 
-    expect(state.soundWaves.some(
-      (wave) => wave.kind === "enemy-call" && wave.sourceId === waker.id,
-    )).toBe(true);
+    const wakerWave = state.soundWaves.find(
+      (wave) => wave.kind === "waker-call" && wave.sourceId === waker.id,
+    );
+    expect(wakerWave).toBeDefined();
+    expect(Math.max(...wakerWave!.rays.map((ray) => ray.remainingDistance))).toBe(
+      STAGE_ONE_CONFIG.wakerPulseDistance,
+    );
   });
 
   it("grows leftward at 50%, 100%, then 120% of walking speed", () => {

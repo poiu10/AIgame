@@ -56,12 +56,17 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
   },
   "enemy-call": {
     assetKey: ASSET_KEYS.audio.enemyCall,
+    volume: 0.12,
+    rate: 1,
+  },
+  "waker-call": {
+    assetKey: ASSET_KEYS.audio.enemyCall,
     volume: 0.24,
     rate: 1,
   },
   sleep: {
     assetKey: ASSET_KEYS.audio.sleepingEnemy,
-    volume: 0.13,
+    volume: 0.065,
     rate: 0.96,
   },
   water: {

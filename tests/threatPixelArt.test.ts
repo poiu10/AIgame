@@ -396,6 +396,7 @@ describe("threat pixel art", () => {
       SOUND_WAVE_COLORS["player-attack"],
     );
     expect(SOUND_WAVE_COLORS["enemy-call"]).toBe(THREAT_COLOR);
+    expect(SOUND_WAVE_COLORS["waker-call"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["crusher-pulse"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);
   });
