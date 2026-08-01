@@ -37,7 +37,6 @@ import {
   createEchoMark,
   createExposedEchoMarks,
   emitSound,
-  getListenerDistanceScale,
   PLAYER_SOUND_SOURCE_ID,
   updateSoundPropagation,
 } from "../src/game/simulation/systems/sound";
@@ -788,14 +787,7 @@ describe("combat loop", () => {
     ).toBeLessThan(ENEMY_CONFIG.alertWaveDistance);
     expect(
       Math.max(...warningWave!.rays.map((ray) => ray.intensity)),
-    ).toBeCloseTo(
-      ENEMY_CONFIG.alertWaveIntensity *
-        getListenerDistanceScale(
-          state.player.position,
-          state.enemies[0].position,
-          ENEMY_CONFIG.alertWaveDistance,
-        ),
-    );
+    ).toBeCloseTo(ENEMY_CONFIG.alertWaveIntensity);
 
     advanceEnemyAlert(state);
     expect(state.enemies[0].action).toBe("alert");
