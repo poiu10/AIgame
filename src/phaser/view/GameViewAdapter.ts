@@ -27,6 +27,7 @@ import {
 } from "./mapScrollIndicator";
 import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
+import { resolvePlayerPrompt } from "./playerPrompt";
 import {
   createEnemyThreatCells,
   createElectricHazardLightningCells,
@@ -131,13 +132,12 @@ export class GameViewAdapter {
 
   private drawTutorialText(state: GameState): void {
     const section = this.world.tutorialSections?.[state.tutorialStep];
-    const prompt = state.player.action !== "dead" ? (section?.prompt ?? "") : "";
-    if (prompt === this.currentTutorialPrompt) {
-      return;
-    }
-    this.currentTutorialPrompt = prompt;
+    const prompt = resolvePlayerPrompt(state.player, section?.prompt ?? "");
+    this.tutorialText.setAlpha(prompt.alpha);
+    if (prompt.text === this.currentTutorialPrompt) return;
+    this.currentTutorialPrompt = prompt.text;
 
-    const pixelText = rasterizePixelText(prompt);
+    const pixelText = rasterizePixelText(prompt.text);
     const originX = -(pixelText.width * TUTORIAL_TEXT_PIXEL_SIZE) / 2;
     const originY =
       TUTORIAL_TEXT_BOTTOM_Y - pixelText.height * TUTORIAL_TEXT_PIXEL_SIZE;

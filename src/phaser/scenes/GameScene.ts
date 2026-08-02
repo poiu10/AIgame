@@ -13,7 +13,7 @@ import {
   serializeCheckpoint,
   type CheckpointSave,
 } from "../../game/progression/checkpoint";
-import { FIXED_STEP_SECONDS, PLAYER_CONFIG } from "../../game/simulation/rules/config";
+import { FIXED_STEP_SECONDS } from "../../game/simulation/rules/config";
 import type { GameState } from "../../game/simulation/state";
 import { drainGameEvents, stepSimulation } from "../../game/simulation/systems/simulation";
 import { GAME_HUD_EVENT, type HudState } from "../../ui/hud/mountHud";
@@ -108,29 +108,23 @@ export class GameScene extends Phaser.Scene {
       );
       this.accumulator -= FIXED_STEP_SECONDS;
 
-      if (
-        this.gameState.player.action === "dead"
-        && this.gameState.player.actionTime >= PLAYER_CONFIG.checkpointRestoreSeconds
-      ) {
-        this.restoreCheckpoint();
+      const exit = this.gameState.player.action !== "dead"
+        ? findTouchedExit(this.gameState, this.currentStage)
+        : undefined;
+      if (exit) {
+        const targetStage = getStage(exit.targetStageId);
+        this.checkpoint = createTransitionCheckpoint(
+          this.checkpoint,
+          this.currentStage,
+          this.gameState,
+          exit,
+          targetStage,
+        );
+        this.persistCheckpoint();
+        this.currentStage = targetStage;
+        this.gameState = restoreCheckpointState(this.checkpoint, targetStage);
+        this.configureStageView();
         stageChanged = true;
-      } else {
-        const exit = findTouchedExit(this.gameState, this.currentStage);
-        if (exit) {
-          const targetStage = getStage(exit.targetStageId);
-          this.checkpoint = createTransitionCheckpoint(
-            this.checkpoint,
-            this.currentStage,
-            this.gameState,
-            exit,
-            targetStage,
-          );
-          this.persistCheckpoint();
-          this.currentStage = targetStage;
-          this.gameState = restoreCheckpointState(this.checkpoint, targetStage);
-          this.configureStageView();
-          stageChanged = true;
-        }
       }
 
       if (firstStep) {

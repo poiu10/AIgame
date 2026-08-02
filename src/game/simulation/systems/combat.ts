@@ -6,6 +6,7 @@ import {
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import {
   ENEMY_CONFIG,
+  ENEMY_DEATH_WAVE_CONFIG,
   ENEMY_HIT_WAVE_CONFIG,
   getEnemyBodySize,
   PLAYER_CONFIG,
@@ -66,7 +67,14 @@ function defeatEnemy(state: GameState, enemy: EnemyState): void {
   enemy.alive = false;
   enemy.action = "dead";
   enemy.actionTime = 0;
-  emitSound(state, "enemy-death", enemy.position, 720, 1, enemy.id);
+  emitSound(
+    state,
+    "enemy-death",
+    enemy.position,
+    ENEMY_DEATH_WAVE_CONFIG.distance,
+    ENEMY_DEATH_WAVE_CONFIG.intensity,
+    enemy.id,
+  );
   enemy.echoTime = ENEMY_CONFIG.deathRevealSeconds;
   enemy.echoDuration = ENEMY_CONFIG.deathRevealSeconds;
 }

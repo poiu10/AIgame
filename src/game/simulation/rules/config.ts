@@ -10,6 +10,11 @@ export const ENEMY_HIT_WAVE_CONFIG = {
   intensity: 0.82,
 } as const;
 
+export const ENEMY_DEATH_WAVE_CONFIG = {
+  distance: 200,
+  intensity: 0.88,
+} as const;
+
 export const PLAYER_CONFIG = {
   width: 32,
   height: 84,
@@ -32,7 +37,6 @@ export const PLAYER_CONFIG = {
   attackActiveStart: 0.08,
   attackActiveEnd: 0.18,
   hurtSeconds: 0.3,
-  checkpointRestoreSeconds: 0.9,
   damageInvulnerabilitySeconds: 0.8,
   landingWaveMinimumDistance: 180,
   landingWaveDistancePerPixel: 1,

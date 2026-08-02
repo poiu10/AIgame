@@ -12,6 +12,7 @@ import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
 import { raycastAabb } from "../src/game/simulation/collision/aabb";
 import {
   ENEMY_CONFIG,
+  ENEMY_DEATH_WAVE_CONFIG,
   ENEMY_HIT_WAVE_CONFIG,
   FIXED_STEP_SECONDS,
   MELEE_ATTACK_WAVE_CONFIG,
@@ -1015,6 +1016,25 @@ describe("combat loop", () => {
     ).toBe(20);
   });
 
+  it("keeps an enemy death wave only slightly larger than its hit wave", () => {
+    const state = createInitialGameState(enemyAttackWorld);
+    state.enemies[0].health = 1;
+
+    damageEnemy(state, state.enemies[0], 1);
+
+    const deathWave = state.soundWaves.find((wave) => wave.kind === "enemy-death");
+    expect(deathWave).toBeDefined();
+    expect(
+      Math.max(...deathWave!.rays.map((ray) => ray.remainingDistance)),
+    ).toBe(ENEMY_DEATH_WAVE_CONFIG.distance);
+    expect(ENEMY_DEATH_WAVE_CONFIG.distance).toBeGreaterThan(
+      ENEMY_HIT_WAVE_CONFIG.distance,
+    );
+    expect(
+      ENEMY_DEATH_WAVE_CONFIG.distance - ENEMY_HIT_WAVE_CONFIG.distance,
+    ).toBe(20);
+  });
+
   it("damages and defeats an enemy with the active attack hitbox", () => {
     const combatWorld: WorldDefinition = {
       ...flatWorld,
@@ -1034,6 +1054,7 @@ describe("combat loop", () => {
     state.enemies[0].grounded = true;
     state.enemies[0].attackCooldown = Number.POSITIVE_INFINITY;
     let sawPlayerAttackWave = false;
+    let sawEnemyDeathWave = false;
 
     for (let index = 0; index < 24; index += 1) {
       state = stepSimulation(
@@ -1047,12 +1068,15 @@ describe("combat loop", () => {
       sawPlayerAttackWave ||= state.soundWaves.some(
         (wave) => wave.kind === "player-attack",
       );
+      sawEnemyDeathWave ||= state.soundWaves.some(
+        (wave) => wave.kind === "enemy-death",
+      );
     }
 
     expect(state.enemies[0].alive).toBe(false);
     expect(state.player.action).not.toBe("dead");
     expect(sawPlayerAttackWave).toBe(true);
-    expect(state.soundWaves.some((wave) => wave.kind === "enemy-death")).toBe(true);
+    expect(sawEnemyDeathWave).toBe(true);
     expect(state.soundWaves.some((wave) => wave.kind === "enemy-hit")).toBe(false);
   });
 

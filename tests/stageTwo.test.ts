@@ -62,8 +62,14 @@ describe("Stage 2", () => {
       expect.objectContaining({
         id: "hazard-13",
         kind: HAZARD_KINDS.damagingFloor,
+        bounds: { x: 40, y: 480, width: 880, height: 40 },
       }),
     ]);
+    expect(STAGE_TWO.terrain).toContainEqual({
+      id: "terrain-floor",
+      kind: TERRAIN_KINDS.solid,
+      bounds: { x: 40, y: 520, width: 880, height: 20 },
+    });
   });
 
   it("closes the entrance once after the player walks into the room", () => {
@@ -154,7 +160,7 @@ describe("Stage 2", () => {
     expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThanOrEqual(95);
 
     const state = createInitialGameState(STAGE_TWO);
-    emitSound(state, "player-step", { x: 680, y: 480 }, 120, 1, "player");
+    emitSound(state, "player-step", { x: 680, y: 460 }, 120, 1, "player");
     for (let index = 0; index < 8; index += 1) {
       updateSoundPropagation(state, STAGE_TWO, FIXED_STEP_SECONDS);
     }
