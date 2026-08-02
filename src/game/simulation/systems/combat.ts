@@ -1,6 +1,11 @@
-import type { WorldDefinition } from "../../content/world";
+import { TERRAIN_KINDS, type WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
-import { ENEMY_CONFIG, getEnemyBodySize, PLAYER_CONFIG } from "../rules/config";
+import {
+  ENEMY_CONFIG,
+  getEnemyBodySize,
+  PLAYER_CONFIG,
+  STAGE_ONE_CONFIG,
+} from "../rules/config";
 import { getPlayerAttackBounds } from "../rules/combat";
 import { getPlayerBounds } from "../rules/player";
 import type { EnemyState, Facing, GameState } from "../state";
@@ -133,7 +138,25 @@ export function updatePlayerCombat(
     }
 
     player.attackHitIds.push(hitId);
-    pressTerrainButton(state, world, block.id);
+    const buttonPressed = pressTerrainButton(state, world, block.id);
+    if (buttonPressed) {
+      const openingDoor = world.terrain.find(
+        (candidate) => candidate.kind === TERRAIN_KINDS.opensOnButton,
+      );
+      if (openingDoor) {
+        emitSound(
+          state,
+          "door-open",
+          {
+            x: openingDoor.bounds.x + openingDoor.bounds.width / 2,
+            y: openingDoor.bounds.y + openingDoor.bounds.height / 2,
+          },
+          STAGE_ONE_CONFIG.openingDoorSoundDistance,
+          1,
+          openingDoor.id,
+        );
+      }
+    }
     const hitPosition = {
       x:
         player.facing > 0

@@ -433,6 +433,7 @@ describe("threat pixel art", () => {
     );
     expect(SOUND_WAVE_COLORS["enemy-call"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["waker-call"]).toBe(THREAT_COLOR);
+    expect(SOUND_WAVE_COLORS["door-open"]).toBe(ECHO_MARK_COLORS.terrain);
     expect(SOUND_WAVE_COLORS["crusher-pulse"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);
     expect(ECHO_MARK_COLORS.terrain).not.toBe(THREAT_COLOR);

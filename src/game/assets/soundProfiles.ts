@@ -74,6 +74,11 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     volume: 0.17,
     rate: 1,
   },
+  "door-open": {
+    assetKey: ASSET_KEYS.audio.doorOpen,
+    volume: 0.38,
+    rate: 1,
+  },
   "crusher-pulse": {
     assetKey: ASSET_KEYS.audio.crusherPulse,
     volume: 0.63,

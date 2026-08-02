@@ -40,6 +40,8 @@ describe("Stage 1", () => {
     expect(STAGE_ONE.enemies.map((enemy) => enemy.health)).toEqual([1, 2, 2, 1]);
     expect(STAGE_ONE.terrain.find((terrain) => terrain.id === "terrain-5")?.bounds)
       .toEqual({ x: 240, y: 80, width: 160, height: 220 });
+    const waker = STAGE_ONE.enemies.find((enemy) => enemy.id === "enemy-wake")!;
+    expect(waker.position.x - 70 / 2).toBe(400);
     expect(
       STAGE_ONE.hazards?.filter((hazard) => hazard.kind === HAZARD_KINDS.lethal),
     ).toHaveLength(2);
@@ -63,6 +65,18 @@ describe("Stage 1", () => {
     expect(getActiveTerrain(state, STAGE_ONE).map((terrain) => terrain.id)).toContain(
       "terrain-door1",
     );
+    expect(state.soundWaves).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "door-open",
+        sourceId: "terrain-door2",
+        origin: { x: 140, y: 390 },
+      }),
+    ]));
+    expect(state.events.filter(
+      (event) => event.type === "sound" && event.kind === "door-open",
+    )).toHaveLength(1);
+    expect(pressTerrainButton(state, STAGE_ONE, "terrain-botton")).toBe(false);
+    expect(state.soundWaves.filter((wave) => wave.kind === "door-open")).toHaveLength(1);
   });
 
   it("reveals the whole button state when a sound ray reaches it", () => {
@@ -255,6 +269,23 @@ describe("Stage 1", () => {
     expect(hazard.bounds.x).toBeCloseTo(7250);
     expect(hazard.bounds.width).toBeCloseTo(2790);
     expect(hazard.bounds.height).toBeCloseTo(900);
+  });
+
+  it("keeps the growing hazard pulse near the hazard", () => {
+    const state = createInitialGameState(STAGE_ONE);
+    const hazard = state.hazards.find(
+      (candidate) => candidate.id === "hazard-growing",
+    )!;
+    hazard.timeUntilPulse = 0;
+
+    updateWorldEnvironment(state, STAGE_ONE, FIXED_STEP_SECONDS);
+
+    const wave = state.soundWaves.find((candidate) => candidate.kind === "hazard-pulse");
+    expect(STAGE_ONE_CONFIG.growingHazardPulseDistance).toBe(
+      MELEE_ATTACK_WAVE_CONFIG.distance,
+    );
+    expect(wave).toBeDefined();
+    expect(Math.max(...wave!.rays.map((ray) => ray.remainingDistance))).toBe(160);
   });
 
   it("keeps the growing hazard lethal after every enemy is defeated", () => {

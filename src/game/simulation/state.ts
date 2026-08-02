@@ -33,6 +33,7 @@ export type SoundKind =
   | "enemy-death"
   | "sleep"
   | "water"
+  | "door-open"
   | "crusher-pulse"
   | "hazard-pulse";
 

@@ -21,6 +21,7 @@ export const ASSET_KEYS = {
     walk: "audio.walk",
     enemyAlert: "audio.enemy-alert",
     enemyCall: "audio.enemy-call",
+    doorOpen: "audio.door-open",
     growing: "audio.growing",
     crusherPulse: "audio.crusher-pulse",
     hazardPulse: "audio.hazard-pulse",
@@ -185,6 +186,10 @@ export const AUDIO_ASSETS = {
   enemyCall: {
     key: ASSET_KEYS.audio.enemyCall,
     path: "assets/audio/1kaaaaaak.mp3",
+  },
+  doorOpen: {
+    key: ASSET_KEYS.audio.doorOpen,
+    path: "assets/audio/stonedoor.mp3",
   },
   growing: {
     key: ASSET_KEYS.audio.growing,

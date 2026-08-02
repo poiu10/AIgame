@@ -67,6 +67,15 @@ describe("sample-backed sound", () => {
     );
   });
 
+  it("uses the supplied stone door sample for the opening door", () => {
+    expect(AUDIO_ASSETS.doorOpen.path).toBe("assets/audio/stonedoor.mp3");
+    expect(SOUND_PLAYBACK_PROFILES["door-open"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.doorOpen,
+      volume: 0.38,
+      rate: 1,
+    });
+  });
+
   it("halves only the flyer and sleeper periodic volumes", () => {
     expect(SOUND_PLAYBACK_PROFILES["enemy-call"].volume).toBe(0.12);
     expect(SOUND_PLAYBACK_PROFILES.sleep.volume).toBe(0.065);

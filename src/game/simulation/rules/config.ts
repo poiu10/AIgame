@@ -73,8 +73,9 @@ export const STAGE_ONE_CONFIG = {
   flyerSpeed: 190,
   wakerAcceleration: 700,
   wakerMaximumSpeed: 560,
+  openingDoorSoundDistance: 720,
   growingHazardPulseIntervalSeconds: 1.35,
-  growingHazardPulseDistance: 420,
+  growingHazardPulseDistance: MELEE_ATTACK_WAVE_CONFIG.distance,
   growingSoundMaximumDistance: 720,
 } as const;
 

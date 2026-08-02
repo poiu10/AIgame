@@ -254,11 +254,11 @@
       "kind": "stage-waker",
       "role": "enemy",
       "position": {
-        "x": 620,
+        "x": 435,
         "y": 120
       },
-      "patrolMinX": 420,
-      "patrolMaxX": 820,
+      "patrolMinX": 435,
+      "patrolMaxX": 835,
       "health": 1
     }
   ],
