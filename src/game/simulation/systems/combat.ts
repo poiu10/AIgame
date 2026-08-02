@@ -1,4 +1,8 @@
-import { TERRAIN_KINDS, type WorldDefinition } from "../../content/world";
+import {
+  ENEMY_KINDS,
+  TERRAIN_KINDS,
+  type WorldDefinition,
+} from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import {
   ENEMY_CONFIG,
@@ -183,7 +187,7 @@ export function updateEnemyContactDamage(state: GameState): void {
   const playerBounds = getPlayerBounds(state.player);
 
   for (const enemy of state.enemies) {
-    if (!enemy.alive) continue;
+    if (!enemy.alive || enemy.kind === ENEMY_KINDS.cocoonBoss) continue;
 
     const body = getEnemyBodySize(enemy.kind);
     if (

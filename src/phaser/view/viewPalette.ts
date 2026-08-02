@@ -20,6 +20,7 @@ export const SOUND_WAVE_COLORS: Readonly<Record<SoundKind, number>> = {
   sleep: THREAT_COLOR,
   water: 0x79dfee,
   "door-open": TERRAIN_ECHO_COLOR,
+  "door-close": TERRAIN_ECHO_COLOR,
   "crusher-pulse": THREAT_COLOR,
   "electric-pulse": THREAT_COLOR,
 };

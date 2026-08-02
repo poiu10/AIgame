@@ -52,12 +52,20 @@ export class SampleSoundPlayer {
     sound.once(Phaser.Sound.Events.COMPLETE, destroy);
 
     let started: boolean;
-    if (profile.playbackFraction) {
-      const markerName = "opening-quarter";
+    if (profile.playbackStartFraction || profile.playbackFraction) {
+      const markerName = `segment-${event.kind}`;
+      const startFraction = profile.playbackStartFraction ?? 0;
+      const playbackFraction = profile.playbackFraction ?? (1 - startFraction);
       sound.addMarker({
         name: markerName,
-        start: 0,
-        duration: Math.max(0.01, sound.totalDuration * profile.playbackFraction),
+        start: sound.totalDuration * startFraction,
+        duration: Math.max(
+          0.01,
+          Math.min(
+            sound.totalDuration * playbackFraction,
+            sound.totalDuration * (1 - startFraction),
+          ),
+        ),
       });
       started = sound.play(markerName, config);
     } else {

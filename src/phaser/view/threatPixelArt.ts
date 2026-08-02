@@ -17,6 +17,7 @@ export interface ThreatPixelCell {
 
 export const SHORT_FLOOR_HAZARD_ID = "hazard-7";
 export const LONG_FLOOR_HAZARD_ID = "hazard-1";
+export const STAGE_TWO_FLOOR_HAZARD_ID = "hazard-13";
 
 interface CellPoint {
   x: number;
@@ -1036,13 +1037,78 @@ export function resolveEnemyThreatFrame(
   return "idle";
 }
 
+export function createCocoonBossThreatCells(
+  frame: EnemyThreatFrame,
+): ThreatPixelCell[] {
+  const cells = new Map<string, ThreatPixelCell>();
+  const add = (x: number, y: number) => {
+    cells.set(cellKey(x, y), { x, y });
+  };
+
+  if (frame === "corpse" || frame === "death-collapse") {
+    const halfWidth = frame === "corpse" ? 26 : 20;
+    const height = frame === "corpse" ? 9 : 15;
+    for (let y = 0; y < height; y += 1) {
+      const rowHalfWidth = Math.max(4, halfWidth - Math.floor(y * 0.9));
+      for (let x = -rowHalfWidth; x <= rowHalfWidth; x += 1) add(x, y);
+    }
+    return [...cells.values()];
+  }
+
+  const recoilX = frame === "hurt" || frame === "death-recoil" ? 3 : 0;
+  const droopY = frame === "death-fall" ? 5 : 0;
+
+  for (let y = -50; y <= -39; y += 1) {
+    const halfWidth = y < -44 ? 2 : 4;
+    for (let x = -halfWidth; x <= halfWidth; x += 1) {
+      add(x + recoilX, y + droopY);
+    }
+  }
+  for (const root of [
+    { x: -8, y: -48 }, { x: -7, y: -47 }, { x: -6, y: -46 },
+    { x: 6, y: -46 }, { x: 7, y: -48 }, { x: 10, y: -49 },
+  ]) add(root.x + recoilX, root.y + droopY);
+
+  const topY = -40;
+  const bottomY = 40;
+  for (let y = topY; y <= bottomY; y += 1) {
+    const progress = (y - topY) / (bottomY - topY);
+    const organicBulge = Math.sin(progress * Math.PI) * 21;
+    const unevenEdge = Math.sin(progress * Math.PI * 5) * 2.5;
+    const halfWidth = Math.max(5, Math.round(7 + organicBulge + unevenEdge));
+    for (let x = -halfWidth; x <= halfWidth; x += 1) {
+      add(x + recoilX, y + droopY);
+    }
+    if (y % 9 === 0) add(-halfWidth - 2 + recoilX, y + droopY);
+    if ((y + 4) % 11 === 0) add(halfWidth + 2 + recoilX, y + droopY);
+  }
+
+  for (const tip of [
+    { x: -11, length: 7 },
+    { x: -4, length: 11 },
+    { x: 3, length: 9 },
+    { x: 10, length: 6 },
+  ]) {
+    for (let offset = 1; offset <= tip.length; offset += 1) {
+      const sway = offset > tip.length / 2 ? Math.sign(tip.x) : 0;
+      add(tip.x + sway + recoilX, bottomY + offset + droopY);
+    }
+  }
+
+  return [...cells.values()];
+}
+
 export function createEnemyThreatCells(
   frame: EnemyThreatFrame,
   facing: Facing,
   kind: string = ENEMY_KINDS.stalker,
 ): ThreatPixelCell[] {
   const cells = new Map<string, ThreatPixelCell>();
-  if (kind === ENEMY_KINDS.sleeper && frame === "idle") {
+  if (kind === ENEMY_KINDS.cocoonBoss) {
+    for (const cell of createCocoonBossThreatCells(frame)) {
+      cells.set(cellKey(cell.x, cell.y), cell);
+    }
+  } else if (kind === ENEMY_KINDS.sleeper && frame === "idle") {
     addPolygons(cells, createSleepingEnemyPolygons(false));
   } else if (kind === ENEMY_KINDS.flyer) {
     addPolygons(cells, createFlyingEnemyPolygons(frame));
@@ -1285,6 +1351,9 @@ export function createFloorHazardThreatCells(
     return SHORT_FLOOR_HAZARD_THREAT_CELLS;
   }
   if (hazardId === LONG_FLOOR_HAZARD_ID) {
+    return LONG_FLOOR_HAZARD_THREAT_CELLS;
+  }
+  if (hazardId === STAGE_TWO_FLOOR_HAZARD_ID) {
     return LONG_FLOOR_HAZARD_THREAT_CELLS;
   }
   return [];

@@ -5,6 +5,7 @@ export interface SoundPlaybackProfile {
   assetKey: string;
   volume: number;
   rate: number;
+  playbackStartFraction?: number;
   playbackFraction?: number;
 }
 
@@ -78,6 +79,12 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     assetKey: ASSET_KEYS.audio.doorOpen,
     volume: 0.38,
     rate: 1,
+  },
+  "door-close": {
+    assetKey: ASSET_KEYS.audio.doorOpen,
+    volume: 0.38,
+    rate: 1,
+    playbackStartFraction: 0.5,
   },
   "crusher-pulse": {
     assetKey: ASSET_KEYS.audio.crusherPulse,

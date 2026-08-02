@@ -34,6 +34,7 @@ export type SoundKind =
   | "sleep"
   | "water"
   | "door-open"
+  | "door-close"
   | "crusher-pulse"
   | "electric-pulse";
 
@@ -214,7 +215,9 @@ export function createInitialGameState(
       maxHealth: spawn.health ?? ENEMY_CONFIG.maxHealth,
       alive: true,
       action:
-        spawn.kind === ENEMY_KINDS.sleeper || spawn.kind === ENEMY_KINDS.waker
+        spawn.kind === ENEMY_KINDS.sleeper ||
+        spawn.kind === ENEMY_KINDS.waker ||
+        spawn.kind === ENEMY_KINDS.cocoonBoss
           ? "sleep"
           : spawn.kind === ENEMY_KINDS.flyer
             ? "fly"
@@ -239,7 +242,9 @@ export function createInitialGameState(
     })),
     terrain: world.terrain.map((block) => ({
       id: block.id,
-      active: block.kind !== TERRAIN_KINDS.closesOnButton,
+      active:
+        block.kind !== TERRAIN_KINDS.closesOnButton &&
+        block.kind !== TERRAIN_KINDS.closesOnEntry,
       pressed: false,
       echoTime: 0,
       echoDuration: 0,

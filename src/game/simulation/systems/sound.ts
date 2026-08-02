@@ -381,7 +381,10 @@ export function updateSoundPropagation(
         segmentEnd.y - ray.position.y,
       );
       for (const hazard of state.hazards) {
-        if (hazard.kind === HAZARD_KINDS.lethal) {
+        if (
+          hazard.kind === HAZARD_KINDS.lethal ||
+          hazard.kind === HAZARD_KINDS.damagingFloor
+        ) {
           const hit = raycastAabb(
             ray.position,
             ray.direction,
@@ -426,6 +429,7 @@ export function updateSoundPropagation(
             wave.sourceId === PLAYER_SOUND_SOURCE_ID &&
             enemy.kind !== ENEMY_KINDS.sleeper &&
             enemy.kind !== ENEMY_KINDS.waker &&
+            enemy.kind !== ENEMY_KINDS.cocoonBoss &&
             !wave.reactedEnemyIds.includes(enemy.id)
           ) {
             const directionTowardSound: Facing =

@@ -221,7 +221,10 @@ export class GameViewAdapter {
   private drawHazards(state: GameState): void {
     this.hazardGraphics.clear();
     for (const hazard of state.hazards) {
-      if (hazard.kind === HAZARD_KINDS.lethal) {
+      if (
+        hazard.kind === HAZARD_KINDS.lethal ||
+        hazard.kind === HAZARD_KINDS.damagingFloor
+      ) {
         continue;
       }
       if (hazard.kind === HAZARD_KINDS.electric) {

@@ -74,6 +74,12 @@ describe("sample-backed sound", () => {
       volume: 0.38,
       rate: 1,
     });
+    expect(SOUND_PLAYBACK_PROFILES["door-close"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.doorOpen,
+      volume: 0.38,
+      rate: 1,
+      playbackStartFraction: 0.5,
+    });
   });
 
   it("halves only the flyer and sleeper periodic volumes", () => {

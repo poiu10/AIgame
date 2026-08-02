@@ -219,6 +219,12 @@ export function updateEnemies(
     }
 
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - deltaSeconds);
+    if (enemy.kind === ENEMY_KINDS.cocoonBoss) {
+      enemy.action = "sleep";
+      enemy.grounded = false;
+      enemy.velocity = { x: 0, y: 0 };
+      continue;
+    }
     if (enemy.kind === ENEMY_KINDS.sleeper) {
       enemy.action = "sleep";
       enemy.grounded = true;

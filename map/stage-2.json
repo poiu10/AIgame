@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
   "id": "stage-2",
-  "name": "Stage 2",
+  "name": "2스테이지",
   "width": 960,
   "height": 540,
   "playerSpawn": {
-    "x": 0,
-    "y": 0
+    "x": 900,
+    "y": 380
   },
   "spawns": [
     {
-      "id": "spawn-7",
+      "id": "from-stage-1",
       "position": {
         "x": 900,
         "y": 380
       },
-      "facing": 1
+      "facing": -1
     }
   ],
   "exits": [
@@ -27,8 +27,8 @@
         "width": 20,
         "height": 140
       },
-      "targetStageId": "tutorial",
-      "targetSpawnId": "from-stage-1"
+      "targetStageId": "stage-1",
+      "targetSpawnId": "spawn-13"
     }
   ],
   "terrain": [
@@ -84,7 +84,7 @@
     },
     {
       "id": "terrain-door",
-      "kind": "solid",
+      "kind": "entry-closing-door",
       "bounds": {
         "x": 920,
         "y": 300,
@@ -113,11 +113,24 @@
       }
     }
   ],
-  "enemies": [],
+  "enemies": [
+    {
+      "id": "boss-cocoon",
+      "kind": "stage-2-cocoon-boss",
+      "role": "boss",
+      "position": {
+        "x": 480,
+        "y": 190
+      },
+      "patrolMinX": 480,
+      "patrolMaxX": 480,
+      "health": 1
+    }
+  ],
   "hazards": [
     {
       "id": "hazard-13",
-      "kind": "resonance-crusher",
+      "kind": "damage-floor",
       "bounds": {
         "x": 40,
         "y": 500,

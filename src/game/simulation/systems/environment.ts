@@ -3,13 +3,18 @@ import { rectanglesOverlap } from "../collision/aabb";
 import {
   HAZARD_CONFIG,
   PLAYER_CONFIG,
+  SOUND_CONFIG,
   STAGE_ONE_CONFIG,
+  STAGE_TWO_CONFIG,
 } from "../rules/config";
 import { getPlayerBounds } from "../rules/player";
 import type { GameState } from "../state";
 import { damagePlayer, killPlayer } from "./combat";
 import { emitSound, emitSoundWave } from "./sound";
-import { updateTerrainMechanismTimers } from "./stageMechanisms";
+import {
+  closeEntryDoors,
+  updateTerrainMechanismTimers,
+} from "./stageMechanisms";
 
 const HAZARD_REVEAL_SECONDS = 0.62;
 
@@ -120,6 +125,26 @@ export function updateWorldEnvironment(
   deltaSeconds: number,
 ): void {
   updateTerrainMechanismTimers(state, deltaSeconds);
+  for (const door of closeEntryDoors(
+    state,
+    world,
+    STAGE_TWO_CONFIG.entryDoorTriggerDistance,
+  )) {
+    const doorOnRight = door.bounds.x + door.bounds.width / 2 >= world.width / 2;
+    emitSound(
+      state,
+      "door-close",
+      {
+        x: doorOnRight
+          ? door.bounds.x - SOUND_CONFIG.raySurfaceOffset
+          : door.bounds.x + door.bounds.width + SOUND_CONFIG.raySurfaceOffset,
+        y: door.bounds.y + door.bounds.height / 2,
+      },
+      STAGE_TWO_CONFIG.closingDoorSoundDistance,
+      1,
+      door.id,
+    );
+  }
   for (const hazard of state.hazards) {
     hazard.echoTime = Math.max(0, hazard.echoTime - deltaSeconds);
     hazard.reactionTime = Math.max(0, hazard.reactionTime - deltaSeconds);
@@ -180,6 +205,15 @@ export function updateWorldEnvironment(
     if (hazard.kind === HAZARD_KINDS.electric) {
       killPlayer(state);
       break;
+    }
+    if (hazard.kind === HAZARD_KINDS.damagingFloor) {
+      const knockbackDirection = state.player.velocity.x < 0
+        ? -1
+        : state.player.velocity.x > 0
+          ? 1
+          : state.player.facing;
+      damagePlayer(state, knockbackDirection);
+      continue;
     }
     if (state.player.action === "roll") continue;
 

@@ -21,6 +21,7 @@ export const TERRAIN_KINDS = {
   button: "trigger-button",
   closesOnButton: "button-closing-door",
   opensOnButton: "button-opening-door",
+  closesOnEntry: "entry-closing-door",
 } as const;
 
 export interface EnemySpawn {
@@ -38,6 +39,7 @@ export const ENEMY_KINDS = {
   sleeper: "stage-sleeper",
   flyer: "stage-flyer",
   waker: "stage-waker",
+  cocoonBoss: "stage-2-cocoon-boss",
 } as const;
 
 export interface HazardDefinition {
@@ -50,6 +52,7 @@ export const HAZARD_KINDS = {
   crusher: "resonance-crusher",
   lethal: "instant-death",
   electric: "button-electric",
+  damagingFloor: "damage-floor",
 } as const;
 
 export type WorldSoundKind = "water" | "crusher-pulse" | "electric-pulse";

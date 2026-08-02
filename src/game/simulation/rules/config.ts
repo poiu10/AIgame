@@ -90,6 +90,11 @@ export const STAGE_ONE_CONFIG = {
   electricSoundMaximumDistance: 720,
 } as const;
 
+export const STAGE_TWO_CONFIG = {
+  entryDoorTriggerDistance: 72,
+  closingDoorSoundDistance: 720,
+} as const;
+
 export function getEnemyBodySize(kind?: string): {
   width: number;
   height: number;
@@ -97,6 +102,7 @@ export function getEnemyBodySize(kind?: string): {
   if (kind === "stage-sleeper") return { width: 72, height: 40 };
   if (kind === "stage-flyer") return { width: 66, height: 44 };
   if (kind === "stage-waker") return { width: 70, height: 52 };
+  if (kind === "stage-2-cocoon-boss") return { width: 180, height: 260 };
   return { width: ENEMY_CONFIG.width, height: ENEMY_CONFIG.height };
 }
 

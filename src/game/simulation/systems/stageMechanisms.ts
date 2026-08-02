@@ -113,3 +113,29 @@ export function updateTerrainMechanismTimers(
     terrain.echoTime = Math.max(0, terrain.echoTime - deltaSeconds);
   }
 }
+
+export function closeEntryDoors(
+  state: GameState,
+  world: WorldDefinition,
+  triggerDistance: number,
+): TerrainBlock[] {
+  const closedDoors: TerrainBlock[] = [];
+  for (const block of world.terrain) {
+    if (block.kind !== TERRAIN_KINDS.closesOnEntry) continue;
+    const terrain = state.terrain.find((candidate) => candidate.id === block.id);
+    if (!terrain || terrain.active) continue;
+
+    const doorCenterX = block.bounds.x + block.bounds.width / 2;
+    const enteredFarEnough = doorCenterX >= world.width / 2
+      ? state.player.position.x <= block.bounds.x - triggerDistance
+      : state.player.position.x >=
+        block.bounds.x + block.bounds.width + triggerDistance;
+    if (!enteredFarEnough) continue;
+
+    terrain.active = true;
+    terrain.echoTime = SOUND_CONFIG.echoSeconds;
+    terrain.echoDuration = SOUND_CONFIG.echoSeconds;
+    closedDoors.push(block);
+  }
+  return closedDoors;
+}
