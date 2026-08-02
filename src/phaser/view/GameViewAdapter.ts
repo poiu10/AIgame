@@ -15,6 +15,7 @@ import type {
   GameState,
   PlayerState,
 } from "../../game/simulation/state";
+import { resolveTerrainBounds } from "../../game/simulation/systems/stageMechanisms";
 import {
   getPixelThicknessOffsets,
   rasterizePixelLine,
@@ -44,6 +45,7 @@ const ALERT_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(4);
 const TUTORIAL_TEXT_PIXEL_SIZE = 10;
 const TUTORIAL_TEXT_BOTTOM_Y = -PLAYER_CONFIG.height / 2 - 20;
 const TUTORIAL_TEXT_SHADOW_OFFSET = 4;
+const BUTTON_PRESS_GUIDE_WIDTH = 3;
 
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
@@ -157,13 +159,33 @@ export class GameViewAdapter {
         1,
         terrain.echoTime / Math.max(terrain.echoDuration, 0.001),
       );
-      const inset = terrain.pressed ? Math.min(10, definition.bounds.width / 2) : 0;
+      const bounds = resolveTerrainBounds(definition, terrain);
+      const pressDepth = bounds.y - definition.bounds.y;
+      if (pressDepth > 0) {
+        const guideWidth = Math.min(
+          BUTTON_PRESS_GUIDE_WIDTH,
+          definition.bounds.width / 2,
+        );
+        this.terrainMechanismGraphics.fillStyle(TRIGGER_COLOR, alpha * 0.3);
+        this.terrainMechanismGraphics.fillRect(
+          definition.bounds.x,
+          definition.bounds.y,
+          guideWidth,
+          pressDepth,
+        );
+        this.terrainMechanismGraphics.fillRect(
+          definition.bounds.x + definition.bounds.width - guideWidth,
+          definition.bounds.y,
+          guideWidth,
+          pressDepth,
+        );
+      }
       this.terrainMechanismGraphics.fillStyle(TRIGGER_COLOR, alpha);
       this.terrainMechanismGraphics.fillRect(
-        definition.bounds.x + inset,
-        definition.bounds.y,
-        definition.bounds.width - inset,
-        definition.bounds.height,
+        bounds.x,
+        bounds.y,
+        bounds.width,
+        bounds.height,
       );
     }
   }

@@ -11,6 +11,7 @@ import {
   FIXED_STEP_SECONDS,
   MELEE_ATTACK_WAVE_CONFIG,
   PLAYER_CONFIG,
+  SOUND_CONFIG,
   STAGE_ONE_CONFIG,
 } from "../src/game/simulation/rules/config";
 import { createInitialGameState } from "../src/game/simulation/state";
@@ -22,6 +23,7 @@ import {
 } from "../src/game/simulation/systems/environment";
 import { emitSound, updateSoundPropagation } from "../src/game/simulation/systems/sound";
 import {
+  BUTTON_PRESS_DEPTH,
   getActiveTerrain,
   pressTerrainButton,
 } from "../src/game/simulation/systems/stageMechanisms";
@@ -49,22 +51,36 @@ describe("Stage 1", () => {
 
   it("presses the orange button with an attack and swaps both doors", () => {
     const state = createInitialGameState(STAGE_ONE);
+    const buttonDefinition = STAGE_ONE.terrain.find(
+      (terrain) => terrain.id === "terrain-botton",
+    )!;
     expect(getTerrainState(state, "terrain-door1").active).toBe(false);
     expect(getTerrainState(state, "terrain-door2").active).toBe(true);
 
-    state.player.position = { x: 1190, y: 260 };
+    state.player.position = {
+      x: buttonDefinition.bounds.x - PLAYER_CONFIG.width / 2 - 40,
+      y: buttonDefinition.bounds.y + buttonDefinition.bounds.height / 2,
+    };
     state.player.attackFacing = 1;
     state.player.action = "attack";
     state.player.actionTime = PLAYER_CONFIG.attackActiveStart;
     updatePlayerCombat(state, STAGE_ONE);
 
     expect(getTerrainState(state, "terrain-botton").pressed).toBe(true);
-    expect(getTerrainState(state, "terrain-botton").echoTime).toBe(0);
+    expect(getTerrainState(state, "terrain-botton").echoTime).toBe(
+      SOUND_CONFIG.echoSeconds,
+    );
     expect(getTerrainState(state, "terrain-door1").active).toBe(true);
     expect(getTerrainState(state, "terrain-door2").active).toBe(false);
-    expect(getActiveTerrain(state, STAGE_ONE).map((terrain) => terrain.id)).toContain(
-      "terrain-door1",
-    );
+    const activeTerrain = getActiveTerrain(state, STAGE_ONE);
+    expect(activeTerrain.map((terrain) => terrain.id)).toContain("terrain-door1");
+    expect(
+      activeTerrain.find((terrain) => terrain.id === "terrain-botton")?.bounds,
+    ).toEqual({
+      ...buttonDefinition.bounds,
+      y: buttonDefinition.bounds.y + BUTTON_PRESS_DEPTH,
+      height: buttonDefinition.bounds.height - BUTTON_PRESS_DEPTH,
+    });
     expect(state.soundWaves).toEqual(expect.arrayContaining([
       expect.objectContaining({
         kind: "door-open",
@@ -292,14 +308,25 @@ describe("Stage 1", () => {
     const state = createInitialGameState(STAGE_ONE);
     for (const enemy of state.enemies) enemy.alive = false;
     expect(pressTerrainButton(state, STAGE_ONE, "terrain-botton")).toBe(true);
-    state.player.position = { x: 1250, y: 120 };
-
-    updateWorldEnvironment(state, STAGE_ONE, 0.2);
-
     const hazard = state.hazards.find(
       (candidate) => candidate.id === "hazard-growing",
     )!;
-    expect(hazard.bounds).toEqual({ x: 1230, y: 100, width: 90, height: 90 });
+    const initialBounds = { ...hazard.bounds };
+    const elapsedSeconds = 0.2;
+    const expectedGrowth = getGrowingHazardSpeed() * elapsedSeconds;
+    state.player.position = {
+      x: initialBounds.x - expectedGrowth / 2,
+      y: initialBounds.y + initialBounds.height / 2,
+    };
+
+    updateWorldEnvironment(state, STAGE_ONE, elapsedSeconds);
+
+    expect(hazard.bounds).toEqual({
+      x: initialBounds.x - expectedGrowth,
+      y: initialBounds.y,
+      width: initialBounds.width + expectedGrowth,
+      height: initialBounds.height + expectedGrowth,
+    });
     expect(state.player.health).toBe(0);
     expect(state.player.action).toBe("dead");
   });

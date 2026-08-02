@@ -2,19 +2,45 @@ import {
   ENEMY_KINDS,
   HAZARD_KINDS,
   TERRAIN_KINDS,
+  type RectState,
   type TerrainBlock,
   type WorldDefinition,
 } from "../../content/world";
 import { SOUND_CONFIG, STAGE_ONE_CONFIG } from "../rules/config";
-import type { GameState } from "../state";
+import type { GameState, TerrainState } from "../state";
+
+export const BUTTON_PRESS_DEPTH = 12;
+
+export function resolveTerrainBounds(
+  block: TerrainBlock,
+  terrain: TerrainState | undefined,
+): RectState {
+  if (block.kind !== TERRAIN_KINDS.button || !terrain?.pressed) {
+    return block.bounds;
+  }
+
+  const pressDepth = Math.min(
+    BUTTON_PRESS_DEPTH,
+    Math.max(0, block.bounds.height - 1),
+  );
+  return {
+    ...block.bounds,
+    y: block.bounds.y + pressDepth,
+    height: block.bounds.height - pressDepth,
+  };
+}
 
 export function getActiveTerrain(
   state: GameState,
   world: WorldDefinition,
 ): TerrainBlock[] {
-  return world.terrain.filter((block) =>
-    state.terrain.find((terrain) => terrain.id === block.id)?.active ?? true,
-  );
+  return world.terrain.flatMap((block) => {
+    const terrain = state.terrain.find((candidate) => candidate.id === block.id);
+    if (!(terrain?.active ?? true)) return [];
+
+    const bounds = resolveTerrainBounds(block, terrain);
+    return bounds === block.bounds ? [block] : [{ ...block, bounds }];
+  });
 }
 
 export function withActiveTerrain(
@@ -49,6 +75,9 @@ export function pressTerrainButton(
   }
 
   button.pressed = true;
+  button.echoTime = SOUND_CONFIG.echoSeconds;
+  button.echoDuration = SOUND_CONFIG.echoSeconds;
+  state.echoMarks = state.echoMarks.filter((mark) => mark.surfaceId !== terrainId);
 
   for (const block of world.terrain) {
     const terrain = state.terrain.find((candidate) => candidate.id === block.id);
