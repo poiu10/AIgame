@@ -200,7 +200,25 @@ describe("player controller", () => {
       flatWorld,
     );
     expect(state.player.grounded).toBe(false);
-    expect(state.player.velocity.y).toBeLessThan(-1200);
+    expect(state.player.velocity.y).toBeCloseTo(
+      -PLAYER_CONFIG.jumpSpeed + PLAYER_CONFIG.gravity * FIXED_STEP_SECONDS,
+    );
+  });
+
+  it("limits upward speed when the jump input is released", () => {
+    let state = stepMany(flatWorld, 40);
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, jumpPressed: true, jumpHeld: false },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.velocity.y).toBeCloseTo(
+      -PLAYER_CONFIG.jumpReleaseSpeed +
+        PLAYER_CONFIG.gravity * FIXED_STEP_SECONDS,
+    );
   });
 
   it("stops horizontal drift when landing without movement input", () => {
@@ -316,7 +334,9 @@ describe("player controller", () => {
 
     expect(state.player.action).toBe("normal");
     expect(state.player.grounded).toBe(false);
-    expect(state.player.velocity.y).toBeLessThan(-1200);
+    expect(state.player.velocity.y).toBeCloseTo(
+      -PLAYER_CONFIG.jumpSpeed + PLAYER_CONFIG.gravity * FIXED_STEP_SECONDS,
+    );
     expect(Math.abs(state.player.velocity.x)).toBeLessThanOrEqual(
       PLAYER_CONFIG.maxSpeed,
     );
@@ -393,7 +413,9 @@ describe("player controller", () => {
     expect(state.player.actionTime).toBe(0);
     expect(state.player.attackHitIds).toEqual([]);
     expect(state.player.grounded).toBe(false);
-    expect(state.player.velocity.y).toBeLessThan(-1200);
+    expect(state.player.velocity.y).toBeCloseTo(
+      -PLAYER_CONFIG.jumpSpeed + PLAYER_CONFIG.gravity * FIXED_STEP_SECONDS,
+    );
   });
 
   it("cycles ground attacks and keeps air attacks separate", () => {

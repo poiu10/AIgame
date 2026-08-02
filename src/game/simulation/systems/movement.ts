@@ -193,8 +193,14 @@ export function updatePlayerMovement(
     player.jumpBufferTime = 0;
   }
 
-  if (!input.jumpHeld && player.velocity.y < -440) {
-    player.velocity.y = Math.max(player.velocity.y, -440);
+  if (
+    !input.jumpHeld &&
+    player.velocity.y < -PLAYER_CONFIG.jumpReleaseSpeed
+  ) {
+    player.velocity.y = Math.max(
+      player.velocity.y,
+      -PLAYER_CONFIG.jumpReleaseSpeed,
+    );
   }
 
   if (player.action === "roll") {
