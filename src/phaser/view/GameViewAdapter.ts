@@ -21,6 +21,10 @@ import {
   rasterizePixelLine,
   SOUND_PIXEL_SIZE,
 } from "./pixelLine";
+import {
+  createMapScrollIndicatorDots,
+  MAP_SCROLL_INDICATOR_DOT_SIZE,
+} from "./mapScrollIndicator";
 import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 import {
@@ -36,6 +40,7 @@ import {
 import {
   ECHO_MARK_COLORS,
   SOUND_WAVE_COLORS,
+  TERRAIN_ECHO_COLOR,
   THREAT_COLOR,
   TRIGGER_COLOR,
 } from "./viewPalette";
@@ -49,6 +54,7 @@ const TUTORIAL_TEXT_SHADOW_OFFSET = 4;
 const BUTTON_PRESS_GUIDE_WIDTH = 3;
 const ELECTRIC_LIGHTNING_FRAME_COUNT = 4;
 const ELECTRIC_LIGHTNING_FRAME_RATE = 20;
+const MAP_SCROLL_INDICATOR_ALPHA = 0.62;
 
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
@@ -63,6 +69,7 @@ export class GameViewAdapter {
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
   private readonly terrainMechanismGraphics: Phaser.GameObjects.Graphics;
+  private readonly mapScrollIndicatorGraphics: Phaser.GameObjects.Graphics;
   private currentTutorialPrompt = "";
 
   constructor(
@@ -73,6 +80,23 @@ export class GameViewAdapter {
     this.waveGraphics = scene.add.graphics().setDepth(4);
     this.hazardGraphics = scene.add.graphics().setDepth(7);
     this.terrainMechanismGraphics = scene.add.graphics().setDepth(6);
+    this.mapScrollIndicatorGraphics = scene.add.graphics().setDepth(20);
+    this.mapScrollIndicatorGraphics.fillStyle(
+      TERRAIN_ECHO_COLOR,
+      MAP_SCROLL_INDICATOR_ALPHA,
+    );
+    for (const dot of createMapScrollIndicatorDots(
+      world.width,
+      world.height,
+      scene.cameras.main.height,
+    )) {
+      this.mapScrollIndicatorGraphics.fillRect(
+        dot.x,
+        dot.y,
+        MAP_SCROLL_INDICATOR_DOT_SIZE,
+        MAP_SCROLL_INDICATOR_DOT_SIZE,
+      );
+    }
     this.playerSprite = scene.add
       .sprite(0, PLAYER_CONFIG.height / 2, ASSET_KEYS.player.idle)
       .setOrigin(0.5, PLAYER_SPRITE_FEET_Y / PLAYER_SPRITE_FRAME.height)
@@ -150,6 +174,7 @@ export class GameViewAdapter {
     this.echoGraphics.destroy();
     this.hazardGraphics.destroy();
     this.terrainMechanismGraphics.destroy();
+    this.mapScrollIndicatorGraphics.destroy();
   }
 
   private drawTerrainMechanisms(state: GameState): void {
