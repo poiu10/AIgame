@@ -30,6 +30,12 @@ export function getElectricHazardSpeed(
   playerX: number,
   hazard: GameState["hazards"][number],
 ): number {
+  if (
+    hazard.activationElapsed <
+    STAGE_ONE_CONFIG.electricHazardMinimumSpeedSeconds
+  ) {
+    return STAGE_ONE_CONFIG.electricHazardMinimumSpeed;
+  }
   const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
   const distance = Math.abs(playerX - hazardCenterX);
   const distanceRange = Math.max(
@@ -75,11 +81,32 @@ function updateElectricHazard(
     hazard.timeUntilPulse += STAGE_ONE_CONFIG.electricHazardPulseIntervalSeconds;
   }
 
+  const minimumSpeedTimeRemaining = Math.max(
+    0,
+    STAGE_ONE_CONFIG.electricHazardMinimumSpeedSeconds -
+      hazard.activationElapsed,
+  );
+  const minimumSpeedSeconds = Math.min(
+    deltaSeconds,
+    minimumSpeedTimeRemaining,
+  );
   hazard.bounds.x = Math.max(
     0,
     hazard.bounds.x -
-      getElectricHazardSpeed(state.player.position.x, hazard) * deltaSeconds,
+      STAGE_ONE_CONFIG.electricHazardMinimumSpeed * minimumSpeedSeconds,
   );
+  hazard.activationElapsed += minimumSpeedSeconds;
+
+  const distanceScaledSeconds = deltaSeconds - minimumSpeedSeconds;
+  if (distanceScaledSeconds > 0) {
+    hazard.bounds.x = Math.max(
+      0,
+      hazard.bounds.x -
+        getElectricHazardSpeed(state.player.position.x, hazard) *
+          distanceScaledSeconds,
+    );
+    hazard.activationElapsed += distanceScaledSeconds;
+  }
 }
 
 export function updateWorldEnvironment(

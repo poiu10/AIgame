@@ -28,13 +28,13 @@ export function getListenerDistanceScale(
   maximumDistance: number,
 ): number {
   if (maximumDistance <= 0) return 0;
-  const audibleDistance =
-    maximumDistance * SOUND_CONFIG.listenerDistanceMultiplier;
+  const halfVolumeDistance =
+    maximumDistance * SOUND_CONFIG.listenerHalfVolumeDistanceMultiplier;
   const distance = Math.hypot(
     sourcePosition.x - listenerPosition.x,
     sourcePosition.y - listenerPosition.y,
   );
-  return Math.max(0, Math.min(1, 1 - distance / audibleDistance));
+  return Math.pow(0.5, distance / halfVolumeDistance);
 }
 
 export function emitSound(

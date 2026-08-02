@@ -107,6 +107,7 @@ export interface HazardState {
   reactionSide: Facing;
   reactionOffsetY: number;
   activated: boolean;
+  activationElapsed: number;
   timeUntilPulse: number;
 }
 
@@ -254,6 +255,7 @@ export function createInitialGameState(
       reactionSide: 1,
       reactionOffsetY: 0,
       activated: false,
+      activationElapsed: 0,
       timeUntilPulse: Number.POSITIVE_INFINITY,
     })),
     worldSoundEmitters: (world.soundEmitters ?? []).map((emitter) => ({

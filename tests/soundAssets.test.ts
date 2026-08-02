@@ -139,28 +139,47 @@ describe("sample-backed sound", () => {
 
     emitSound(state, "water", source, maximumDistance, 0.8);
 
-    expect(distanceScale).toBe(0.5);
+    expect(distanceScale).toBeCloseTo(Math.SQRT1_2);
     expect(state.soundWaves[0].rays[0].remainingDistance).toBe(maximumDistance);
     expect(state.soundWaves[0].rays[0].intensity).toBeCloseTo(0.8);
-    expect(state.events[0]).toMatchObject({ type: "sound", intensity: 0.4 });
+    expect(state.events[0]).toMatchObject({ type: "sound" });
+    expect(state.events[0]?.type === "sound" ? state.events[0].intensity : 0)
+      .toBeCloseTo(0.8 * Math.SQRT1_2);
   });
 
-  it("keeps waves but creates no audio event outside the audible distance", () => {
+  it("keeps audio events and halves volume by a distance ratio without a hard cutoff", () => {
     const state = createInitialGameState({
-      width: 1000,
+      width: 2000,
       height: 500,
       playerSpawn: { x: 0, y: 0 },
       terrain: [],
       enemies: [],
     });
 
-    emitSound(state, "water", { x: 801, y: 0 }, 400, 1);
+    expect(getListenerDistanceScale(
+      state.player.position,
+      { x: 800, y: 0 },
+      400,
+    )).toBeCloseTo(0.5);
+    expect(getListenerDistanceScale(
+      state.player.position,
+      { x: 1600, y: 0 },
+      400,
+    )).toBeCloseTo(0.25);
+
+    emitSound(state, "water", { x: 1600, y: 0 }, 400, 1);
 
     expect(state.soundWaves).toHaveLength(1);
     expect(state.soundWaves[0].rays[0]).toMatchObject({
       remainingDistance: 400,
       intensity: 1,
     });
-    expect(state.events).toEqual([]);
+    expect(state.events).toEqual([
+      expect.objectContaining({
+        type: "sound",
+        kind: "water",
+        intensity: 0.25,
+      }),
+    ]);
   });
 });

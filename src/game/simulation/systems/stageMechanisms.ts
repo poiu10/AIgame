@@ -92,6 +92,7 @@ export function pressTerrainButton(
   for (const hazard of state.hazards) {
     if (hazard.kind !== HAZARD_KINDS.electric) continue;
     hazard.activated = true;
+    hazard.activationElapsed = 0;
     hazard.timeUntilPulse = 0;
   }
   for (const enemy of state.enemies) {
