@@ -13,7 +13,7 @@
       "id": "spawn-7",
       "position": {
         "x": 900,
-        "y": 280
+        "y": 380
       },
       "facing": 1
     }
@@ -23,7 +23,7 @@
       "id": "exit-8",
       "bounds": {
         "x": 940,
-        "y": 200,
+        "y": 300,
         "width": 20,
         "height": 140
       },
@@ -36,9 +36,9 @@
       "id": "terrain-2",
       "kind": "solid",
       "bounds": {
-        "x": 780,
-        "y": 340,
-        "width": 180,
+        "x": 720,
+        "y": 440,
+        "width": 240,
         "height": 40
       }
     },
@@ -47,8 +47,8 @@
       "kind": "solid",
       "bounds": {
         "x": 40,
-        "y": 340,
-        "width": 160,
+        "y": 440,
+        "width": 220,
         "height": 40
       }
     },
@@ -79,7 +79,7 @@
         "x": 920,
         "y": 0,
         "width": 40,
-        "height": 200
+        "height": 300
       }
     },
     {
@@ -87,7 +87,7 @@
       "kind": "solid",
       "bounds": {
         "x": 920,
-        "y": 200,
+        "y": 300,
         "width": 20,
         "height": 140
       }
@@ -97,18 +97,18 @@
       "kind": "solid",
       "bounds": {
         "x": 920,
-        "y": 380,
+        "y": 480,
         "width": 40,
-        "height": 160
+        "height": 60
       }
     },
     {
       "id": "terrain-11",
       "kind": "solid",
       "bounds": {
-        "x": 280,
-        "y": 380,
-        "width": 420,
+        "x": 340,
+        "y": 440,
+        "width": 300,
         "height": 40
       }
     }
