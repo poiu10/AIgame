@@ -32,9 +32,12 @@ export function getElectricHazardSpeed(
 ): number {
   if (
     hazard.activationElapsed <
-    STAGE_ONE_CONFIG.electricHazardMinimumSpeedSeconds
+    STAGE_ONE_CONFIG.electricHazardInitialSpeedSeconds
   ) {
-    return STAGE_ONE_CONFIG.electricHazardMinimumSpeed;
+    return (
+      STAGE_ONE_CONFIG.electricHazardMinimumSpeed *
+      STAGE_ONE_CONFIG.electricHazardInitialSpeedRatio
+    );
   }
   const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
   const distance = Math.abs(playerX - hazardCenterX);
@@ -81,23 +84,25 @@ function updateElectricHazard(
     hazard.timeUntilPulse += STAGE_ONE_CONFIG.electricHazardPulseIntervalSeconds;
   }
 
-  const minimumSpeedTimeRemaining = Math.max(
+  const initialSpeedTimeRemaining = Math.max(
     0,
-    STAGE_ONE_CONFIG.electricHazardMinimumSpeedSeconds -
+    STAGE_ONE_CONFIG.electricHazardInitialSpeedSeconds -
       hazard.activationElapsed,
   );
-  const minimumSpeedSeconds = Math.min(
+  const initialSpeedSeconds = Math.min(
     deltaSeconds,
-    minimumSpeedTimeRemaining,
+    initialSpeedTimeRemaining,
   );
   hazard.bounds.x = Math.max(
     0,
     hazard.bounds.x -
-      STAGE_ONE_CONFIG.electricHazardMinimumSpeed * minimumSpeedSeconds,
+      STAGE_ONE_CONFIG.electricHazardMinimumSpeed *
+        STAGE_ONE_CONFIG.electricHazardInitialSpeedRatio *
+        initialSpeedSeconds,
   );
-  hazard.activationElapsed += minimumSpeedSeconds;
+  hazard.activationElapsed += initialSpeedSeconds;
 
-  const distanceScaledSeconds = deltaSeconds - minimumSpeedSeconds;
+  const distanceScaledSeconds = deltaSeconds - initialSpeedSeconds;
   if (distanceScaledSeconds > 0) {
     hazard.bounds.x = Math.max(
       0,
