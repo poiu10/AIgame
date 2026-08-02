@@ -26,6 +26,33 @@ export function getElectricHazardDamageBounds(
   };
 }
 
+export function getElectricHazardSpeed(
+  playerX: number,
+  hazard: GameState["hazards"][number],
+): number {
+  const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
+  const distance = Math.abs(playerX - hazardCenterX);
+  const distanceRange = Math.max(
+    1,
+    STAGE_ONE_CONFIG.electricHazardFarDistance -
+      STAGE_ONE_CONFIG.electricHazardNearDistance,
+  );
+  const ratio = Math.max(
+    0,
+    Math.min(
+      1,
+      (distance - STAGE_ONE_CONFIG.electricHazardNearDistance) / distanceRange,
+    ),
+  );
+  const smoothRatio = ratio * ratio * (3 - 2 * ratio);
+  return (
+    STAGE_ONE_CONFIG.electricHazardMinimumSpeed +
+    (STAGE_ONE_CONFIG.electricHazardMaximumSpeed -
+      STAGE_ONE_CONFIG.electricHazardMinimumSpeed) *
+      smoothRatio
+  );
+}
+
 function updateElectricHazard(
   state: GameState,
   hazard: GameState["hazards"][number],
@@ -50,7 +77,8 @@ function updateElectricHazard(
 
   hazard.bounds.x = Math.max(
     0,
-    hazard.bounds.x - STAGE_ONE_CONFIG.electricHazardSpeed * deltaSeconds,
+    hazard.bounds.x -
+      getElectricHazardSpeed(state.player.position.x, hazard) * deltaSeconds,
   );
 }
 

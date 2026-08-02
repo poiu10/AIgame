@@ -19,6 +19,7 @@ import { updatePlayerCombat } from "../src/game/simulation/systems/combat";
 import { updateEnemies } from "../src/game/simulation/systems/enemies";
 import {
   getElectricHazardDamageBounds,
+  getElectricHazardSpeed,
   updateWorldEnvironment,
 } from "../src/game/simulation/systems/environment";
 import { emitSound, updateSoundPropagation } from "../src/game/simulation/systems/sound";
@@ -253,8 +254,10 @@ describe("Stage 1", () => {
     );
   });
 
-  it("moves the electric hazard left without growing after activation", () => {
-    expect(STAGE_ONE_CONFIG.electricHazardSpeed).toBe(PLAYER_CONFIG.maxSpeed * 0.5);
+  it("smoothly accelerates the electric hazard as the player gets farther away", () => {
+    expect(STAGE_ONE_CONFIG.electricHazardMinimumSpeed).toBe(
+      PLAYER_CONFIG.maxSpeed * 0.5,
+    );
 
     const world: WorldDefinition = {
       width: 12_000,
@@ -272,29 +275,47 @@ describe("Stage 1", () => {
     };
     const state = createInitialGameState(world);
     const hazard = state.hazards[0];
+    const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
+    const transitionMidpoint =
+      (STAGE_ONE_CONFIG.electricHazardNearDistance +
+        STAGE_ONE_CONFIG.electricHazardFarDistance) /
+      2;
+
+    expect(getElectricHazardSpeed(hazardCenterX, hazard)).toBe(250);
+    expect(getElectricHazardSpeed(
+      hazardCenterX - STAGE_ONE_CONFIG.electricHazardNearDistance,
+      hazard,
+    )).toBe(250);
+    expect(getElectricHazardSpeed(
+      hazardCenterX - transitionMidpoint,
+      hazard,
+    )).toBeCloseTo(450);
+    expect(getElectricHazardSpeed(
+      hazardCenterX - STAGE_ONE_CONFIG.electricHazardFarDistance,
+      hazard,
+    )).toBe(650);
+    expect(getElectricHazardSpeed(0, hazard)).toBe(650);
+
     updateWorldEnvironment(state, world, 2);
     expect(hazard.bounds).toEqual({ x: 10_000, y: 100, width: 40, height: 40 });
 
     hazard.activated = true;
     hazard.timeUntilPulse = 0;
-    updateWorldEnvironment(state, world, 2);
-    expect(hazard.bounds.x).toBeCloseTo(9500);
+    state.player.position.y = -100;
+    updateWorldEnvironment(state, world, 1);
+    expect(hazard.bounds.x).toBeCloseTo(9350);
     expect(hazard.bounds.width).toBe(40);
     expect(hazard.bounds.height).toBe(40);
+
+    state.player.position.x = hazard.bounds.x + hazard.bounds.width / 2 - 100;
+    updateWorldEnvironment(state, world, 1);
+    expect(hazard.bounds.x).toBeCloseTo(9100);
     expect(getElectricHazardDamageBounds(world, hazard)).toEqual({
-      x: 9500,
+      x: 9100,
       y: 100,
       width: 40,
       height: 900,
     });
-    updateWorldEnvironment(state, world, 8);
-    expect(hazard.bounds.x).toBeCloseTo(7500);
-    expect(hazard.bounds.width).toBe(40);
-    expect(hazard.bounds.height).toBe(40);
-    updateWorldEnvironment(state, world, 1);
-    expect(hazard.bounds.x).toBeCloseTo(7250);
-    expect(hazard.bounds.width).toBe(40);
-    expect(hazard.bounds.height).toBe(40);
   });
 
   it("starts rapid tiny electric waves only after the button is pressed", () => {
@@ -334,11 +355,15 @@ describe("Stage 1", () => {
     )!;
     const initialBounds = { ...hazard.bounds };
     const elapsedSeconds = 0.2;
-    const expectedTravel = STAGE_ONE_CONFIG.electricHazardSpeed * elapsedSeconds;
+    const expectedTravel =
+      STAGE_ONE_CONFIG.electricHazardMinimumSpeed * elapsedSeconds;
     state.player.position = {
       x: initialBounds.x - expectedTravel + initialBounds.width / 2,
       y: initialBounds.y + initialBounds.height + PLAYER_CONFIG.height,
     };
+    expect(getElectricHazardSpeed(state.player.position.x, hazard)).toBe(
+      STAGE_ONE_CONFIG.electricHazardMinimumSpeed,
+    );
 
     updateWorldEnvironment(state, STAGE_ONE, elapsedSeconds);
 
