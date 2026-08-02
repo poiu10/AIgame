@@ -52,16 +52,6 @@
   ],
   "terrain": [
     {
-      "id": "left-upper-wall",
-      "kind": "solid",
-      "bounds": {
-        "x": -64,
-        "y": 0,
-        "width": 64,
-        "height": 1020
-      }
-    },
-    {
       "id": "terrain-1",
       "kind": "solid",
       "bounds": {

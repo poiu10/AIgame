@@ -12,6 +12,7 @@ import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
 import { raycastAabb } from "../src/game/simulation/collision/aabb";
 import {
   ENEMY_CONFIG,
+  ENEMY_HIT_WAVE_CONFIG,
   FIXED_STEP_SECONDS,
   MELEE_ATTACK_WAVE_CONFIG,
   PLAYER_CONFIG,
@@ -994,6 +995,24 @@ describe("combat loop", () => {
 
     updateEnemyContactDamage(corpseState);
     expect(corpseState.player.health).toBe(PLAYER_CONFIG.maxHealth);
+  });
+
+  it("keeps an enemy hit wave only slightly larger than a melee attack wave", () => {
+    const state = createInitialGameState(enemyAttackWorld);
+
+    damageEnemy(state, state.enemies[0], 1);
+
+    const hitWave = state.soundWaves.find((wave) => wave.kind === "enemy-hit");
+    expect(hitWave).toBeDefined();
+    expect(
+      Math.max(...hitWave!.rays.map((ray) => ray.remainingDistance)),
+    ).toBe(ENEMY_HIT_WAVE_CONFIG.distance);
+    expect(ENEMY_HIT_WAVE_CONFIG.distance).toBeGreaterThan(
+      MELEE_ATTACK_WAVE_CONFIG.distance,
+    );
+    expect(
+      ENEMY_HIT_WAVE_CONFIG.distance - MELEE_ATTACK_WAVE_CONFIG.distance,
+    ).toBe(20);
   });
 
   it("damages and defeats an enemy with the active attack hitbox", () => {

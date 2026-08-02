@@ -2,6 +2,7 @@ import { TERRAIN_KINDS, type WorldDefinition } from "../../content/world";
 import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import {
   ENEMY_CONFIG,
+  ENEMY_HIT_WAVE_CONFIG,
   getEnemyBodySize,
   PLAYER_CONFIG,
   STAGE_ONE_CONFIG,
@@ -91,7 +92,14 @@ export function damageEnemy(
   if (enemy.health <= 0) {
     defeatEnemy(state, enemy);
   } else {
-    emitSound(state, "enemy-hit", enemy.position, 520, 0.82, enemy.id);
+    emitSound(
+      state,
+      "enemy-hit",
+      enemy.position,
+      ENEMY_HIT_WAVE_CONFIG.distance,
+      ENEMY_HIT_WAVE_CONFIG.intensity,
+      enemy.id,
+    );
   }
   return true;
 }

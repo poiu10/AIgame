@@ -50,6 +50,23 @@ describe("Stage 1", () => {
     ).toHaveLength(2);
   });
 
+  it("keeps both left-side exits acoustically open", () => {
+    for (const y of [150, 420]) {
+      const state = createInitialGameState(STAGE_ONE);
+      emitSound(state, "player-step", { x: 80, y }, 200, 1, "player");
+      const leftRay = state.soundWaves[0].rays.find(
+        (ray) => ray.direction.x < -0.99 && Math.abs(ray.direction.y) < 0.01,
+      )!;
+
+      for (let index = 0; index < 12; index += 1) {
+        updateSoundPropagation(state, STAGE_ONE, FIXED_STEP_SECONDS);
+      }
+
+      expect(leftRay.position.x).toBeLessThan(0);
+      expect(leftRay.reflectionCount).toBe(0);
+    }
+  });
+
   it("presses the orange button with an attack and swaps both doors", () => {
     const state = createInitialGameState(STAGE_ONE);
     const buttonDefinition = STAGE_ONE.terrain.find(
