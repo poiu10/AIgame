@@ -27,7 +27,11 @@ import {
 } from "./mapScrollIndicator";
 import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
-import { resolvePlayerPrompt } from "./playerPrompt";
+import {
+  createCenteredRestartPrompt,
+  DEATH_RESTART_PROMPT_PIXEL_SIZE,
+  resolveDeathRestartPromptAlpha,
+} from "./playerPrompt";
 import {
   createEnemyThreatCells,
   createElectricHazardLightningCells,
@@ -62,6 +66,7 @@ export class GameViewAdapter {
 
   private readonly playerSprite: Phaser.GameObjects.Sprite;
   private readonly tutorialText: Phaser.GameObjects.Graphics;
+  private readonly restartPrompt: Phaser.GameObjects.Graphics;
   private readonly enemyViews = new Map<
     string,
     { container: Phaser.GameObjects.Container; graphics: Phaser.GameObjects.Graphics }
@@ -103,6 +108,37 @@ export class GameViewAdapter {
       .setOrigin(0.5, PLAYER_SPRITE_FEET_Y / PLAYER_SPRITE_FRAME.height)
       .setScale(PLAYER_SPRITE_DISPLAY_SCALE);
     this.tutorialText = scene.add.graphics();
+    this.restartPrompt = scene.add
+      .graphics()
+      .setDepth(30)
+      .setScrollFactor(0)
+      .setAlpha(0);
+    const restartPrompt = createCenteredRestartPrompt(
+      scene.cameras.main.width,
+      scene.cameras.main.height,
+    );
+    this.restartPrompt.fillStyle(0x030608, 0.9);
+    for (const cell of restartPrompt.cells) {
+      this.restartPrompt.fillRect(
+        restartPrompt.originX +
+          cell.x * DEATH_RESTART_PROMPT_PIXEL_SIZE +
+          DEATH_RESTART_PROMPT_PIXEL_SIZE,
+        restartPrompt.originY +
+          cell.y * DEATH_RESTART_PROMPT_PIXEL_SIZE +
+          DEATH_RESTART_PROMPT_PIXEL_SIZE,
+        DEATH_RESTART_PROMPT_PIXEL_SIZE,
+        DEATH_RESTART_PROMPT_PIXEL_SIZE,
+      );
+    }
+    this.restartPrompt.fillStyle(0xeaffff, 1);
+    for (const cell of restartPrompt.cells) {
+      this.restartPrompt.fillRect(
+        restartPrompt.originX + cell.x * DEATH_RESTART_PROMPT_PIXEL_SIZE,
+        restartPrompt.originY + cell.y * DEATH_RESTART_PROMPT_PIXEL_SIZE,
+        DEATH_RESTART_PROMPT_PIXEL_SIZE,
+        DEATH_RESTART_PROMPT_PIXEL_SIZE,
+      );
+    }
     this.playerTarget = scene.add
       .container(world.playerSpawn.x, world.playerSpawn.y, [
         this.playerSprite,
@@ -123,6 +159,7 @@ export class GameViewAdapter {
   sync(state: GameState): void {
     this.drawPlayer(state.player);
     this.drawTutorialText(state);
+    this.restartPrompt.setAlpha(resolveDeathRestartPromptAlpha(state.player));
     this.drawEnemies(state);
     this.drawTerrainMechanisms(state);
     this.drawHazards(state);
@@ -132,12 +169,11 @@ export class GameViewAdapter {
 
   private drawTutorialText(state: GameState): void {
     const section = this.world.tutorialSections?.[state.tutorialStep];
-    const prompt = resolvePlayerPrompt(state.player, section?.prompt ?? "");
-    this.tutorialText.setAlpha(prompt.alpha);
-    if (prompt.text === this.currentTutorialPrompt) return;
-    this.currentTutorialPrompt = prompt.text;
+    const prompt = state.player.action === "dead" ? "" : (section?.prompt ?? "");
+    if (prompt === this.currentTutorialPrompt) return;
+    this.currentTutorialPrompt = prompt;
 
-    const pixelText = rasterizePixelText(prompt.text);
+    const pixelText = rasterizePixelText(prompt);
     const originX = -(pixelText.width * TUTORIAL_TEXT_PIXEL_SIZE) / 2;
     const originY =
       TUTORIAL_TEXT_BOTTOM_Y - pixelText.height * TUTORIAL_TEXT_PIXEL_SIZE;
@@ -166,6 +202,7 @@ export class GameViewAdapter {
 
   destroy(): void {
     this.playerTarget.destroy(true);
+    this.restartPrompt.destroy();
     for (const view of this.enemyViews.values()) {
       view.container.destroy(true);
     }
