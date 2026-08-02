@@ -223,10 +223,8 @@ describe("Stage 1", () => {
     );
   });
 
-  it("grows leftward at 50%, 100%, then 120% of walking speed", () => {
-    expect(getGrowingHazardSpeed(0)).toBe(PLAYER_CONFIG.maxSpeed * 0.5);
-    expect(getGrowingHazardSpeed(2)).toBe(PLAYER_CONFIG.maxSpeed);
-    expect(getGrowingHazardSpeed(10)).toBe(PLAYER_CONFIG.maxSpeed * 1.2);
+  it("grows leftward and downward at a constant 50% of walking speed", () => {
+    expect(getGrowingHazardSpeed()).toBe(PLAYER_CONFIG.maxSpeed * 0.5);
 
     const world: WorldDefinition = {
       width: 12_000,
@@ -246,11 +244,17 @@ describe("Stage 1", () => {
     const hazard = state.hazards[0];
     hazard.growthActive = true;
     updateWorldEnvironment(state, world, 2);
+    expect(hazard.bounds.x).toBeCloseTo(9500);
     expect(hazard.bounds.width).toBeCloseTo(540);
+    expect(hazard.bounds.height).toBeCloseTo(540);
     updateWorldEnvironment(state, world, 8);
-    expect(hazard.bounds.width).toBeCloseTo(4540);
+    expect(hazard.bounds.x).toBeCloseTo(7500);
+    expect(hazard.bounds.width).toBeCloseTo(2540);
+    expect(hazard.bounds.height).toBeCloseTo(900);
     updateWorldEnvironment(state, world, 1);
-    expect(hazard.bounds.width).toBeCloseTo(5140);
+    expect(hazard.bounds.x).toBeCloseTo(7250);
+    expect(hazard.bounds.width).toBeCloseTo(2790);
+    expect(hazard.bounds.height).toBeCloseTo(900);
   });
 
   it("keeps the growing hazard lethal after every enemy is defeated", () => {
@@ -264,7 +268,7 @@ describe("Stage 1", () => {
     const hazard = state.hazards.find(
       (candidate) => candidate.id === "hazard-growing",
     )!;
-    expect(hazard.bounds).toEqual({ x: 1230, y: 100, width: 90, height: 40 });
+    expect(hazard.bounds).toEqual({ x: 1230, y: 100, width: 90, height: 90 });
     expect(state.player.health).toBe(0);
     expect(state.player.action).toBe("dead");
   });

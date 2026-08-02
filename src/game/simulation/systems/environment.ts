@@ -13,14 +13,13 @@ import { updateTerrainMechanismTimers } from "./stageMechanisms";
 
 const HAZARD_REVEAL_SECONDS = 0.62;
 
-export function getGrowingHazardSpeed(growthElapsed: number): number {
-  if (growthElapsed < 2) return PLAYER_CONFIG.maxSpeed * 0.5;
-  if (growthElapsed < 10) return PLAYER_CONFIG.maxSpeed;
-  return PLAYER_CONFIG.maxSpeed * 1.2;
+export function getGrowingHazardSpeed(): number {
+  return PLAYER_CONFIG.maxSpeed * 0.5;
 }
 
 function updateGrowingHazard(
   state: GameState,
+  world: WorldDefinition,
   hazard: GameState["hazards"][number],
   deltaSeconds: number,
 ): void {
@@ -39,17 +38,19 @@ function updateGrowingHazard(
   }
 
   if (!hazard.growthActive) return;
-  let remainingTime = deltaSeconds;
-  while (remainingTime > 0 && hazard.bounds.x > 0) {
-    const segmentEnd = hazard.growthElapsed < 2 ? 2 : hazard.growthElapsed < 10 ? 10 : Infinity;
-    const step = Math.min(remainingTime, segmentEnd - hazard.growthElapsed);
-    const requestedGrowth = getGrowingHazardSpeed(hazard.growthElapsed) * step;
-    const growth = Math.min(hazard.bounds.x, requestedGrowth);
-    hazard.bounds.x -= growth;
-    hazard.bounds.width += growth;
-    hazard.growthElapsed += step;
-    remainingTime -= step;
-  }
+  const requestedGrowth = getGrowingHazardSpeed() * deltaSeconds;
+  const leftGrowth = Math.min(hazard.bounds.x, requestedGrowth);
+  const bottomGrowth = Math.min(
+    Math.max(
+      0,
+      world.height - (hazard.bounds.y + hazard.bounds.height),
+    ),
+    requestedGrowth,
+  );
+  hazard.bounds.x -= leftGrowth;
+  hazard.bounds.width += leftGrowth;
+  hazard.bounds.height += bottomGrowth;
+  hazard.growthElapsed += deltaSeconds;
 }
 
 export function updateWorldEnvironment(
@@ -62,7 +63,7 @@ export function updateWorldEnvironment(
     hazard.echoTime = Math.max(0, hazard.echoTime - deltaSeconds);
     hazard.reactionTime = Math.max(0, hazard.reactionTime - deltaSeconds);
     if (hazard.kind === HAZARD_KINDS.growing) {
-      updateGrowingHazard(state, hazard, deltaSeconds);
+      updateGrowingHazard(state, world, hazard, deltaSeconds);
     }
   }
 
