@@ -22,9 +22,8 @@ export const ASSET_KEYS = {
     enemyAlert: "audio.enemy-alert",
     enemyCall: "audio.enemy-call",
     doorOpen: "audio.door-open",
-    growing: "audio.growing",
+    electric: "audio.electric",
     crusherPulse: "audio.crusher-pulse",
-    hazardPulse: "audio.hazard-pulse",
     sleepingEnemy: "audio.sleeping-enemy",
     water: "audio.water",
   },
@@ -191,16 +190,12 @@ export const AUDIO_ASSETS = {
     key: ASSET_KEYS.audio.doorOpen,
     path: "assets/audio/stonedoor.mp3",
   },
-  growing: {
-    key: ASSET_KEYS.audio.growing,
-    path: "assets/audio/jiiiingggg.mp3",
+  electric: {
+    key: ASSET_KEYS.audio.electric,
+    path: "assets/audio/electric_shock_seamless_loop.ogg",
   },
   crusherPulse: {
     key: ASSET_KEYS.audio.crusherPulse,
-    path: "assets/audio/jiiiingggg.mp3",
-  },
-  hazardPulse: {
-    key: ASSET_KEYS.audio.hazardPulse,
     path: "assets/audio/jiiiingggg.mp3",
   },
   sleepingEnemy: {

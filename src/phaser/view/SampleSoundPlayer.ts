@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { ASSET_KEYS } from "../../game/assets/manifest";
 import {
-  GROWING_LOOP_VOLUME,
+  ELECTRIC_LOOP_VOLUME,
   getPlaybackVolume,
   SOUND_PLAYBACK_PROFILES,
 } from "../../game/assets/soundProfiles";
@@ -31,7 +31,7 @@ function getPan(
 }
 
 export class SampleSoundPlayer {
-  private growingLoop: AdjustableSound | null = null;
+  private electricLoop: AdjustableSound | null = null;
 
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -66,13 +66,13 @@ export class SampleSoundPlayer {
     if (!started) destroy();
   }
 
-  syncGrowingHazard(
+  syncElectricHazard(
     state: GameState,
     viewportWidth: number,
   ): void {
-    const source = this.findAudibleGrowingHazard(state);
+    const source = this.findActiveElectricHazard(state);
     if (!source) {
-      this.stopGrowingLoop();
+      this.stopElectricLoop();
       return;
     }
 
@@ -80,41 +80,36 @@ export class SampleSoundPlayer {
     const distanceScale = getListenerDistanceScale(
       listener,
       source,
-      STAGE_ONE_CONFIG.growingSoundMaximumDistance,
+      STAGE_ONE_CONFIG.electricSoundMaximumDistance,
     );
-    if (distanceScale <= 0) {
-      this.stopGrowingLoop();
-      return;
-    }
 
-    if (!this.growingLoop) {
-      this.growingLoop = this.scene.sound.add(ASSET_KEYS.audio.growing, {
+    if (!this.electricLoop) {
+      this.electricLoop = this.scene.sound.add(ASSET_KEYS.audio.electric, {
         loop: true,
         volume: 0,
       }) as AdjustableSound;
-      this.growingLoop.play();
+      this.electricLoop.play();
     }
-    this.growingLoop.setVolume(GROWING_LOOP_VOLUME * distanceScale);
-    this.growingLoop.setPan(getPan(source.x, listener.x, viewportWidth));
+    this.electricLoop.setVolume(ELECTRIC_LOOP_VOLUME * distanceScale);
+    this.electricLoop.setPan(getPan(source.x, listener.x, viewportWidth));
   }
 
   dispose(): void {
-    this.stopGrowingLoop();
+    this.stopElectricLoop();
   }
 
-  private findAudibleGrowingHazard(state: GameState): Vector2State | null {
+  private findActiveElectricHazard(state: GameState): Vector2State | null {
     let nearest: Vector2State | null = null;
     let nearestDistance = Number.POSITIVE_INFINITY;
     for (const hazard of state.hazards) {
       if (
-        hazard.kind !== HAZARD_KINDS.growing ||
-        !hazard.growthActive ||
-        hazard.bounds.x <= 0
+        hazard.kind !== HAZARD_KINDS.electric ||
+        !hazard.activated
       ) {
         continue;
       }
       const candidate = {
-        x: hazard.bounds.x,
+        x: hazard.bounds.x + hazard.bounds.width / 2,
         y: hazard.bounds.y + hazard.bounds.height / 2,
       };
       const distance = Math.hypot(
@@ -129,10 +124,10 @@ export class SampleSoundPlayer {
     return nearest;
   }
 
-  private stopGrowingLoop(): void {
-    if (!this.growingLoop) return;
-    this.growingLoop.stop();
-    this.growingLoop.destroy();
-    this.growingLoop = null;
+  private stopElectricLoop(): void {
+    if (!this.electricLoop) return;
+    this.electricLoop.stop();
+    this.electricLoop.destroy();
+    this.electricLoop = null;
   }
 }

@@ -18,7 +18,7 @@ import { createInitialGameState } from "../src/game/simulation/state";
 import { updatePlayerCombat } from "../src/game/simulation/systems/combat";
 import { updateEnemies } from "../src/game/simulation/systems/enemies";
 import {
-  getGrowingHazardSpeed,
+  getElectricHazardDamageBounds,
   updateWorldEnvironment,
 } from "../src/game/simulation/systems/environment";
 import { emitSound, updateSoundPropagation } from "../src/game/simulation/systems/sound";
@@ -253,8 +253,8 @@ describe("Stage 1", () => {
     );
   });
 
-  it("grows leftward and downward at a constant 50% of walking speed", () => {
-    expect(getGrowingHazardSpeed()).toBe(PLAYER_CONFIG.maxSpeed * 0.5);
+  it("moves the electric hazard left without growing after activation", () => {
+    expect(STAGE_ONE_CONFIG.electricHazardSpeed).toBe(PLAYER_CONFIG.maxSpeed * 0.5);
 
     const world: WorldDefinition = {
       width: 12_000,
@@ -264,68 +264,89 @@ describe("Stage 1", () => {
       enemies: [],
       hazards: [
         {
-          id: "growth",
-          kind: HAZARD_KINDS.growing,
+          id: "electric",
+          kind: HAZARD_KINDS.electric,
           bounds: { x: 10_000, y: 100, width: 40, height: 40 },
         },
       ],
     };
     const state = createInitialGameState(world);
     const hazard = state.hazards[0];
-    hazard.growthActive = true;
+    updateWorldEnvironment(state, world, 2);
+    expect(hazard.bounds).toEqual({ x: 10_000, y: 100, width: 40, height: 40 });
+
+    hazard.activated = true;
+    hazard.timeUntilPulse = 0;
     updateWorldEnvironment(state, world, 2);
     expect(hazard.bounds.x).toBeCloseTo(9500);
-    expect(hazard.bounds.width).toBeCloseTo(540);
-    expect(hazard.bounds.height).toBeCloseTo(540);
+    expect(hazard.bounds.width).toBe(40);
+    expect(hazard.bounds.height).toBe(40);
+    expect(getElectricHazardDamageBounds(world, hazard)).toEqual({
+      x: 9500,
+      y: 100,
+      width: 40,
+      height: 900,
+    });
     updateWorldEnvironment(state, world, 8);
     expect(hazard.bounds.x).toBeCloseTo(7500);
-    expect(hazard.bounds.width).toBeCloseTo(2540);
-    expect(hazard.bounds.height).toBeCloseTo(900);
+    expect(hazard.bounds.width).toBe(40);
+    expect(hazard.bounds.height).toBe(40);
     updateWorldEnvironment(state, world, 1);
     expect(hazard.bounds.x).toBeCloseTo(7250);
-    expect(hazard.bounds.width).toBeCloseTo(2790);
-    expect(hazard.bounds.height).toBeCloseTo(900);
+    expect(hazard.bounds.width).toBe(40);
+    expect(hazard.bounds.height).toBe(40);
   });
 
-  it("keeps the growing hazard pulse near the hazard", () => {
+  it("starts rapid tiny electric waves only after the button is pressed", () => {
     const state = createInitialGameState(STAGE_ONE);
     const hazard = state.hazards.find(
-      (candidate) => candidate.id === "hazard-growing",
+      (candidate) => candidate.id === "hazard-electric",
     )!;
-    hazard.timeUntilPulse = 0;
+
+    updateWorldEnvironment(state, STAGE_ONE, FIXED_STEP_SECONDS);
+    expect(state.soundWaves.some((wave) => wave.kind === "electric-pulse")).toBe(false);
+
+    expect(pressTerrainButton(state, STAGE_ONE, "terrain-botton")).toBe(true);
 
     updateWorldEnvironment(state, STAGE_ONE, FIXED_STEP_SECONDS);
 
-    const wave = state.soundWaves.find((candidate) => candidate.kind === "hazard-pulse");
-    expect(STAGE_ONE_CONFIG.growingHazardPulseDistance).toBe(
+    const wave = state.soundWaves.find((candidate) => candidate.kind === "electric-pulse");
+    expect(STAGE_ONE_CONFIG.electricHazardPulseDistance).toBeLessThan(
       MELEE_ATTACK_WAVE_CONFIG.distance,
     );
+    expect(STAGE_ONE_CONFIG.electricHazardPulseIntervalSeconds).toBe(0.1);
     expect(wave).toBeDefined();
-    expect(Math.max(...wave!.rays.map((ray) => ray.remainingDistance))).toBe(160);
+    expect(Math.max(...wave!.rays.map((ray) => ray.remainingDistance))).toBe(72);
+    expect(state.events.some((event) => event.type === "sound" && event.kind === "electric-pulse"))
+      .toBe(false);
+
+    updateWorldEnvironment(state, STAGE_ONE, 0.3);
+    expect(state.soundWaves.filter((candidate) => candidate.kind === "electric-pulse"))
+      .toHaveLength(4);
   });
 
-  it("keeps the growing hazard lethal after every enemy is defeated", () => {
+  it("keeps the downward electric column lethal after every enemy is defeated", () => {
     const state = createInitialGameState(STAGE_ONE);
     for (const enemy of state.enemies) enemy.alive = false;
     expect(pressTerrainButton(state, STAGE_ONE, "terrain-botton")).toBe(true);
     const hazard = state.hazards.find(
-      (candidate) => candidate.id === "hazard-growing",
+      (candidate) => candidate.id === "hazard-electric",
     )!;
     const initialBounds = { ...hazard.bounds };
     const elapsedSeconds = 0.2;
-    const expectedGrowth = getGrowingHazardSpeed() * elapsedSeconds;
+    const expectedTravel = STAGE_ONE_CONFIG.electricHazardSpeed * elapsedSeconds;
     state.player.position = {
-      x: initialBounds.x - expectedGrowth / 2,
-      y: initialBounds.y + initialBounds.height / 2,
+      x: initialBounds.x - expectedTravel + initialBounds.width / 2,
+      y: initialBounds.y + initialBounds.height + PLAYER_CONFIG.height,
     };
 
     updateWorldEnvironment(state, STAGE_ONE, elapsedSeconds);
 
     expect(hazard.bounds).toEqual({
-      x: initialBounds.x - expectedGrowth,
+      x: initialBounds.x - expectedTravel,
       y: initialBounds.y,
-      width: initialBounds.width + expectedGrowth,
-      height: initialBounds.height + expectedGrowth,
+      width: initialBounds.width,
+      height: initialBounds.height,
     });
     expect(state.player.health).toBe(0);
     expect(state.player.action).toBe("dead");

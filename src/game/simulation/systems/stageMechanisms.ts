@@ -90,7 +90,9 @@ export function pressTerrainButton(
   }
 
   for (const hazard of state.hazards) {
-    if (hazard.kind === HAZARD_KINDS.growing) hazard.growthActive = true;
+    if (hazard.kind !== HAZARD_KINDS.electric) continue;
+    hazard.activated = true;
+    hazard.timeUntilPulse = 0;
   }
   for (const enemy of state.enemies) {
     if (enemy.kind !== ENEMY_KINDS.waker || !enemy.alive) continue;

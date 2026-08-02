@@ -84,14 +84,14 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     volume: 0.63,
     rate: 1.05,
   },
-  "hazard-pulse": {
-    assetKey: ASSET_KEYS.audio.hazardPulse,
+  "electric-pulse": {
+    assetKey: ASSET_KEYS.audio.electric,
     volume: 0.42,
-    rate: 0.95,
+    rate: 1,
   },
 };
 
-export const GROWING_LOOP_VOLUME = 0.15;
+export const ELECTRIC_LOOP_VOLUME = 0.15;
 
 export function getPlaybackVolume(
   kind: SoundKind,

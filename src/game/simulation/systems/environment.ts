@@ -8,49 +8,50 @@ import {
 import { getPlayerBounds } from "../rules/player";
 import type { GameState } from "../state";
 import { damagePlayer, killPlayer } from "./combat";
-import { emitSound } from "./sound";
+import { emitSound, emitSoundWave } from "./sound";
 import { updateTerrainMechanismTimers } from "./stageMechanisms";
 
 const HAZARD_REVEAL_SECONDS = 0.62;
 
-export function getGrowingHazardSpeed(): number {
-  return PLAYER_CONFIG.maxSpeed * 0.5;
+export function getElectricHazardDamageBounds(
+  world: WorldDefinition,
+  hazard: GameState["hazards"][number],
+): GameState["hazards"][number]["bounds"] {
+  if (hazard.kind !== HAZARD_KINDS.electric || !hazard.activated) {
+    return hazard.bounds;
+  }
+  return {
+    ...hazard.bounds,
+    height: Math.max(hazard.bounds.height, world.height - hazard.bounds.y),
+  };
 }
 
-function updateGrowingHazard(
+function updateElectricHazard(
   state: GameState,
-  world: WorldDefinition,
   hazard: GameState["hazards"][number],
   deltaSeconds: number,
 ): void {
+  if (!hazard.activated) return;
+
   hazard.timeUntilPulse -= deltaSeconds;
-  if (hazard.timeUntilPulse <= 0) {
-    emitSound(
+  while (hazard.timeUntilPulse <= 0) {
+    emitSoundWave(
       state,
-      "hazard-pulse",
-      { x: hazard.bounds.x, y: hazard.bounds.y + hazard.bounds.height / 2 },
-      STAGE_ONE_CONFIG.growingHazardPulseDistance,
+      "electric-pulse",
+      {
+        x: hazard.bounds.x + hazard.bounds.width / 2,
+        y: hazard.bounds.y + hazard.bounds.height / 2,
+      },
+      STAGE_ONE_CONFIG.electricHazardPulseDistance,
       1,
     );
-    hazard.timeUntilPulse += STAGE_ONE_CONFIG.growingHazardPulseIntervalSeconds;
-    hazard.echoTime = HAZARD_REVEAL_SECONDS;
-    hazard.echoDuration = HAZARD_REVEAL_SECONDS;
+    hazard.timeUntilPulse += STAGE_ONE_CONFIG.electricHazardPulseIntervalSeconds;
   }
 
-  if (!hazard.growthActive) return;
-  const requestedGrowth = getGrowingHazardSpeed() * deltaSeconds;
-  const leftGrowth = Math.min(hazard.bounds.x, requestedGrowth);
-  const bottomGrowth = Math.min(
-    Math.max(
-      0,
-      world.height - (hazard.bounds.y + hazard.bounds.height),
-    ),
-    requestedGrowth,
+  hazard.bounds.x = Math.max(
+    0,
+    hazard.bounds.x - STAGE_ONE_CONFIG.electricHazardSpeed * deltaSeconds,
   );
-  hazard.bounds.x -= leftGrowth;
-  hazard.bounds.width += leftGrowth;
-  hazard.bounds.height += bottomGrowth;
-  hazard.growthElapsed += deltaSeconds;
 }
 
 export function updateWorldEnvironment(
@@ -62,8 +63,8 @@ export function updateWorldEnvironment(
   for (const hazard of state.hazards) {
     hazard.echoTime = Math.max(0, hazard.echoTime - deltaSeconds);
     hazard.reactionTime = Math.max(0, hazard.reactionTime - deltaSeconds);
-    if (hazard.kind === HAZARD_KINDS.growing) {
-      updateGrowingHazard(state, world, hazard, deltaSeconds);
+    if (hazard.kind === HAZARD_KINDS.electric) {
+      updateElectricHazard(state, hazard, deltaSeconds);
     }
   }
 
@@ -102,8 +103,12 @@ export function updateWorldEnvironment(
 
   const playerBounds = getPlayerBounds(state.player);
   for (const hazard of state.hazards) {
+    if (hazard.kind === HAZARD_KINDS.electric && !hazard.activated) {
+      continue;
+    }
+    const damageBounds = getElectricHazardDamageBounds(world, hazard);
     if (
-      !rectanglesOverlap(playerBounds, hazard.bounds)
+      !rectanglesOverlap(playerBounds, damageBounds)
     ) {
       continue;
     }
@@ -112,9 +117,7 @@ export function updateWorldEnvironment(
       killPlayer(state);
       break;
     }
-    if (hazard.kind === HAZARD_KINDS.growing) {
-      hazard.echoTime = HAZARD_REVEAL_SECONDS;
-      hazard.echoDuration = HAZARD_REVEAL_SECONDS;
+    if (hazard.kind === HAZARD_KINDS.electric) {
       killPlayer(state);
       break;
     }

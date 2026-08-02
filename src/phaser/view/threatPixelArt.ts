@@ -1108,6 +1108,48 @@ export function createHazardThreatCells(
   return [...cells.values()];
 }
 
+export function createElectricHazardLightningCells(
+  width: number,
+  height: number,
+  phase: number,
+): ThreatPixelCell[] {
+  const widthCells = Math.max(7, Math.floor(width / THREAT_PIXEL_SIZE));
+  const heightCells = Math.max(1, Math.ceil(height / THREAT_PIXEL_SIZE));
+  const lastX = widthCells - 1;
+  const centerX = Math.floor(lastX / 2);
+  const cells = new Map<string, ThreatPixelCell>();
+  const offsets = [0, -2, 1, -1, 2, 0, 1, -2] as const;
+  const points: CellPoint[] = [];
+
+  for (let y = 0, segment = 0; y < heightCells; y += 4, segment += 1) {
+    points.push({
+      x: Math.max(1, Math.min(lastX - 1, centerX + offsets[(segment + phase) % offsets.length])),
+      y,
+    });
+  }
+  if (points.at(-1)?.y !== heightCells - 1) {
+    points.push({
+      x: Math.max(1, Math.min(lastX - 1, centerX + offsets[(points.length + phase) % offsets.length])),
+      y: heightCells - 1,
+    });
+  }
+  addPolyline(cells, points);
+
+  for (let index = 2; index < points.length - 1; index += 3) {
+    const anchor = points[index];
+    const direction = (index + phase) % 2 === 0 ? -1 : 1;
+    addPolyline(cells, [
+      anchor,
+      {
+        x: Math.max(0, Math.min(lastX, anchor.x + direction * 3)),
+        y: Math.min(heightCells - 1, anchor.y + 3),
+      },
+    ]);
+  }
+
+  return [...cells.values()];
+}
+
 function addThreatCell(
   cells: Map<string, ThreatPixelCell>,
   x: number,

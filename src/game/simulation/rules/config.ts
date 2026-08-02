@@ -74,9 +74,10 @@ export const STAGE_ONE_CONFIG = {
   wakerAcceleration: 700,
   wakerMaximumSpeed: 560,
   openingDoorSoundDistance: 720,
-  growingHazardPulseIntervalSeconds: 1.35,
-  growingHazardPulseDistance: MELEE_ATTACK_WAVE_CONFIG.distance,
-  growingSoundMaximumDistance: 720,
+  electricHazardSpeed: PLAYER_CONFIG.maxSpeed * 0.5,
+  electricHazardPulseIntervalSeconds: 0.1,
+  electricHazardPulseDistance: 72,
+  electricSoundMaximumDistance: 720,
 } as const;
 
 export function getEnemyBodySize(kind?: string): {

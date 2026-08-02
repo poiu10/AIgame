@@ -49,6 +49,25 @@ export function emitSound(
     sourceId === PLAYER_SOUND_SOURCE_ID
       ? 1
       : getListenerDistanceScale(state.player.position, position, maximumDistance);
+  emitSoundWave(state, kind, position, maximumDistance, intensity, sourceId);
+  if (listenerScale > 0) {
+    state.events.push({
+      type: "sound",
+      kind,
+      position: { ...position },
+      intensity: intensity * listenerScale,
+    });
+  }
+}
+
+export function emitSoundWave(
+  state: GameState,
+  kind: SoundKind,
+  position: Vector2State,
+  maximumDistance: number,
+  intensity: number,
+  sourceId?: string,
+): void {
   const rays: SoundRayState[] = [];
   for (let index = 0; index < SOUND_CONFIG.initialRayCount; index += 1) {
     const angle = (index / SOUND_CONFIG.initialRayCount) * Math.PI * 2;
@@ -73,14 +92,6 @@ export function emitSound(
     reactedEnemyIds: [],
   });
   state.nextWaveId += 1;
-  if (listenerScale > 0) {
-    state.events.push({
-      type: "sound",
-      kind,
-      position: { ...position },
-      intensity: intensity * listenerScale,
-    });
-  }
 
   if (sourceId) {
     const sourceEnemy = state.enemies.find((enemy) => enemy.id === sourceId);

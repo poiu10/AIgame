@@ -76,7 +76,7 @@ export class GameScene extends Phaser.Scene {
       this.soundPlayer.dispose();
     });
     this.view.sync(this.gameState);
-    this.soundPlayer.syncGrowingHazard(this.gameState, this.cameras.main.width);
+    this.soundPlayer.syncElectricHazard(this.gameState, this.cameras.main.width);
     this.publishHud();
   }
 
@@ -144,7 +144,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.view.sync(this.gameState);
-    this.soundPlayer.syncGrowingHazard(this.gameState, this.cameras.main.width);
+    this.soundPlayer.syncElectricHazard(this.gameState, this.cameras.main.width);
     this.cameras.main.setFollowOffset(-this.gameState.player.facing * 144, 0);
     this.consumeEvents();
     this.publishHud();

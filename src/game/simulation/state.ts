@@ -35,7 +35,7 @@ export type SoundKind =
   | "water"
   | "door-open"
   | "crusher-pulse"
-  | "hazard-pulse";
+  | "electric-pulse";
 
 export interface Vector2State {
   x: number;
@@ -106,8 +106,7 @@ export interface HazardState {
   reactionDuration: number;
   reactionSide: Facing;
   reactionOffsetY: number;
-  growthActive: boolean;
-  growthElapsed: number;
+  activated: boolean;
   timeUntilPulse: number;
 }
 
@@ -254,9 +253,8 @@ export function createInitialGameState(
       reactionDuration: 0,
       reactionSide: 1,
       reactionOffsetY: 0,
-      growthActive: false,
-      growthElapsed: 0,
-      timeUntilPulse: hazard.kind === HAZARD_KINDS.growing ? 0.35 : Number.POSITIVE_INFINITY,
+      activated: false,
+      timeUntilPulse: Number.POSITIVE_INFINITY,
     })),
     worldSoundEmitters: (world.soundEmitters ?? []).map((emitter) => ({
       id: emitter.id,

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { ASSET_KEYS, AUDIO_ASSETS } from "../src/game/assets/manifest";
 import {
   getPlaybackVolume,
-  GROWING_LOOP_VOLUME,
+  ELECTRIC_LOOP_VOLUME,
   MELEE_ATTACK_VOLUME,
   SOUND_PLAYBACK_PROFILES,
 } from "../src/game/assets/soundProfiles";
@@ -20,7 +20,7 @@ describe("sample-backed sound", () => {
       new URL("../public/assets/audio/", import.meta.url),
     );
     const deployedFiles = readdirSync(audioDirectory)
-      .filter((file) => /\.(?:mp3|wav)$/i.test(file))
+      .filter((file) => /\.(?:mp3|ogg|wav)$/i.test(file))
       .sort();
     const manifestFiles = [
       ...new Set(
@@ -82,12 +82,11 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["waker-call"].volume).toBe(0.24);
   });
 
-  it("uses jiiiingggg and doubled volume for both obstacle sounds", () => {
-    expect(AUDIO_ASSETS.growing.path).toBe("assets/audio/jiiiingggg.mp3");
-    expect(AUDIO_ASSETS.crusherPulse.path).toBe(
-      "assets/audio/jiiiingggg.mp3",
+  it("uses the supplied seamless electric loop for the moving electric hazard", () => {
+    expect(AUDIO_ASSETS.electric.path).toBe(
+      "assets/audio/electric_shock_seamless_loop.ogg",
     );
-    expect(AUDIO_ASSETS.hazardPulse.path).toBe(
+    expect(AUDIO_ASSETS.crusherPulse.path).toBe(
       "assets/audio/jiiiingggg.mp3",
     );
     expect(SOUND_PLAYBACK_PROFILES["crusher-pulse"]).toMatchObject({
@@ -95,11 +94,12 @@ describe("sample-backed sound", () => {
       volume: 0.63,
       rate: 1.05,
     });
-    expect(SOUND_PLAYBACK_PROFILES["hazard-pulse"]).toMatchObject({
+    expect(SOUND_PLAYBACK_PROFILES["electric-pulse"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.electric,
       volume: 0.42,
-      rate: 0.95,
+      rate: 1,
     });
-    expect(GROWING_LOOP_VOLUME).toBe(0.15);
+    expect(ELECTRIC_LOOP_VOLUME).toBe(0.15);
   });
 
   it("keeps contextual source volumes restrained", () => {
@@ -115,7 +115,7 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["enemy-attack"].rate).toBe(0.9);
     expect(Math.max(
       ...Object.entries(SOUND_PLAYBACK_PROFILES)
-        .filter(([kind]) => kind !== "crusher-pulse" && kind !== "hazard-pulse")
+        .filter(([kind]) => kind !== "crusher-pulse" && kind !== "electric-pulse")
         .map(([, profile]) => profile.volume),
     )).toBeLessThanOrEqual(0.38);
     expect(getPlaybackVolume("water", 0.5)).toBeCloseTo(0.085);

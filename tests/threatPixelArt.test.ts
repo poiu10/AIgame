@@ -5,6 +5,7 @@ import { ENEMY_ATTACK_HITBOX } from "../src/game/simulation/rules/combat";
 import type { EnemyState } from "../src/game/simulation/state";
 import {
   createEnemyThreatCells,
+  createElectricHazardLightningCells,
   createFloorHazardThreatCells,
   createHazardDamageLightningCells,
   createHazardThreatCells,
@@ -318,6 +319,22 @@ describe("threat pixel art", () => {
     expect(cells.length).toBeGreaterThan(2500);
   });
 
+  it("draws animated electric branches continuously from emitter to floor", () => {
+    const height = 410;
+    const first = createElectricHazardLightningCells(40, height, 0);
+    const second = createElectricHazardLightningCells(40, height, 1);
+    expectUniqueIntegerCells(first);
+    expectUniqueIntegerCells(second);
+    expect(first.every((cell) => cell.x >= 0 && cell.x * THREAT_PIXEL_SIZE < 40))
+      .toBe(true);
+    expect(first.every((cell) => cell.y >= 0 && cell.y * THREAT_PIXEL_SIZE < height))
+      .toBe(true);
+    expect(Math.max(...first.map((cell) => cell.y))).toBe(
+      Math.ceil(height / THREAT_PIXEL_SIZE) - 1,
+    );
+    expect(first).not.toEqual(second);
+  });
+
   it("authors separate repeating threat patterns for both floor hazards", () => {
     const shortCells = createShortFloorHazardThreatCells();
     const longCells = createLongFloorHazardThreatCells();
@@ -435,7 +452,7 @@ describe("threat pixel art", () => {
     expect(SOUND_WAVE_COLORS["waker-call"]).toBe(THREAT_COLOR);
     expect(SOUND_WAVE_COLORS["door-open"]).toBe(ECHO_MARK_COLORS.terrain);
     expect(SOUND_WAVE_COLORS["crusher-pulse"]).toBe(THREAT_COLOR);
-    expect(SOUND_WAVE_COLORS["hazard-pulse"]).toBe(THREAT_COLOR);
+    expect(SOUND_WAVE_COLORS["electric-pulse"]).toBe(THREAT_COLOR);
     expect(ECHO_MARK_COLORS.terrain).not.toBe(THREAT_COLOR);
     expect(ECHO_MARK_COLORS.hazard).toBe(THREAT_COLOR);
   });

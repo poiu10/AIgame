@@ -25,6 +25,7 @@ import { rasterizePixelText } from "./pixelText";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 import {
   createEnemyThreatCells,
+  createElectricHazardLightningCells,
   createFloorHazardThreatCells,
   createHazardDamageLightningCells,
   createHazardThreatCells,
@@ -46,6 +47,8 @@ const TUTORIAL_TEXT_PIXEL_SIZE = 10;
 const TUTORIAL_TEXT_BOTTOM_Y = -PLAYER_CONFIG.height / 2 - 20;
 const TUTORIAL_TEXT_SHADOW_OFFSET = 4;
 const BUTTON_PRESS_GUIDE_WIDTH = 3;
+const ELECTRIC_LIGHTNING_FRAME_COUNT = 4;
+const ELECTRIC_LIGHTNING_FRAME_RATE = 20;
 
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
@@ -194,6 +197,41 @@ export class GameViewAdapter {
     this.hazardGraphics.clear();
     for (const hazard of state.hazards) {
       if (hazard.kind === HAZARD_KINDS.lethal) {
+        continue;
+      }
+      if (hazard.kind === HAZARD_KINDS.electric) {
+        if (!hazard.activated) continue;
+        this.hazardGraphics.fillStyle(THREAT_COLOR, 1);
+        for (const cell of createHazardThreatCells(
+          hazard.bounds.width,
+          hazard.bounds.height,
+        )) {
+          this.hazardGraphics.fillRect(
+            hazard.bounds.x + cell.x * THREAT_PIXEL_SIZE,
+            hazard.bounds.y + cell.y * THREAT_PIXEL_SIZE,
+            THREAT_PIXEL_SIZE,
+            THREAT_PIXEL_SIZE,
+          );
+        }
+        const lightningHeight = Math.max(
+          0,
+          this.world.height - hazard.bounds.y - hazard.bounds.height,
+        );
+        const phase = Math.floor(
+          state.elapsedTime * ELECTRIC_LIGHTNING_FRAME_RATE,
+        ) % ELECTRIC_LIGHTNING_FRAME_COUNT;
+        for (const cell of createElectricHazardLightningCells(
+          hazard.bounds.width,
+          lightningHeight,
+          phase,
+        )) {
+          this.hazardGraphics.fillRect(
+            hazard.bounds.x + cell.x * THREAT_PIXEL_SIZE,
+            hazard.bounds.y + hazard.bounds.height + cell.y * THREAT_PIXEL_SIZE,
+            THREAT_PIXEL_SIZE,
+            THREAT_PIXEL_SIZE,
+          );
+        }
         continue;
       }
       if (hazard.echoTime <= 0) {

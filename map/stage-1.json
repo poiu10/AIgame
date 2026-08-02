@@ -274,8 +274,8 @@
       }
     },
     {
-      "id": "hazard-growing",
-      "kind": "button-growing",
+      "id": "hazard-electric",
+      "kind": "button-electric",
       "bounds": {
         "x": 1380,
         "y": 100,

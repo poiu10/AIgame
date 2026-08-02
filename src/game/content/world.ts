@@ -49,10 +49,10 @@ export interface HazardDefinition {
 export const HAZARD_KINDS = {
   crusher: "resonance-crusher",
   lethal: "instant-death",
-  growing: "button-growing",
+  electric: "button-electric",
 } as const;
 
-export type WorldSoundKind = "water" | "crusher-pulse" | "hazard-pulse";
+export type WorldSoundKind = "water" | "crusher-pulse" | "electric-pulse";
 
 export interface WorldSoundEmitter {
   id: string;

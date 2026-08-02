@@ -21,7 +21,7 @@ export const SOUND_WAVE_COLORS: Readonly<Record<SoundKind, number>> = {
   water: 0x79dfee,
   "door-open": TERRAIN_ECHO_COLOR,
   "crusher-pulse": THREAT_COLOR,
-  "hazard-pulse": THREAT_COLOR,
+  "electric-pulse": THREAT_COLOR,
 };
 
 export const ECHO_MARK_COLORS = {
