@@ -240,6 +240,15 @@ export function updatePlayerMovement(
     },
   );
 
+  if (
+    motion.landed &&
+    Math.abs(input.moveX) <= 0.01 &&
+    player.action !== "roll" &&
+    player.action !== "hurt"
+  ) {
+    player.velocity.x = 0;
+  }
+
   if (motion.landed) {
     const fallHeight = Math.max(
       0,

@@ -203,6 +203,45 @@ describe("player controller", () => {
     expect(state.player.velocity.y).toBeLessThan(-1200);
   });
 
+  it("stops horizontal drift when landing without movement input", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = {
+      x: 200,
+      y: flatWorldGroundedPlayerY - 8,
+    };
+    state.player.velocity = { x: PLAYER_CONFIG.maxSpeed, y: 1200 };
+    state.player.grounded = false;
+
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
+    const landingX = state.player.position.x;
+
+    expect(state.player.grounded).toBe(true);
+    expect(state.player.velocity.x).toBe(0);
+
+    stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
+    expect(state.player.position.x).toBeCloseTo(landingX);
+  });
+
+  it("keeps moving when directional input is held through landing", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = {
+      x: 200,
+      y: flatWorldGroundedPlayerY - 8,
+    };
+    state.player.velocity = { x: PLAYER_CONFIG.maxSpeed, y: 1200 };
+    state.player.grounded = false;
+
+    stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1 },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+
+    expect(state.player.grounded).toBe(true);
+    expect(state.player.velocity.x).toBe(PLAYER_CONFIG.maxSpeed);
+  });
+
   it("scales the landing wave with the tracked fall height", () => {
     function landWithApex(airborneApexY: number) {
       const state = createInitialGameState(flatWorld);
