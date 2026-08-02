@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "stage-1-boss",
-  "name": "Stage 1 Boss",
+  "id": "stage-2",
+  "name": "Stage 2",
   "width": 960,
   "height": 540,
   "playerSpawn": {
