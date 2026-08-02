@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "stage-1-boss",
+  "name": "Stage 1 Boss",
+  "width": 960,
+  "height": 540,
+  "playerSpawn": {
+    "x": 0,
+    "y": 0
+  },
+  "spawns": [
+    {
+      "id": "spawn-7",
+      "position": {
+        "x": 900,
+        "y": 280
+      },
+      "facing": 1
+    }
+  ],
+  "exits": [
+    {
+      "id": "exit-8",
+      "bounds": {
+        "x": 940,
+        "y": 200,
+        "width": 20,
+        "height": 140
+      },
+      "targetStageId": "tutorial",
+      "targetSpawnId": "from-stage-1"
+    }
+  ],
+  "terrain": [
+    {
+      "id": "terrain-2",
+      "kind": "solid",
+      "bounds": {
+        "x": 780,
+        "y": 340,
+        "width": 180,
+        "height": 40
+      }
+    },
+    {
+      "id": "terrain-3",
+      "kind": "solid",
+      "bounds": {
+        "x": 40,
+        "y": 340,
+        "width": 160,
+        "height": 40
+      }
+    },
+    {
+      "id": "terrain-4",
+      "kind": "solid",
+      "bounds": {
+        "x": -20,
+        "y": 0,
+        "width": 60,
+        "height": 540
+      }
+    },
+    {
+      "id": "terrain-5",
+      "kind": "solid",
+      "bounds": {
+        "x": 40,
+        "y": 0,
+        "width": 880,
+        "height": 40
+      }
+    },
+    {
+      "id": "terrain-6",
+      "kind": "solid",
+      "bounds": {
+        "x": 920,
+        "y": 0,
+        "width": 40,
+        "height": 200
+      }
+    },
+    {
+      "id": "terrain-door",
+      "kind": "solid",
+      "bounds": {
+        "x": 920,
+        "y": 200,
+        "width": 20,
+        "height": 140
+      }
+    },
+    {
+      "id": "terrain-10",
+      "kind": "solid",
+      "bounds": {
+        "x": 920,
+        "y": 380,
+        "width": 40,
+        "height": 160
+      }
+    },
+    {
+      "id": "terrain-11",
+      "kind": "solid",
+      "bounds": {
+        "x": 280,
+        "y": 380,
+        "width": 420,
+        "height": 40
+      }
+    }
+  ],
+  "enemies": [],
+  "hazards": [
+    {
+      "id": "hazard-13",
+      "kind": "resonance-crusher",
+      "bounds": {
+        "x": 40,
+        "y": 500,
+        "width": 880,
+        "height": 40
+      }
+    }
+  ],
+  "soundEmitters": []
+}
