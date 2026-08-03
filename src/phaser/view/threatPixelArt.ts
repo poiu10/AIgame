@@ -1025,7 +1025,11 @@ export function resolveEnemyThreatFrame(
       ? "attack-follow-through"
       : "attack-recover";
   }
-  if (enemy.action === "fly" || enemy.action === "pursue") {
+  if (
+    enemy.action === "fly" ||
+    enemy.action === "pursue" ||
+    enemy.action === "eject"
+  ) {
     return WALK_FRAMES[Math.floor(elapsedSeconds * 7) % WALK_FRAMES.length];
   }
   if (enemy.grounded && Math.abs(enemy.velocity.x) > 1) {

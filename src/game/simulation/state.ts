@@ -13,6 +13,7 @@ export type GroundAttackVariant = 0 | 1 | 2;
 export type PlayerAction = "normal" | "roll" | "attack" | "hurt" | "dead";
 export type EnemyAction =
   | "sleep"
+  | "eject"
   | "patrol"
   | "fly"
   | "pursue"
@@ -29,6 +30,7 @@ export type SoundKind =
   | "enemy-attack"
   | "enemy-call"
   | "waker-call"
+  | "waker-call-short"
   | "enemy-hit"
   | "enemy-death"
   | "sleep"
@@ -87,6 +89,34 @@ export interface EnemyState {
   echoDuration: number;
   activated: boolean;
   timeUntilPulse: number;
+}
+
+export type BossPhase = 1 | 2 | 3;
+export type BossAttackPattern = 1 | 2 | 3 | 4;
+
+export interface BossActorState {
+  id: string;
+  kind: "intro-swarm" | "pattern";
+  pattern: BossAttackPattern | null;
+  position: Vector2State;
+  velocity: Vector2State;
+  facing: Facing;
+  age: number;
+  launchDelay: number;
+  flightDuration: number;
+  damagesPlayer: boolean;
+  secondCallTime: number | null;
+  secondCallEmitted: boolean;
+}
+
+export interface BossEncounterState {
+  bossId: string;
+  phase: BossPhase;
+  timeUntilNextPattern: number;
+  randomState: number;
+  nextActorId: number;
+  lastPattern: BossAttackPattern | null;
+  actors: BossActorState[];
 }
 
 export interface TerrainState {
@@ -174,11 +204,15 @@ export interface GameState {
   echoMarks: EchoMarkState[];
   events: GameEvent[];
   nextWaveId: number;
+  bossEncounter: BossEncounterState | null;
 }
 
 export function createInitialGameState(
   world: WorldDefinition = TUTORIAL_STAGE,
 ): GameState {
+  const cocoonBoss = world.enemies.find(
+    (spawn) => spawn.kind === ENEMY_KINDS.cocoonBoss,
+  );
   return {
     elapsedTime: 0,
     player: {
@@ -272,5 +306,16 @@ export function createInitialGameState(
     echoMarks: [],
     events: [],
     nextWaveId: 1,
+    bossEncounter: cocoonBoss
+      ? {
+          bossId: cocoonBoss.id,
+          phase: 1,
+          timeUntilNextPattern: Number.POSITIVE_INFINITY,
+          randomState: 0x6d2b79f5,
+          nextActorId: 1,
+          lastPattern: null,
+          actors: [],
+        }
+      : null,
   };
 }

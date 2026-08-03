@@ -108,6 +108,12 @@ export function restoreCheckpointState(save: CheckpointSave, stage: StageDefinit
   const progress = save.stageProgress[stage.id] ?? emptyProgress();
   const defeated = new Set([...progress.defeatedEnemyIds, ...progress.defeatedBossIds]);
   state.enemies = state.enemies.filter((enemy) => !defeated.has(enemy.id));
+  if (
+    state.bossEncounter &&
+    !state.enemies.some((enemy) => enemy.id === state.bossEncounter?.bossId)
+  ) {
+    state.bossEncounter = null;
+  }
   const savedPositionIsInStage =
     save.playerPosition.x >= 0 &&
     save.playerPosition.x <= stage.width &&

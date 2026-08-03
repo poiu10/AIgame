@@ -59,6 +59,11 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["waker-call"].assetKey).toBe(
       ASSET_KEYS.audio.enemyCall,
     );
+    expect(SOUND_PLAYBACK_PROFILES["waker-call-short"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.enemyCall,
+      playbackFraction: 0.5,
+      followWithFullPlayback: true,
+    });
   });
 
   it("uses down_cut_before_tak for landing sounds", () => {
@@ -86,6 +91,7 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["enemy-call"].volume).toBe(0.12);
     expect(SOUND_PLAYBACK_PROFILES.sleep.volume).toBe(0.065);
     expect(SOUND_PLAYBACK_PROFILES["waker-call"].volume).toBe(0.24);
+    expect(SOUND_PLAYBACK_PROFILES["waker-call-short"].volume).toBe(0.24);
   });
 
   it("uses the supplied seamless electric loop for the moving electric hazard", () => {

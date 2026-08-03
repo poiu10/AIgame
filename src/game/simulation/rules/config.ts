@@ -97,6 +97,22 @@ export const STAGE_ONE_CONFIG = {
 export const STAGE_TWO_CONFIG = {
   entryDoorTriggerDistance: 72,
   closingDoorSoundDistance: 720,
+  phaseOneHealth: 5,
+  phaseOneMinionHealth: 2,
+  phaseOneEjectSeconds: 0.38,
+  phaseOneEjectHorizontalSpeed: 440,
+  phaseOneEjectVerticalSpeed: 180,
+  phaseOneEjectGravity: 620,
+  phaseTwoHealth: 15,
+  phaseTwoPatternIntervalSeconds: 5,
+  phaseTwoPatternWarningSeconds: 0.5,
+  phaseTwoDoubleCallDelaySeconds: 0.25,
+  phaseTwoPatternSpeed: 920,
+  phaseTwoIntroActorCount: 14,
+  phaseTwoIntroSpawnIntervalSeconds: 0.055,
+  phaseTwoIntroMinimumSpeed: 620,
+  phaseTwoCallDistance: STAGE_ONE_CONFIG.wakerPulseDistance,
+  phaseTwoCallIntensity: STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
 } as const;
 
 export function getEnemyBodySize(kind?: string): {

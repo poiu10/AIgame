@@ -234,9 +234,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   private publishHud(): void {
+    const encounter = this.gameState.bossEncounter;
+    const boss = encounter
+      ? this.gameState.enemies.find((enemy) => enemy.id === encounter.bossId)
+      : undefined;
     const hudState: HudState = {
       health: this.gameState.player.health,
       maxHealth: this.gameState.player.maxHealth,
+      boss:
+        boss && encounter && encounter.phase <= 2
+          ? {
+              health: boss.health,
+              maxHealth: boss.maxHealth,
+              phase: encounter.phase,
+            }
+          : null,
     };
     const signature = JSON.stringify(hudState);
     if (signature === this.lastHudSignature) return;

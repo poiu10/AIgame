@@ -16,6 +16,7 @@ import { getPlayerAttackBounds } from "../rules/combat";
 import { getPlayerBounds } from "../rules/player";
 import type { EnemyState, Facing, GameState } from "../state";
 import { emitSound } from "./sound";
+import { damageCocoonBoss } from "./bossEncounter";
 import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
 
 export function killPlayer(state: GameState): boolean {
@@ -86,6 +87,9 @@ export function damageEnemy(
 ): boolean {
   if (!enemy.alive) {
     return false;
+  }
+  if (enemy.kind === ENEMY_KINDS.cocoonBoss) {
+    return damageCocoonBoss(state, enemy, knockbackDirection);
   }
 
   enemy.health -= 1;

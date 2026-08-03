@@ -49,7 +49,14 @@ export class SampleSoundPlayer {
     const destroy = () => {
       if (!sound.pendingRemove) sound.destroy();
     };
-    sound.once(Phaser.Sound.Events.COMPLETE, destroy);
+    if (profile.followWithFullPlayback) {
+      sound.once(Phaser.Sound.Events.COMPLETE, () => {
+        sound.once(Phaser.Sound.Events.COMPLETE, destroy);
+        if (!sound.play(config)) destroy();
+      });
+    } else {
+      sound.once(Phaser.Sound.Events.COMPLETE, destroy);
+    }
 
     let started: boolean;
     if (profile.playbackStartFraction || profile.playbackFraction) {

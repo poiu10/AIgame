@@ -3,6 +3,11 @@ export const GAME_HUD_EVENT = "aigame:hud";
 export interface HudState {
   health: number;
   maxHealth: number;
+  boss: {
+    health: number;
+    maxHealth: number;
+    phase: number;
+  } | null;
 }
 
 export function mountHud(container: HTMLDivElement | null): void {
@@ -16,10 +21,19 @@ export function mountHud(container: HTMLDivElement | null): void {
     <div class="hud-stats">
       <span class="hud-health" role="img" aria-label="체력"></span>
     </div>
+    <div class="hud-boss" role="img" aria-label="보스 체력" hidden>
+      <span class="hud-boss-phase" aria-hidden="true"></span>
+      <span class="hud-boss-track" aria-hidden="true">
+        <span class="hud-boss-fill"></span>
+      </span>
+    </div>
   `;
   container.replaceChildren(panel);
 
   const health = panel.querySelector<HTMLElement>(".hud-health");
+  const boss = panel.querySelector<HTMLElement>(".hud-boss");
+  const bossPhase = panel.querySelector<HTMLElement>(".hud-boss-phase");
+  const bossFill = panel.querySelector<HTMLElement>(".hud-boss-fill");
 
   window.addEventListener(GAME_HUD_EVENT, (rawEvent) => {
     const event = rawEvent as CustomEvent<HudState>;
@@ -40,5 +54,23 @@ export function mountHud(container: HTMLDivElement | null): void {
 
     health.setAttribute("aria-label", `체력 ${currentHealth}/${maxHealth}`);
     health.replaceChildren(...cells);
+
+    if (!boss || !bossPhase || !bossFill) return;
+    if (!state.boss) {
+      boss.hidden = true;
+      return;
+    }
+    const bossMaxHealth = Math.max(1, Math.floor(state.boss.maxHealth));
+    const bossHealth = Math.min(
+      bossMaxHealth,
+      Math.max(0, Math.floor(state.boss.health)),
+    );
+    boss.hidden = false;
+    bossPhase.textContent = `P${state.boss.phase}`;
+    bossFill.style.width = `${(bossHealth / bossMaxHealth) * 100}%`;
+    boss.setAttribute(
+      "aria-label",
+      `보스 ${state.boss.phase}페이즈 체력 ${bossHealth}/${bossMaxHealth}`,
+    );
   });
 }

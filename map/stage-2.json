@@ -134,7 +134,7 @@
       },
       "patrolMinX": 480,
       "patrolMaxX": 480,
-      "health": 1
+      "health": 5
     }
   ],
   "hazards": [

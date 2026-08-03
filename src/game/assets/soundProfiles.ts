@@ -7,6 +7,7 @@ export interface SoundPlaybackProfile {
   rate: number;
   playbackStartFraction?: number;
   playbackFraction?: number;
+  followWithFullPlayback?: boolean;
 }
 
 export const MELEE_ATTACK_VOLUME = 0.14;
@@ -64,6 +65,13 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     assetKey: ASSET_KEYS.audio.enemyCall,
     volume: 0.24,
     rate: 1,
+  },
+  "waker-call-short": {
+    assetKey: ASSET_KEYS.audio.enemyCall,
+    volume: 0.24,
+    rate: 1,
+    playbackFraction: 0.5,
+    followWithFullPlayback: true,
   },
   sleep: {
     assetKey: ASSET_KEYS.audio.sleepingEnemy,

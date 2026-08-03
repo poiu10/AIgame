@@ -6,6 +6,7 @@ import {
   getEnemyBodySize,
   MELEE_ATTACK_WAVE_CONFIG,
   STAGE_ONE_CONFIG,
+  STAGE_TWO_CONFIG,
 } from "../rules/config";
 import { getEnemyAttackBounds } from "../rules/combat";
 import { getPlayerBounds } from "../rules/player";
@@ -153,6 +154,19 @@ function updateWaker(
     return;
   }
 
+  if (enemy.action === "eject") {
+    enemy.actionTime += deltaSeconds;
+    enemy.position.x += enemy.velocity.x * deltaSeconds;
+    enemy.position.y += enemy.velocity.y * deltaSeconds;
+    enemy.velocity.y +=
+      STAGE_TWO_CONFIG.phaseOneEjectGravity * deltaSeconds;
+    if (enemy.actionTime >= STAGE_TWO_CONFIG.phaseOneEjectSeconds) {
+      enemy.action = "pursue";
+      enemy.actionTime = 0;
+    }
+    return;
+  }
+
   if (enemy.action === "hurt") {
     enemy.actionTime += deltaSeconds;
     enemy.position.x += enemy.velocity.x * deltaSeconds;
@@ -220,7 +234,15 @@ export function updateEnemies(
 
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - deltaSeconds);
     if (enemy.kind === ENEMY_KINDS.cocoonBoss) {
-      enemy.action = "sleep";
+      if (enemy.action === "hurt") {
+        enemy.actionTime += deltaSeconds;
+        if (enemy.actionTime >= ENEMY_CONFIG.hurtSeconds) {
+          enemy.action = "sleep";
+          enemy.actionTime = 0;
+        }
+      } else {
+        enemy.action = "sleep";
+      }
       enemy.grounded = false;
       enemy.velocity = { x: 0, y: 0 };
       continue;

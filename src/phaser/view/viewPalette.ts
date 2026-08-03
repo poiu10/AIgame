@@ -15,6 +15,7 @@ export const SOUND_WAVE_COLORS: Readonly<Record<SoundKind, number>> = {
   "enemy-attack": PLAYER_ATTACK_WAVE_COLOR,
   "enemy-call": THREAT_COLOR,
   "waker-call": THREAT_COLOR,
+  "waker-call-short": THREAT_COLOR,
   "enemy-hit": PLAYER_ATTACK_WAVE_COLOR,
   "enemy-death": 0xffffff,
   sleep: THREAT_COLOR,

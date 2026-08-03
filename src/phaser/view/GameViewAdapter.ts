@@ -5,12 +5,13 @@ import {
   PLAYER_SPRITE_FRAME,
 } from "../../game/assets/manifest";
 import type { WorldDefinition } from "../../game/content/world";
-import { HAZARD_KINDS, TERRAIN_KINDS } from "../../game/content/world";
+import { ENEMY_KINDS, HAZARD_KINDS, TERRAIN_KINDS } from "../../game/content/world";
 import {
   PLAYER_CONFIG,
   SOUND_CONFIG,
 } from "../../game/simulation/rules/config";
 import type {
+  BossActorState,
   EnemyState,
   GameState,
   PlayerState,
@@ -41,6 +42,7 @@ import {
   resolveEnemyThreatFrame,
   resolveHazardReactionFrame,
   THREAT_PIXEL_SIZE,
+  type EnemyThreatFrame,
 } from "./threatPixelArt";
 import {
   ECHO_MARK_COLORS,
@@ -60,6 +62,17 @@ const BUTTON_PRESS_GUIDE_WIDTH = 3;
 const ELECTRIC_LIGHTNING_FRAME_COUNT = 4;
 const ELECTRIC_LIGHTNING_FRAME_RATE = 20;
 const MAP_SCROLL_INDICATOR_ALPHA = 0.62;
+const BOSS_ACTOR_WALK_FRAMES: readonly EnemyThreatFrame[] = [
+  "walk-0",
+  "walk-1",
+  "walk-2",
+  "walk-3",
+];
+
+interface ThreatView {
+  container: Phaser.GameObjects.Container;
+  graphics: Phaser.GameObjects.Graphics;
+}
 
 export class GameViewAdapter {
   readonly playerTarget: Phaser.GameObjects.Container;
@@ -67,10 +80,8 @@ export class GameViewAdapter {
   private readonly playerSprite: Phaser.GameObjects.Sprite;
   private readonly tutorialText: Phaser.GameObjects.Graphics;
   private readonly restartPrompt: Phaser.GameObjects.Graphics;
-  private readonly enemyViews = new Map<
-    string,
-    { container: Phaser.GameObjects.Container; graphics: Phaser.GameObjects.Graphics }
-  >();
+  private readonly enemyViews = new Map<string, ThreatView>();
+  private readonly bossActorViews = new Map<string, ThreatView>();
   private readonly waveGraphics: Phaser.GameObjects.Graphics;
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
@@ -79,7 +90,7 @@ export class GameViewAdapter {
   private currentTutorialPrompt = "";
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     private readonly world: WorldDefinition,
   ) {
     this.echoGraphics = scene.add.graphics().setDepth(3);
@@ -161,6 +172,7 @@ export class GameViewAdapter {
     this.drawTutorialText(state);
     this.restartPrompt.setAlpha(resolveDeathRestartPromptAlpha(state.player));
     this.drawEnemies(state);
+    this.drawBossActors(state);
     this.drawTerrainMechanisms(state);
     this.drawHazards(state);
     this.drawEchoes(state);
@@ -207,6 +219,10 @@ export class GameViewAdapter {
       view.container.destroy(true);
     }
     this.enemyViews.clear();
+    for (const view of this.bossActorViews.values()) {
+      view.container.destroy(true);
+    }
+    this.bossActorViews.clear();
     this.waveGraphics.destroy();
     this.echoGraphics.destroy();
     this.hazardGraphics.destroy();
@@ -359,10 +375,7 @@ export class GameViewAdapter {
       view.container.setVisible(false);
     }
     for (const enemy of state.enemies) {
-      const view = this.enemyViews.get(enemy.id);
-      if (!view) {
-        continue;
-      }
+      const view = this.ensureThreatView(this.enemyViews, enemy.id);
       view.container.setPosition(enemy.position.x, enemy.position.y);
       const visible = enemy.echoTime > 0;
       view.container.setVisible(visible);
@@ -392,6 +405,76 @@ export class GameViewAdapter {
         : enemy.facing;
     const frame = resolveEnemyThreatFrame(enemy, elapsedSeconds);
     for (const cell of createEnemyThreatCells(frame, facing, enemy.kind)) {
+      graphics.fillRect(
+        cell.x * THREAT_PIXEL_SIZE,
+        cell.y * THREAT_PIXEL_SIZE,
+        THREAT_PIXEL_SIZE,
+        THREAT_PIXEL_SIZE,
+      );
+    }
+  }
+
+  private drawBossActors(state: GameState): void {
+    const actors = state.bossEncounter?.actors ?? [];
+    const activeIds = new Set(actors.map((actor) => actor.id));
+    for (const [id, view] of this.bossActorViews) {
+      if (activeIds.has(id)) continue;
+      view.container.destroy(true);
+      this.bossActorViews.delete(id);
+    }
+
+    for (const actor of actors) {
+      const view = this.ensureThreatView(this.bossActorViews, actor.id);
+      const visible = actor.age >= 0;
+      view.container
+        .setPosition(actor.position.x, actor.position.y)
+        .setVisible(visible);
+      if (!visible) continue;
+      this.drawBossActor(view.graphics, actor, state.elapsedTime);
+    }
+  }
+
+  private ensureThreatView(
+    views: Map<string, ThreatView>,
+    id: string,
+  ): ThreatView {
+    const existing = views.get(id);
+    if (existing) return existing;
+    const graphics = this.scene.add.graphics();
+    const view = {
+      graphics,
+      container: this.scene.add
+        .container(0, 0, [graphics])
+        .setDepth(8)
+        .setVisible(false),
+    };
+    views.set(id, view);
+    return view;
+  }
+
+  private drawBossActor(
+    graphics: Phaser.GameObjects.Graphics,
+    actor: BossActorState,
+    elapsedSeconds: number,
+  ): void {
+    const warningProgress = actor.launchDelay > 0
+      ? actor.age / actor.launchDelay
+      : 1;
+    const frame: EnemyThreatFrame =
+      actor.kind === "pattern" && actor.age < actor.launchDelay
+        ? warningProgress < 0.55
+          ? "alert-0"
+          : "alert-1"
+        : BOSS_ACTOR_WALK_FRAMES[
+            Math.floor(elapsedSeconds * 10) % BOSS_ACTOR_WALK_FRAMES.length
+          ];
+    graphics.clear();
+    graphics.fillStyle(THREAT_COLOR, 1);
+    for (const cell of createEnemyThreatCells(
+      frame,
+      actor.facing,
+      ENEMY_KINDS.waker,
+    )) {
       graphics.fillRect(
         cell.x * THREAT_PIXEL_SIZE,
         cell.y * THREAT_PIXEL_SIZE,

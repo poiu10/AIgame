@@ -4,11 +4,13 @@ import type { InputActions } from "../../input/actions";
 import { PLAYER_CONFIG } from "../rules/config";
 import type { GameState } from "../state";
 import {
+  damagePlayer,
   killPlayer,
   updateEnemyContactDamage,
   updatePlayerCombat,
 } from "./combat";
 import { updateEnemies } from "./enemies";
+import { updateBossEncounter } from "./bossEncounter";
 import { updateTutorialProgress, updateWorldEnvironment } from "./environment";
 import { updatePlayerMovement } from "./movement";
 import { withActiveTerrain } from "./stageMechanisms";
@@ -54,6 +56,9 @@ export function stepSimulation(
 
   updateEnemies(state, collisionWorld, deltaSeconds);
   updatePlayerCombat(state, world);
+  updateBossEncounter(state, world, deltaSeconds, (direction) =>
+    damagePlayer(state, direction),
+  );
   updateEnemyContactDamage(state);
   updateWorldEnvironment(state, world, deltaSeconds);
   updateTutorialProgress(state, world);
