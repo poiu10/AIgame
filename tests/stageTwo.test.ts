@@ -389,6 +389,30 @@ describe("Stage 2", () => {
     )).toBe(false);
   });
 
+  it("damages on phase-three boss body contact except while rolling or dying", () => {
+    const { state, boss } = enterPhaseThree();
+    state.player.position = { ...boss.position };
+    state.player.action = "normal";
+    state.player.invulnerabilityTime = 0;
+
+    updateEnemyContactDamage(state);
+
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
+    expect(state.player.action).toBe("hurt");
+
+    state.player.health = PLAYER_CONFIG.maxHealth;
+    state.player.action = "roll";
+    state.player.invulnerabilityTime = 0;
+    updateEnemyContactDamage(state);
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+
+    state.player.action = "normal";
+    state.bossEncounter!.phaseThree!.mode = "death-shake";
+    boss.health = 0;
+    updateEnemyContactDamage(state);
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+  });
+
   it("fires the three phase-three patterns with boss and spawn wave radii kept separate", () => {
     const { state } = enterPhaseThree();
     const encounter = state.bossEncounter!;
