@@ -66,6 +66,12 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     volume: 0.24,
     rate: 1,
   },
+  "waker-call-burst": {
+    assetKey: ASSET_KEYS.audio.enemyCall,
+    volume: 0.12,
+    rate: 1,
+    playbackFraction: 0.22,
+  },
   "waker-call-short": {
     assetKey: ASSET_KEYS.audio.enemyCall,
     volume: 0.24,

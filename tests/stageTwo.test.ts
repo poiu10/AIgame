@@ -200,6 +200,11 @@ describe("Stage 2", () => {
     );
     expect(state.bossEncounter?.actors).toHaveLength(0);
     expect(state.player.health).toBe(initialHealth);
+    expect(state.events.filter(
+      (event) => event.type === "sound" && event.kind === "waker-call-burst",
+    )).toHaveLength(STAGE_TWO_CONFIG.phaseTwoIntroActorCount);
+    expect(state.soundWaves.filter((wave) => wave.kind === "waker-call-burst"))
+      .toHaveLength(STAGE_TWO_CONFIG.phaseTwoIntroActorCount);
   });
 
   it("builds all four warned, invulnerable phase-two attack formations", () => {

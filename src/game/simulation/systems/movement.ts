@@ -54,6 +54,7 @@ function startPlayerAttack(player: PlayerState, input: InputActions): void {
     );
   }
   player.attackHitIds = [];
+  player.attackCooldown = PLAYER_CONFIG.attackCooldownSeconds;
 }
 
 function getActionHitboxOffset(
@@ -108,6 +109,7 @@ export function updatePlayerMovement(
   let startedAttack = false;
 
   player.rollCooldown = Math.max(0, player.rollCooldown - deltaSeconds);
+  player.attackCooldown = Math.max(0, player.attackCooldown - deltaSeconds);
   player.invulnerabilityTime = Math.max(
     0,
     player.invulnerabilityTime - deltaSeconds,
@@ -147,7 +149,11 @@ export function updatePlayerMovement(
     }
   }
 
-  if (player.action === "roll" && input.attackPressed) {
+  if (
+    player.action === "roll" &&
+    input.attackPressed &&
+    player.attackCooldown <= 0
+  ) {
     startPlayerAttack(player, input);
     startedAttack = true;
   } else if (
@@ -159,7 +165,11 @@ export function updatePlayerMovement(
     player.actionTime = 0;
     player.attackHitIds = [];
     player.rollCooldown = PLAYER_CONFIG.rollCooldownSeconds;
-  } else if (player.action === "normal" && input.attackPressed) {
+  } else if (
+    player.action === "normal" &&
+    input.attackPressed &&
+    player.attackCooldown <= 0
+  ) {
     startPlayerAttack(player, input);
     startedAttack = true;
   }

@@ -52,11 +52,15 @@ function nextRandomPattern(encounter: BossEncounterState): BossAttackPattern {
 
 function createActor(
   encounter: BossEncounterState,
-  actor: Omit<BossActorState, "id" | "secondCallEmitted">,
+  actor: Omit<
+    BossActorState,
+    "id" | "spawnCallEmitted" | "secondCallEmitted"
+  >,
 ): BossActorState {
   return {
     ...actor,
     id: nextActorId(encounter, `boss-${actor.kind}`),
+    spawnCallEmitted: false,
     secondCallEmitted: false,
   };
 }
@@ -375,6 +379,21 @@ function updateActors(
   for (const actor of encounter.actors) {
     const previousAge = actor.age;
     actor.age += deltaSeconds;
+    if (
+      actor.kind === "intro-swarm" &&
+      !actor.spawnCallEmitted &&
+      actor.age >= 0
+    ) {
+      actor.spawnCallEmitted = true;
+      emitSound(
+        state,
+        "waker-call-burst",
+        actor.position,
+        STAGE_TWO_CONFIG.phaseTwoCallDistance,
+        STAGE_TWO_CONFIG.phaseTwoCallIntensity,
+        actor.id,
+      );
+    }
     if (
       actor.secondCallTime !== null &&
       !actor.secondCallEmitted &&

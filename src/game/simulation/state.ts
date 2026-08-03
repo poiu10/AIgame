@@ -30,6 +30,7 @@ export type SoundKind =
   | "enemy-attack"
   | "enemy-call"
   | "waker-call"
+  | "waker-call-burst"
   | "waker-call-short"
   | "enemy-hit"
   | "enemy-death"
@@ -60,6 +61,7 @@ export interface PlayerState {
   action: PlayerAction;
   actionTime: number;
   rollCooldown: number;
+  attackCooldown: number;
   invulnerabilityTime: number;
   coyoteTime: number;
   jumpBufferTime: number;
@@ -105,6 +107,7 @@ export interface BossActorState {
   launchDelay: number;
   flightDuration: number;
   damagesPlayer: boolean;
+  spawnCallEmitted: boolean;
   secondCallTime: number | null;
   secondCallEmitted: boolean;
 }
@@ -230,6 +233,7 @@ export function createInitialGameState(
       action: "normal",
       actionTime: 0,
       rollCooldown: 0,
+      attackCooldown: 0,
       invulnerabilityTime: 0,
       coyoteTime: 0,
       jumpBufferTime: 0,

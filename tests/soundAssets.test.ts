@@ -59,6 +59,14 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["waker-call"].assetKey).toBe(
       ASSET_KEYS.audio.enemyCall,
     );
+    expect(SOUND_PLAYBACK_PROFILES["waker-call-burst"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.enemyCall,
+      volume: 0.12,
+      playbackFraction: 0.22,
+    });
+    expect(
+      SOUND_PLAYBACK_PROFILES["waker-call-burst"].followWithFullPlayback,
+    ).toBeUndefined();
     expect(SOUND_PLAYBACK_PROFILES["waker-call-short"]).toMatchObject({
       assetKey: ASSET_KEYS.audio.enemyCall,
       playbackFraction: 0.5,
@@ -91,6 +99,7 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["enemy-call"].volume).toBe(0.12);
     expect(SOUND_PLAYBACK_PROFILES.sleep.volume).toBe(0.065);
     expect(SOUND_PLAYBACK_PROFILES["waker-call"].volume).toBe(0.24);
+    expect(SOUND_PLAYBACK_PROFILES["waker-call-burst"].volume).toBe(0.12);
     expect(SOUND_PLAYBACK_PROFILES["waker-call-short"].volume).toBe(0.24);
   });
 

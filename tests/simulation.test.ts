@@ -368,6 +368,51 @@ describe("player controller", () => {
     expect(damagePlayer(state, -1)).toBe(false);
   });
 
+  it("uses a 0.3 second player attack and roll cooldown", () => {
+    expect(PLAYER_CONFIG.attackSeconds).toBe(0.3);
+    expect(PLAYER_CONFIG.attackCooldownSeconds).toBe(0.3);
+    expect(PLAYER_CONFIG.rollCooldownSeconds).toBe(0.3);
+
+    let state = stepMany(flatWorld, 40);
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1, rollPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    expect(state.player.rollCooldown).toBe(0.3);
+
+    for (
+      let index = 0;
+      index < Math.ceil(0.3 / FIXED_STEP_SECONDS);
+      index += 1
+    ) {
+      state = stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
+    }
+    expect(state.player.rollCooldown).toBeCloseTo(0, 8);
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    expect(state.player.attackCooldown).toBe(0.3);
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, rollPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, attackPressed: true },
+      FIXED_STEP_SECONDS,
+      flatWorld,
+    );
+    expect(state.player.action).toBe("roll");
+  });
+
   it("cancels a roll into an attack and removes roll invulnerability", () => {
     let state = stepMany(flatWorld, 40);
     state = stepSimulation(
