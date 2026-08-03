@@ -233,15 +233,18 @@ export function updateEnemies(
     }
 
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - deltaSeconds);
-    if (enemy.kind === ENEMY_KINDS.cocoonBoss) {
+    if (
+      enemy.kind === ENEMY_KINDS.cocoonBoss ||
+      enemy.kind === ENEMY_KINDS.ravenBoss
+    ) {
       if (enemy.action === "hurt") {
         enemy.actionTime += deltaSeconds;
         if (enemy.actionTime >= ENEMY_CONFIG.hurtSeconds) {
-          enemy.action = "sleep";
+          enemy.action = enemy.kind === ENEMY_KINDS.ravenBoss ? "fly" : "sleep";
           enemy.actionTime = 0;
         }
       } else {
-        enemy.action = "sleep";
+        enemy.action = enemy.kind === ENEMY_KINDS.ravenBoss ? "fly" : "sleep";
       }
       enemy.grounded = false;
       enemy.velocity = { x: 0, y: 0 };

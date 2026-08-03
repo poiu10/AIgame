@@ -26,6 +26,8 @@ export const ASSET_KEYS = {
     crusherPulse: "audio.crusher-pulse",
     sleepingEnemy: "audio.sleeping-enemy",
     water: "audio.water",
+    fleshGrowth: "audio.boss-flesh-growth",
+    wetSquelch: "audio.wet-squelch",
   },
 } as const;
 
@@ -205,5 +207,13 @@ export const AUDIO_ASSETS = {
   water: {
     key: ASSET_KEYS.audio.water,
     path: "assets/audio/1water.mp3",
+  },
+  fleshGrowth: {
+    key: ASSET_KEYS.audio.fleshGrowth,
+    path: "assets/audio/tanweraman-flesh-growing-horror-392360.mp3",
+  },
+  wetSquelch: {
+    key: ASSET_KEYS.audio.wetSquelch,
+    path: "assets/audio/universfield-wet-squelch-276679.mp3",
   },
 } as const;

@@ -32,6 +32,9 @@ export type SoundKind =
   | "waker-call"
   | "waker-call-burst"
   | "waker-call-short"
+  | "boss-flesh-growth"
+  | "boss-wet-squelch"
+  | "spawn-wet-squelch"
   | "enemy-hit"
   | "enemy-death"
   | "sleep"
@@ -95,10 +98,18 @@ export interface EnemyState {
 
 export type BossPhase = 1 | 2 | 3;
 export type BossAttackPattern = 1 | 2 | 3 | 4;
+export type PhaseThreePattern = 1 | 2 | 3;
+export type PhaseThreeMode =
+  | "intro"
+  | "pattern-enter"
+  | "pattern-active"
+  | "pattern-exit"
+  | "intermission"
+  | "defeated";
 
 export interface BossActorState {
   id: string;
-  kind: "intro-swarm" | "pattern";
+  kind: "intro-swarm" | "pattern" | "phase-three-projectile";
   pattern: BossAttackPattern | null;
   position: Vector2State;
   velocity: Vector2State;
@@ -112,6 +123,23 @@ export interface BossActorState {
   secondCallEmitted: boolean;
 }
 
+export interface PhaseThreeBossState {
+  mode: PhaseThreeMode;
+  modeTime: number;
+  pattern: PhaseThreePattern | null;
+  side: Facing;
+  cocoonPosition: Vector2State;
+  moveStart: Vector2State;
+  moveTarget: Vector2State;
+  moveDuration: number;
+  bossWaveTimer: number;
+  bossCallTimer: number;
+  shotsFired: number;
+  volleysStarted: number;
+  volleyTargets: Vector2State[];
+  secondCallWaveEmitted: boolean;
+}
+
 export interface BossEncounterState {
   bossId: string;
   phase: BossPhase;
@@ -120,6 +148,7 @@ export interface BossEncounterState {
   nextActorId: number;
   lastPattern: BossAttackPattern | null;
   actors: BossActorState[];
+  phaseThree: PhaseThreeBossState | null;
 }
 
 export interface TerrainState {
@@ -319,6 +348,7 @@ export function createInitialGameState(
           nextActorId: 1,
           lastPattern: null,
           actors: [],
+          phaseThree: null,
         }
       : null,
   };

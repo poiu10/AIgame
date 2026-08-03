@@ -74,6 +74,26 @@ describe("sample-backed sound", () => {
     });
   });
 
+  it("maps phase-three emergence and wet spawning to the supplied samples", () => {
+    expect(AUDIO_ASSETS.fleshGrowth.path).toBe(
+      "assets/audio/tanweraman-flesh-growing-horror-392360.mp3",
+    );
+    expect(AUDIO_ASSETS.wetSquelch.path).toBe(
+      "assets/audio/universfield-wet-squelch-276679.mp3",
+    );
+    expect(SOUND_PLAYBACK_PROFILES["boss-flesh-growth"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.fleshGrowth,
+      volume: 0.34,
+    });
+    expect(SOUND_PLAYBACK_PROFILES["boss-wet-squelch"].assetKey).toBe(
+      ASSET_KEYS.audio.wetSquelch,
+    );
+    expect(SOUND_PLAYBACK_PROFILES["spawn-wet-squelch"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.wetSquelch,
+      playbackFraction: 0.18,
+    });
+  });
+
   it("uses down_cut_before_tak for landing sounds", () => {
     expect(AUDIO_ASSETS.landing.path).toBe(
       "assets/audio/down_cut_before_tak.wav",

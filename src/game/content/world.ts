@@ -40,6 +40,7 @@ export const ENEMY_KINDS = {
   flyer: "stage-flyer",
   waker: "stage-waker",
   cocoonBoss: "stage-2-cocoon-boss",
+  ravenBoss: "stage-2-raven-insect-boss",
 } as const;
 
 export interface HazardDefinition {

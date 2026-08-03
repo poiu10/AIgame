@@ -1102,6 +1102,101 @@ export function createCocoonBossThreatCells(
   return [...cells.values()];
 }
 
+export function createCrackedCocoonBossThreatCells(
+  progress: number,
+): ThreatPixelCell[] {
+  const clamped = Math.max(0, Math.min(1, progress));
+  const separation = Math.round(clamped * 13);
+  return createCocoonBossThreatCells("idle")
+    .filter((cell) => {
+      const crackCenter = Math.round(Math.sin((cell.y + 42) * 0.34) * 2);
+      const crackWidth = 1 + Math.floor(clamped * 2);
+      return Math.abs(cell.x - crackCenter) > crackWidth;
+    })
+    .map((cell) => ({
+      x: cell.x + (cell.x < 0 ? -separation : separation),
+      y: cell.y + Math.round(clamped * Math.abs(cell.x) * 0.08),
+    }));
+}
+
+function createRavenInsectBossThreatCells(
+  frame: EnemyThreatFrame,
+): ThreatPixelCell[] {
+  const cells = new Map<string, ThreatPixelCell>();
+  const wingBeat = frame === "walk-1" || frame === "walk-3" ? 5 : 0;
+  const recoil = frame === "hurt" || frame === "death-recoil" ? -3 : 0;
+  const fall = frame === "death-fall" ? 7 : 0;
+
+  if (frame === "corpse" || frame === "death-collapse") {
+    addPolygons(cells, [[
+      { x: -28, y: 12 }, { x: -17, y: 4 }, { x: 7, y: 7 },
+      { x: 24, y: 16 }, { x: 16, y: 21 }, { x: -22, y: 20 },
+    ]]);
+    return [...cells.values()];
+  }
+
+  // Crow-like hooked head, beak, breast and ragged tail.
+  addPolygons(cells, [
+    [
+      { x: 5 + recoil, y: -17 + fall }, { x: 15 + recoil, y: -22 + fall },
+      { x: 22 + recoil, y: -17 + fall }, { x: 21 + recoil, y: -7 + fall },
+      { x: 13 + recoil, y: -3 + fall }, { x: 5 + recoil, y: -8 + fall },
+    ],
+    [
+      { x: 20 + recoil, y: -17 + fall }, { x: 32 + recoil, y: -12 + fall },
+      { x: 23 + recoil, y: -8 + fall }, { x: 17 + recoil, y: -10 + fall },
+    ],
+    [
+      { x: -10 + recoil, y: -10 + fall }, { x: 9 + recoil, y: -13 + fall },
+      { x: 18 + recoil, y: -1 + fall }, { x: 12 + recoil, y: 15 + fall },
+      { x: -8 + recoil, y: 17 + fall }, { x: -18 + recoil, y: 4 + fall },
+    ],
+    [
+      { x: -15 + recoil, y: -5 + fall }, { x: -24 + recoil, y: 1 + fall },
+      { x: -31 + recoil, y: 13 + fall }, { x: -19 + recoil, y: 9 + fall },
+      { x: -33 + recoil, y: 23 + fall }, { x: -12 + recoil, y: 14 + fall },
+    ],
+  ]);
+
+  // Broad feathered wing above and a separate insect wing below.
+  addPolygons(cells, [
+    [
+      { x: 2 + recoil, y: -8 + fall }, { x: -8 + recoil, y: -28 - wingBeat + fall },
+      { x: -17 + recoil, y: -34 - wingBeat + fall }, { x: -14 + recoil, y: -17 + fall },
+      { x: -27 + recoil, y: -29 - wingBeat + fall }, { x: -24 + recoil, y: -10 + fall },
+      { x: -37 + recoil, y: -19 - wingBeat + fall }, { x: -26 + recoil, y: 1 + fall },
+      { x: -5 + recoil, y: 7 + fall },
+    ],
+    [
+      { x: 3 + recoil, y: 6 + fall }, { x: 22 + recoil, y: 13 + wingBeat + fall },
+      { x: 29 + recoil, y: 25 + wingBeat + fall }, { x: 11 + recoil, y: 18 + fall },
+      { x: 18 + recoil, y: 31 + wingBeat + fall }, { x: -2 + recoil, y: 18 + fall },
+    ],
+  ]);
+
+  // Six jointed insect legs and a pair of feelers keep the silhouette readable.
+  for (const leg of [
+    [{ x: -7, y: 12 }, { x: -19, y: 24 }, { x: -27, y: 30 }],
+    [{ x: 0, y: 14 }, { x: -7, y: 30 }, { x: -4, y: 37 }],
+    [{ x: 7, y: 12 }, { x: 13, y: 27 }, { x: 23, y: 32 }],
+    [{ x: -3, y: -8 }, { x: -16, y: -15 }, { x: -22, y: -11 }],
+    [{ x: 8, y: 6 }, { x: 24, y: 7 }, { x: 30, y: 13 }],
+    [{ x: 12, y: 0 }, { x: 27, y: -1 }, { x: 33, y: 4 }],
+  ]) {
+    addPolyline(cells, leg.map((point) => ({
+      x: point.x + recoil,
+      y: point.y + fall,
+    })));
+  }
+  addPolyline(cells, [
+    { x: 14 + recoil, y: -19 + fall },
+    { x: 12 + recoil, y: -29 + fall },
+    { x: 17 + recoil, y: -35 + fall },
+  ]);
+
+  return [...cells.values()];
+}
+
 export function createEnemyThreatCells(
   frame: EnemyThreatFrame,
   facing: Facing,
@@ -1110,6 +1205,10 @@ export function createEnemyThreatCells(
   const cells = new Map<string, ThreatPixelCell>();
   if (kind === ENEMY_KINDS.cocoonBoss) {
     for (const cell of createCocoonBossThreatCells(frame)) {
+      cells.set(cellKey(cell.x, cell.y), cell);
+    }
+  } else if (kind === ENEMY_KINDS.ravenBoss) {
+    for (const cell of createRavenInsectBossThreatCells(frame)) {
       cells.set(cellKey(cell.x, cell.y), cell);
     }
   } else if (kind === ENEMY_KINDS.sleeper && frame === "idle") {

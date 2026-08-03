@@ -114,6 +114,25 @@ export const STAGE_TWO_CONFIG = {
   phaseTwoIntroMinimumSpeed: 620,
   bossCallDistance: MELEE_ATTACK_WAVE_CONFIG.distance,
   bossCallIntensity: STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
+  phaseThreeHealth: 20,
+  phaseThreeIntroSeconds: 3.2,
+  phaseThreeBossWaveDistance: 540,
+  phaseThreeBossWaveIntervalSeconds: 0.75,
+  phaseThreeIntermissionSeconds: 8,
+  phaseThreeIntermissionDescendDelaySeconds: 1,
+  phaseThreeIntermissionExitLeadSeconds: 1,
+  phaseThreeBossCallIntervalSeconds: 2.4,
+  phaseThreePatternEntrySeconds: 0.8,
+  phaseThreePatternExitSeconds: 0.8,
+  phaseThreePatternWarningSeconds: 0.5,
+  phaseThreePatternOneShotIntervalSeconds: 0.8,
+  phaseThreePatternTwoDurationSeconds: 20,
+  phaseThreePatternTwoIntervalSeconds: 8,
+  phaseThreePatternThreeBarrageDelaySeconds: 3,
+  phaseThreePatternThreeBarrageSeconds: 6,
+  phaseThreePatternThreeShotIntervalSeconds: 0.2,
+  phaseThreeProjectileSpeed: 920,
+  phaseThreeSpawnWaveDistance: 160,
 } as const;
 
 export function getEnemyBodySize(kind?: string): {
@@ -123,6 +142,9 @@ export function getEnemyBodySize(kind?: string): {
   if (kind === "stage-sleeper") return { width: 72, height: 40 };
   if (kind === "stage-flyer") return { width: 66, height: 44 };
   if (kind === "stage-waker") return { width: 70, height: 52 };
+  if (kind === "stage-2-raven-insect-boss") {
+    return { width: 180, height: 120 };
+  }
   if (kind === "stage-2-cocoon-boss") return { width: 180, height: 260 };
   return { width: ENEMY_CONFIG.width, height: ENEMY_CONFIG.height };
 }

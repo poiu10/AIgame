@@ -242,7 +242,7 @@ export class GameScene extends Phaser.Scene {
       health: this.gameState.player.health,
       maxHealth: this.gameState.player.maxHealth,
       boss:
-        boss && encounter && encounter.phase <= 2
+        boss && encounter && boss.alive
           ? {
               health: boss.health,
               maxHealth: boss.maxHealth,

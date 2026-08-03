@@ -9,6 +9,7 @@ import { ENEMY_KINDS, HAZARD_KINDS, TERRAIN_KINDS } from "../../game/content/wor
 import {
   PLAYER_CONFIG,
   SOUND_CONFIG,
+  STAGE_TWO_CONFIG,
 } from "../../game/simulation/rules/config";
 import type {
   BossActorState,
@@ -35,6 +36,7 @@ import {
 } from "./playerPrompt";
 import {
   createEnemyThreatCells,
+  createCrackedCocoonBossThreatCells,
   createElectricHazardLightningCells,
   createFloorHazardThreatCells,
   createHazardDamageLightningCells,
@@ -85,6 +87,7 @@ export class GameViewAdapter {
   private readonly waveGraphics: Phaser.GameObjects.Graphics;
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
+  private readonly bossCocoonGraphics: Phaser.GameObjects.Graphics;
   private readonly terrainMechanismGraphics: Phaser.GameObjects.Graphics;
   private readonly mapScrollIndicatorGraphics: Phaser.GameObjects.Graphics;
   private currentTutorialPrompt = "";
@@ -96,6 +99,7 @@ export class GameViewAdapter {
     this.echoGraphics = scene.add.graphics().setDepth(3);
     this.waveGraphics = scene.add.graphics().setDepth(4);
     this.hazardGraphics = scene.add.graphics().setDepth(7);
+    this.bossCocoonGraphics = scene.add.graphics().setDepth(7.5);
     this.terrainMechanismGraphics = scene.add.graphics().setDepth(6);
     this.mapScrollIndicatorGraphics = scene.add.graphics().setDepth(20);
     this.mapScrollIndicatorGraphics.fillStyle(
@@ -172,6 +176,7 @@ export class GameViewAdapter {
     this.drawTutorialText(state);
     this.restartPrompt.setAlpha(resolveDeathRestartPromptAlpha(state.player));
     this.drawEnemies(state);
+    this.drawBossCocoon(state);
     this.drawBossActors(state);
     this.drawTerrainMechanisms(state);
     this.drawHazards(state);
@@ -226,6 +231,7 @@ export class GameViewAdapter {
     this.waveGraphics.destroy();
     this.echoGraphics.destroy();
     this.hazardGraphics.destroy();
+    this.bossCocoonGraphics.destroy();
     this.terrainMechanismGraphics.destroy();
     this.mapScrollIndicatorGraphics.destroy();
   }
@@ -383,11 +389,40 @@ export class GameViewAdapter {
         continue;
       }
 
-      const alpha = Math.min(
+      let alpha = Math.min(
         1,
         enemy.echoTime / Math.max(enemy.echoDuration, 0.001),
       );
+      const phaseThree = state.bossEncounter?.phaseThree;
+      if (
+        enemy.kind === ENEMY_KINDS.ravenBoss &&
+        phaseThree?.mode === "intro"
+      ) {
+        alpha *= Math.min(
+          1,
+          phaseThree.modeTime / STAGE_TWO_CONFIG.phaseThreeIntroSeconds,
+        );
+      }
       this.drawEnemy(view.graphics, enemy, state.elapsedTime, alpha);
+    }
+  }
+
+  private drawBossCocoon(state: GameState): void {
+    this.bossCocoonGraphics.clear();
+    const phaseThree = state.bossEncounter?.phaseThree;
+    if (!phaseThree || phaseThree.mode !== "intro") return;
+    const progress = Math.min(
+      1,
+      phaseThree.modeTime / STAGE_TWO_CONFIG.phaseThreeIntroSeconds,
+    );
+    this.bossCocoonGraphics.fillStyle(THREAT_COLOR, 1 - progress * 0.72);
+    for (const cell of createCrackedCocoonBossThreatCells(progress)) {
+      this.bossCocoonGraphics.fillRect(
+        phaseThree.cocoonPosition.x + cell.x * THREAT_PIXEL_SIZE,
+        phaseThree.cocoonPosition.y + cell.y * THREAT_PIXEL_SIZE,
+        THREAT_PIXEL_SIZE,
+        THREAT_PIXEL_SIZE,
+      );
     }
   }
 

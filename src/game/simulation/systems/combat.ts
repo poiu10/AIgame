@@ -88,7 +88,10 @@ export function damageEnemy(
   if (!enemy.alive) {
     return false;
   }
-  if (enemy.kind === ENEMY_KINDS.cocoonBoss) {
+  if (
+    enemy.kind === ENEMY_KINDS.cocoonBoss ||
+    enemy.kind === ENEMY_KINDS.ravenBoss
+  ) {
     return damageCocoonBoss(state, enemy, knockbackDirection);
   }
 
@@ -199,7 +202,11 @@ export function updateEnemyContactDamage(state: GameState): void {
   const playerBounds = getPlayerBounds(state.player);
 
   for (const enemy of state.enemies) {
-    if (!enemy.alive || enemy.kind === ENEMY_KINDS.cocoonBoss) continue;
+    if (
+      !enemy.alive ||
+      enemy.kind === ENEMY_KINDS.cocoonBoss ||
+      enemy.kind === ENEMY_KINDS.ravenBoss
+    ) continue;
 
     const body = getEnemyBodySize(enemy.kind);
     if (

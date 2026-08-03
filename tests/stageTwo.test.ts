@@ -20,12 +20,14 @@ import {
   triggerBossPattern,
   updateBossEncounter,
 } from "../src/game/simulation/systems/bossEncounter";
+import { triggerPhaseThreePattern } from "../src/game/simulation/systems/phaseThreeBoss";
 import { updateEnemies } from "../src/game/simulation/systems/enemies";
 import { updateWorldEnvironment } from "../src/game/simulation/systems/environment";
 import { emitSound, updateSoundPropagation } from "../src/game/simulation/systems/sound";
 import { getActiveTerrain } from "../src/game/simulation/systems/stageMechanisms";
 import {
   createCocoonBossThreatCells,
+  createCrackedCocoonBossThreatCells,
   createFloorHazardThreatCells,
 } from "../src/phaser/view/threatPixelArt";
 
@@ -43,6 +45,14 @@ function enterPhaseTwo() {
     damageEnemy(state, cocoon, hit % 2 === 0 ? -1 : 1);
   }
   return { state, cocoon };
+}
+
+function enterPhaseThree() {
+  const { state, cocoon } = enterPhaseTwo();
+  for (let hit = 0; hit < STAGE_TWO_CONFIG.phaseTwoHealth; hit += 1) {
+    damageEnemy(state, cocoon, 1);
+  }
+  return { state, boss: cocoon };
 }
 
 describe("Stage 2", () => {
@@ -296,16 +306,140 @@ describe("Stage 2", () => {
     expect(state.player.health).toBe(healthBefore - 1);
   });
 
-  it("stops after phase-two health is exhausted and leaves phase three for later", () => {
-    const { state, cocoon } = enterPhaseTwo();
-    for (let hit = 0; hit < STAGE_TWO_CONFIG.phaseTwoHealth; hit += 1) {
-      expect(damageEnemy(state, cocoon, 1)).toBe(true);
-    }
+  it("cracks the cocoon and starts the raven-insect phase at twenty health", () => {
+    const { state, boss } = enterPhaseThree();
 
     expect(state.bossEncounter?.phase).toBe(3);
-    expect(cocoon.alive).toBe(true);
-    expect(cocoon.health).toBe(0);
-    expect(damageEnemy(state, cocoon, 1)).toBe(false);
+    expect(state.bossEncounter?.phaseThree?.mode).toBe("intro");
+    expect(boss).toMatchObject({
+      kind: ENEMY_KINDS.ravenBoss,
+      alive: true,
+      health: STAGE_TWO_CONFIG.phaseThreeHealth,
+      maxHealth: STAGE_TWO_CONFIG.phaseThreeHealth,
+      action: "fly",
+    });
+    expect(state.events).toContainEqual(
+      expect.objectContaining({ type: "sound", kind: "boss-flesh-growth" }),
+    );
+    const growthWave = state.soundWaves.find(
+      (wave) => wave.kind === "boss-flesh-growth",
+    )!;
+    expect(Math.max(...growthWave.rays.map((ray) => ray.remainingDistance)))
+      .toBe(STAGE_TWO_CONFIG.phaseThreeBossWaveDistance);
+
+    updateBossEncounter(
+      state,
+      STAGE_TWO,
+      STAGE_TWO_CONFIG.phaseThreeIntroSeconds,
+      () => false,
+    );
+    expect(state.bossEncounter?.phaseThree?.mode).toBe("pattern-enter");
+    expect(state.soundWaves.some((wave) =>
+      wave.kind === "waker-call" &&
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 540
+    )).toBe(true);
+  });
+
+  it("fires the three phase-three patterns with boss and spawn wave radii kept separate", () => {
+    const { state } = enterPhaseThree();
+    const encounter = state.bossEncounter!;
+    encounter.actors = [];
+    state.soundWaves = [];
+    state.events = [];
+
+    expect(triggerPhaseThreePattern(state, STAGE_TWO, 1, -1)).toBe(true);
+    expect(state.events.filter((event) =>
+      event.type === "sound" &&
+      (event.kind === "boss-wet-squelch" || event.kind === "waker-call")
+    )).toHaveLength(2);
+    updateBossEncounter(state, STAGE_TWO, 0.51, () => false);
+    expect(encounter.actors.at(-1)?.position.y).toBe(404);
+    updateBossEncounter(state, STAGE_TWO, 0.8, () => false);
+    expect(encounter.actors.at(-1)?.position.y).toBe(300);
+    updateBossEncounter(state, STAGE_TWO, 0.8, () => false);
+    expect(encounter.actors.at(-1)?.position.y).toBe(404);
+    const patternOneSpawnWaves = state.soundWaves.filter(
+      (wave) => wave.kind === "spawn-wet-squelch",
+    );
+    expect(patternOneSpawnWaves).toHaveLength(3);
+    expect(patternOneSpawnWaves.every((wave) =>
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 160
+    )).toBe(true);
+
+    state.soundWaves = [];
+    state.events = [];
+    state.player.position = { x: 300, y: 390 };
+    triggerPhaseThreePattern(state, STAGE_TWO, 2);
+    state.player.position = { x: 700, y: 200 };
+    updateBossEncounter(state, STAGE_TWO, 0.51, () => false);
+    const aimed = encounter.actors.find(
+      (actor) => actor.kind === "phase-three-projectile" && actor.pattern === 2,
+    )!;
+    expect(aimed.velocity.x).toBeLessThan(0);
+    expect(aimed.velocity.y).toBeGreaterThan(0);
+    expect(state.events).toContainEqual(
+      expect.objectContaining({ type: "sound", kind: "waker-call" }),
+    );
+
+    state.soundWaves = [];
+    state.events = [];
+    triggerPhaseThreePattern(state, STAGE_TWO, 3, 1);
+    expect(state.events).toContainEqual(
+      expect.objectContaining({ type: "sound", kind: "waker-call-short" }),
+    );
+    updateBossEncounter(state, STAGE_TWO, 3.01, () => false);
+    const firstBarrageShot = encounter.actors.find(
+      (actor) => actor.kind === "phase-three-projectile" && actor.pattern === 3,
+    )!;
+    expect(firstBarrageShot.velocity.x).toBeLessThanOrEqual(0);
+    expect(firstBarrageShot.velocity.y).toBeGreaterThanOrEqual(0);
+    updateBossEncounter(
+      state,
+      STAGE_TWO,
+      STAGE_TWO_CONFIG.phaseThreePatternThreeBarrageSeconds,
+      () => false,
+    );
+    const barrageWaves = state.soundWaves.filter(
+      (wave) => wave.kind === "spawn-wet-squelch",
+    );
+    expect(barrageWaves).toHaveLength(30);
+    expect(barrageWaves.every((wave) =>
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 160
+    )).toBe(true);
+  });
+
+  it("waits eight seconds after a phase-three pattern exits, then attacks again", () => {
+    const { state, boss } = enterPhaseThree();
+    const encounter = state.bossEncounter!;
+    triggerPhaseThreePattern(state, STAGE_TWO, 2);
+    updateBossEncounter(state, STAGE_TWO, 20, () => false);
+    expect(encounter.phaseThree?.mode).toBe("pattern-exit");
+    updateBossEncounter(
+      state,
+      STAGE_TWO,
+      STAGE_TWO_CONFIG.phaseThreePatternExitSeconds,
+      () => false,
+    );
+    expect(encounter.phaseThree?.mode).toBe("intermission");
+    updateBossEncounter(state, STAGE_TWO, 0.99, () => false);
+    expect(boss.position.y).toBe(-100);
+    updateBossEncounter(state, STAGE_TWO, 1.01, () => false);
+    expect(boss.position.y).toBeGreaterThan(-100);
+    updateBossEncounter(state, STAGE_TWO, 5, () => false);
+    expect(encounter.phaseThree?.mode).toBe("intermission");
+    updateBossEncounter(state, STAGE_TWO, 1, () => false);
+    expect(encounter.phaseThree?.mode).toBe("pattern-enter");
+  });
+
+  it("lets attacks defeat the phase-three boss after twenty hits", () => {
+    const { state, boss } = enterPhaseThree();
+    for (let hit = 0; hit < STAGE_TWO_CONFIG.phaseThreeHealth; hit += 1) {
+      expect(damageEnemy(state, boss, 1)).toBe(true);
+    }
+    expect(boss.alive).toBe(false);
+    expect(boss.health).toBe(0);
+    expect(state.bossEncounter?.phaseThree?.mode).toBe("defeated");
+    expect(damageEnemy(state, boss, 1)).toBe(false);
   });
 
   it("deals one damage from the floor hazard instead of killing", () => {
@@ -334,6 +468,9 @@ describe("Stage 2", () => {
     const ys = cocoonCells.map((cell) => cell.y);
     expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThanOrEqual(55);
     expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThanOrEqual(95);
+    const cracked = createCrackedCocoonBossThreatCells(1);
+    expect(Math.min(...cracked.map((cell) => Math.abs(cell.x))))
+      .toBeGreaterThan(10);
 
     const state = createInitialGameState(STAGE_TWO);
     emitSound(state, "player-step", { x: 680, y: 460 }, 120, 1, "player");

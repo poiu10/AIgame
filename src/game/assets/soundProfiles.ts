@@ -79,6 +79,22 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     playbackFraction: 0.5,
     followWithFullPlayback: true,
   },
+  "boss-flesh-growth": {
+    assetKey: ASSET_KEYS.audio.fleshGrowth,
+    volume: 0.34,
+    rate: 1,
+  },
+  "boss-wet-squelch": {
+    assetKey: ASSET_KEYS.audio.wetSquelch,
+    volume: 0.2,
+    rate: 1,
+  },
+  "spawn-wet-squelch": {
+    assetKey: ASSET_KEYS.audio.wetSquelch,
+    volume: 0.14,
+    rate: 1.04,
+    playbackFraction: 0.18,
+  },
   sleep: {
     assetKey: ASSET_KEYS.audio.sleepingEnemy,
     volume: 0.065,

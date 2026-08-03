@@ -17,6 +17,11 @@ import type {
   Vector2State,
 } from "../state";
 import { emitSound, emitSoundWave } from "./sound";
+import {
+  damagePhaseThreeBoss,
+  startPhaseThree,
+  updatePhaseThreeBoss,
+} from "./phaseThreeBoss";
 
 const BOSS_ACTOR_BODY = getEnemyBodySize(ENEMY_KINDS.waker);
 const BOSS_TOP_OFFSET_Y = 120;
@@ -217,18 +222,6 @@ function beginPhaseTwo(
   addIntroSwarm(encounter, boss);
 }
 
-function beginPhaseThree(
-  encounter: BossEncounterState,
-  boss: EnemyState,
-): void {
-  encounter.phase = 3;
-  encounter.timeUntilNextPattern = Number.POSITIVE_INFINITY;
-  encounter.lastPattern = null;
-  boss.health = 0;
-  boss.action = "sleep";
-  boss.actionTime = 0;
-}
-
 export function damageCocoonBoss(
   state: GameState,
   boss: EnemyState,
@@ -238,10 +231,12 @@ export function damageCocoonBoss(
   if (
     !encounter ||
     encounter.bossId !== boss.id ||
-    encounter.phase === 3 ||
     !boss.alive
   ) {
     return false;
+  }
+  if (encounter.phase === 3) {
+    return damagePhaseThreeBoss(state, encounter, boss);
   }
 
   boss.health = Math.max(0, boss.health - 1);
@@ -267,7 +262,7 @@ export function damageCocoonBoss(
     spawnPhaseOneMinion(state, encounter, boss, knockbackDirection);
     if (boss.health === 0) beginPhaseTwo(encounter, boss);
   } else if (boss.health === 0) {
-    beginPhaseThree(encounter, boss);
+    startPhaseThree(state, encounter, boss);
   }
   return true;
 }
@@ -447,6 +442,11 @@ export function updateBossEncounter(
   if (!encounter) return;
 
   updateActors(state, world, deltaSeconds, damagePlayer);
+  if (encounter.phase === 3) {
+    const boss = getBoss(state, encounter);
+    if (boss) updatePhaseThreeBoss(state, world, encounter, boss, deltaSeconds);
+    return;
+  }
   if (encounter.phase !== 2 || state.player.action === "dead") return;
 
   encounter.timeUntilNextPattern -= deltaSeconds;

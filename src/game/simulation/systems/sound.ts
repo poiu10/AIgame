@@ -430,6 +430,7 @@ export function updateSoundPropagation(
             enemy.kind !== ENEMY_KINDS.sleeper &&
             enemy.kind !== ENEMY_KINDS.waker &&
             enemy.kind !== ENEMY_KINDS.cocoonBoss &&
+            enemy.kind !== ENEMY_KINDS.ravenBoss &&
             !wave.reactedEnemyIds.includes(enemy.id)
           ) {
             const directionTowardSound: Facing =

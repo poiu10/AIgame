@@ -5,6 +5,7 @@ import { ENEMY_ATTACK_HITBOX } from "../src/game/simulation/rules/combat";
 import type { EnemyState } from "../src/game/simulation/state";
 import {
   createEnemyThreatCells,
+  createCrackedCocoonBossThreatCells,
   createElectricHazardLightningCells,
   createFloorHazardThreatCells,
   createHazardDamageLightningCells,
@@ -455,5 +456,26 @@ describe("threat pixel art", () => {
     expect(SOUND_WAVE_COLORS["electric-pulse"]).toBe(THREAT_COLOR);
     expect(ECHO_MARK_COLORS.terrain).not.toBe(THREAT_COLOR);
     expect(ECHO_MARK_COLORS.hazard).toBe(THREAT_COLOR);
+  });
+
+  it("builds the raven-insect boss and its split cocoon from 3px integer cells", () => {
+    const idle = createEnemyThreatCells("idle", 1, ENEMY_KINDS.ravenBoss);
+    const flap = createEnemyThreatCells("walk-1", 1, ENEMY_KINDS.ravenBoss);
+    const mirrored = createEnemyThreatCells("idle", -1, ENEMY_KINDS.ravenBoss);
+    const cracked = createCrackedCocoonBossThreatCells(1);
+
+    expect(THREAT_PIXEL_SIZE).toBe(3);
+    expectUniqueIntegerCells(idle);
+    expectUniqueIntegerCells(flap);
+    expectUniqueIntegerCells(mirrored);
+    expectUniqueIntegerCells(cracked);
+    expect(idle).not.toEqual(flap);
+    expect(mirrored).not.toEqual(idle);
+    expect(Math.max(...idle.map((cell) => cell.x)) -
+      Math.min(...idle.map((cell) => cell.x))).toBeGreaterThan(60);
+    expect(Math.max(...idle.map((cell) => cell.y)) -
+      Math.min(...idle.map((cell) => cell.y))).toBeGreaterThan(60);
+    expect(Math.min(...cracked.map((cell) => Math.abs(cell.x))))
+      .toBeGreaterThan(10);
   });
 });
