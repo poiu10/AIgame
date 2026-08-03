@@ -94,7 +94,6 @@ body {
   left: 50%;
   display: flex;
   align-items: center;
-  gap: 8px;
   transform: translateX(-50%);
   filter: drop-shadow(3px 3px 0 rgb(3 6 8 / 92%));
 }
@@ -103,19 +102,13 @@ body {
   display: none;
 }
 
-.hud-boss-phase {
-  color: #ff8b9c;
-  font: 700 12px/1 ui-monospace, "Cascadia Mono", monospace;
-  letter-spacing: 0;
-}
-
 .hud-boss-track {
   position: relative;
   display: block;
-  width: clamp(300px, 58vw, 560px);
-  height: 24px;
-  padding: 4px;
-  border: 3px solid #ff5a70;
+  width: clamp(450px, 87vw, 840px);
+  height: 72px;
+  padding: 12px;
+  border: 9px solid #ff5a70;
   background: rgb(26 5 10 / 84%);
 }
 

@@ -790,9 +790,6 @@ export function updatePhaseThreeBoss(
   }
   if (!boss.alive) return;
 
-  boss.echoTime = BOSS_REVEAL_SECONDS;
-  boss.echoDuration = BOSS_REVEAL_SECONDS;
-
   phaseThree.modeTime += deltaSeconds;
   if (phaseThree.mode === "death-shake") {
     boss.action = "hurt";

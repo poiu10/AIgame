@@ -9,21 +9,19 @@ export const MAP_SCROLL_INDICATOR_EDGE_INSET = 6;
 
 export function createMapScrollIndicatorDots(
   worldWidth: number,
-  worldHeight: number,
   viewportHeight: number,
 ): MapScrollIndicatorDot[] {
-  const viewportTopY = Math.max(0, worldHeight - viewportHeight);
   const maximumInset = Math.max(
     0,
     Math.floor(
-      (worldHeight - viewportTopY - MAP_SCROLL_INDICATOR_DOT_SIZE) / 2,
+      (viewportHeight - MAP_SCROLL_INDICATOR_DOT_SIZE) / 2,
     ),
   );
   const edgeInset = Math.min(MAP_SCROLL_INDICATOR_EDGE_INSET, maximumInset);
-  const topY = viewportTopY + edgeInset;
+  const topY = edgeInset;
   const bottomY = Math.max(
     topY,
-    worldHeight - MAP_SCROLL_INDICATOR_DOT_SIZE - edgeInset,
+    viewportHeight - MAP_SCROLL_INDICATOR_DOT_SIZE - edgeInset,
   );
   const maximumX = Math.max(0, worldWidth - MAP_SCROLL_INDICATOR_DOT_SIZE);
   const dots: MapScrollIndicatorDot[] = [];

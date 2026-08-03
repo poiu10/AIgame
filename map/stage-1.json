@@ -198,11 +198,11 @@
       "kind": "stage-sleeper",
       "role": "enemy",
       "position": {
-        "x": 560,
+        "x": 320,
         "y": 500
       },
-      "patrolMinX": 560,
-      "patrolMaxX": 560,
+      "patrolMinX": 320,
+      "patrolMaxX": 320,
       "health": 1
     },
     {

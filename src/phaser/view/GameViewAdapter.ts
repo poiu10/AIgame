@@ -112,7 +112,10 @@ export class GameViewAdapter {
     this.bossCocoonGraphics = scene.add.graphics().setDepth(7.5);
     this.bossDeathGraphics = scene.add.graphics().setDepth(9);
     this.terrainMechanismGraphics = scene.add.graphics().setDepth(6);
-    this.mapScrollIndicatorGraphics = scene.add.graphics().setDepth(20);
+    this.mapScrollIndicatorGraphics = scene.add
+      .graphics()
+      .setDepth(20)
+      .setScrollFactor(1, 0);
     this.mapScrollIndicatorGraphics.fillStyle(
       TERRAIN_ECHO_COLOR,
       MAP_SCROLL_INDICATOR_ALPHA,
@@ -123,7 +126,6 @@ export class GameViewAdapter {
       .setScrollFactor(0);
     for (const dot of createMapScrollIndicatorDots(
       world.width,
-      world.height,
       scene.cameras.main.height,
     )) {
       this.mapScrollIndicatorGraphics.fillRect(
@@ -495,13 +497,29 @@ export class GameViewAdapter {
 
   private drawBossCocoon(state: GameState): void {
     this.bossCocoonGraphics.clear();
+    const encounter = state.bossEncounter;
     const phaseThree = state.bossEncounter?.phaseThree;
-    if (!phaseThree || phaseThree.mode !== "intro") return;
+    const boss = encounter
+      ? state.enemies.find((enemy) => enemy.id === encounter.bossId)
+      : undefined;
+    if (
+      !phaseThree ||
+      phaseThree.mode !== "intro" ||
+      !boss ||
+      boss.echoTime <= 0
+    ) return;
     const progress = Math.min(
       1,
       phaseThree.modeTime / STAGE_TWO_CONFIG.phaseThreeIntroSeconds,
     );
-    this.bossCocoonGraphics.fillStyle(THREAT_COLOR, 1 - progress * 0.72);
+    const echoAlpha = Math.min(
+      1,
+      boss.echoTime / Math.max(boss.echoDuration, 0.001),
+    );
+    this.bossCocoonGraphics.fillStyle(
+      THREAT_COLOR,
+      (1 - progress * 0.72) * echoAlpha,
+    );
     for (const cell of createCrackedCocoonBossThreatCells(progress)) {
       this.bossCocoonGraphics.fillRect(
         phaseThree.cocoonPosition.x + cell.x * THREAT_PIXEL_SIZE,

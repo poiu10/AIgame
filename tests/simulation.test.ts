@@ -317,6 +317,46 @@ describe("player controller", () => {
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
   });
 
+  it("uses a shallow roll arc to clear a pit and return to its starting height", () => {
+    const pitWorld: WorldDefinition = {
+      width: 1_000,
+      height: 800,
+      playerSpawn: { x: 200, y: 600 },
+      terrain: [
+        { id: "left-floor", bounds: { x: 0, y: 700, width: 300, height: 100 } },
+        { id: "right-floor", bounds: { x: 440, y: 700, width: 560, height: 100 } },
+      ],
+      enemies: [],
+    };
+    let state = stepMany(pitWorld, 40);
+    const startingY = state.player.position.y;
+    let minimumY = startingY;
+
+    state = stepSimulation(
+      state,
+      { ...EMPTY_INPUT, moveX: 1, rollPressed: true },
+      FIXED_STEP_SECONDS,
+      pitWorld,
+    );
+    minimumY = Math.min(minimumY, state.player.position.y);
+    for (
+      let index = 0;
+      index < Math.ceil(PLAYER_CONFIG.rollSeconds / FIXED_STEP_SECONDS) + 8;
+      index += 1
+    ) {
+      state = stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, pitWorld);
+      minimumY = Math.min(minimumY, state.player.position.y);
+    }
+
+    expect(PLAYER_CONFIG.rollBounceSpeed).toBeCloseTo(
+      PLAYER_CONFIG.gravity * PLAYER_CONFIG.rollSeconds / 2,
+    );
+    expect(minimumY).toBeLessThan(startingY - 20);
+    expect(state.player.position.x).toBeGreaterThan(440);
+    expect(state.player.position.y).toBeCloseTo(startingY);
+    expect(state.player.grounded).toBe(true);
+  });
+
   it("cancels a grounded roll into a jump", () => {
     let state = stepMany(flatWorld, 40);
     state = stepSimulation(
@@ -368,10 +408,10 @@ describe("player controller", () => {
     expect(damagePlayer(state, -1)).toBe(false);
   });
 
-  it("uses a 0.3 second player attack and roll cooldown", () => {
+  it("uses 0.8 second attack and 0.5 second roll cooldowns", () => {
     expect(PLAYER_CONFIG.attackSeconds).toBe(0.3);
-    expect(PLAYER_CONFIG.attackCooldownSeconds).toBe(0.3);
-    expect(PLAYER_CONFIG.rollCooldownSeconds).toBe(0.3);
+    expect(PLAYER_CONFIG.attackCooldownSeconds).toBe(0.8);
+    expect(PLAYER_CONFIG.rollCooldownSeconds).toBe(0.5);
 
     let state = stepMany(flatWorld, 40);
     state = stepSimulation(
@@ -380,11 +420,11 @@ describe("player controller", () => {
       FIXED_STEP_SECONDS,
       flatWorld,
     );
-    expect(state.player.rollCooldown).toBe(0.3);
+    expect(state.player.rollCooldown).toBe(0.5);
 
     for (
       let index = 0;
-      index < Math.ceil(0.3 / FIXED_STEP_SECONDS);
+      index < Math.ceil(0.5 / FIXED_STEP_SECONDS);
       index += 1
     ) {
       state = stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
@@ -397,7 +437,7 @@ describe("player controller", () => {
       FIXED_STEP_SECONDS,
       flatWorld,
     );
-    expect(state.player.attackCooldown).toBe(0.3);
+    expect(state.player.attackCooldown).toBe(0.8);
     state = stepSimulation(
       state,
       { ...EMPTY_INPUT, rollPressed: true },
@@ -481,7 +521,9 @@ describe("player controller", () => {
 
       for (
         let index = 0;
-        index < Math.ceil(PLAYER_CONFIG.attackSeconds / FIXED_STEP_SECONDS);
+        index < Math.ceil(
+          PLAYER_CONFIG.attackCooldownSeconds / FIXED_STEP_SECONDS,
+        );
         index += 1
       ) {
         state = stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);

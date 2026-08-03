@@ -22,7 +22,6 @@ export function mountHud(container: HTMLDivElement | null): void {
       <span class="hud-health" role="img" aria-label="체력"></span>
     </div>
     <div class="hud-boss" role="img" aria-label="보스 체력" hidden>
-      <span class="hud-boss-phase" aria-hidden="true"></span>
       <span class="hud-boss-track" aria-hidden="true">
         <span class="hud-boss-fill"></span>
       </span>
@@ -32,7 +31,6 @@ export function mountHud(container: HTMLDivElement | null): void {
 
   const health = panel.querySelector<HTMLElement>(".hud-health");
   const boss = panel.querySelector<HTMLElement>(".hud-boss");
-  const bossPhase = panel.querySelector<HTMLElement>(".hud-boss-phase");
   const bossFill = panel.querySelector<HTMLElement>(".hud-boss-fill");
 
   window.addEventListener(GAME_HUD_EVENT, (rawEvent) => {
@@ -55,7 +53,7 @@ export function mountHud(container: HTMLDivElement | null): void {
     health.setAttribute("aria-label", `체력 ${currentHealth}/${maxHealth}`);
     health.replaceChildren(...cells);
 
-    if (!boss || !bossPhase || !bossFill) return;
+    if (!boss || !bossFill) return;
     if (!state.boss) {
       boss.hidden = true;
       return;
@@ -66,7 +64,6 @@ export function mountHud(container: HTMLDivElement | null): void {
       Math.max(0, Math.floor(state.boss.health)),
     );
     boss.hidden = false;
-    bossPhase.textContent = `P${state.boss.phase}`;
     bossFill.style.width = `${(bossHealth / bossMaxHealth) * 100}%`;
     boss.setAttribute(
       "aria-label",

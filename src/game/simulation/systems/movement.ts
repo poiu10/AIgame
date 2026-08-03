@@ -161,10 +161,15 @@ export function updatePlayerMovement(
     input.rollPressed &&
     player.rollCooldown <= 0
   ) {
+    const startsOnGround = player.grounded;
     player.action = "roll";
     player.actionTime = 0;
     player.attackHitIds = [];
     player.rollCooldown = PLAYER_CONFIG.rollCooldownSeconds;
+    if (startsOnGround) {
+      player.velocity.y = -PLAYER_CONFIG.rollBounceSpeed;
+      player.grounded = false;
+    }
   } else if (
     player.action === "normal" &&
     input.attackPressed &&
@@ -204,6 +209,7 @@ export function updatePlayerMovement(
   }
 
   if (
+    player.action !== "roll" &&
     !input.jumpHeld &&
     player.velocity.y < -PLAYER_CONFIG.jumpReleaseSpeed
   ) {

@@ -43,6 +43,9 @@ describe("Stage 1", () => {
     expect(STAGE_ONE.enemies.map((enemy) => enemy.health)).toEqual([1, 2, 2, 1]);
     expect(STAGE_ONE.terrain.find((terrain) => terrain.id === "terrain-5")?.bounds)
       .toEqual({ x: 240, y: 80, width: 160, height: 220 });
+    const sleeper = STAGE_ONE.enemies.find((enemy) => enemy.id === "enemy-sleep")!;
+    expect(sleeper.position).toEqual({ x: 320, y: 500 });
+    expect([sleeper.patrolMinX, sleeper.patrolMaxX]).toEqual([320, 320]);
     const waker = STAGE_ONE.enemies.find((enemy) => enemy.id === "enemy-wake")!;
     expect(waker.position.x - 70 / 2).toBe(400);
     expect(
@@ -177,12 +180,11 @@ describe("Stage 1", () => {
   it("keeps the sleeper stationary and pulsing", () => {
     const state = createInitialGameState(STAGE_ONE);
     const sleeper = state.enemies.find((enemy) => enemy.id === "enemy-sleep")!;
-    sleeper.position = { x: 560, y: 535 };
-    state.player.position = { x: 520, y: 535 };
+    state.player.position = { x: 320, y: 500 };
 
     updateEnemies(state, STAGE_ONE, 0.5);
 
-    expect(sleeper.position).toEqual({ x: 560, y: 535 });
+    expect(sleeper.position).toEqual({ x: 320, y: 500 });
     const sleepWave = state.soundWaves.find(
       (wave) => wave.kind === "sleep" && wave.sourceId === sleeper.id,
     );
@@ -271,11 +273,7 @@ describe("Stage 1", () => {
     );
   });
 
-  it("smoothly accelerates the electric hazard as the player gets farther away", () => {
-    expect(STAGE_ONE_CONFIG.electricHazardMinimumSpeed).toBe(
-      PLAYER_CONFIG.maxSpeed * 0.5,
-    );
-
+  it("uses a one-second slow start and then a fixed 600px/s electric speed", () => {
     const world: WorldDefinition = {
       width: 12_000,
       height: 1_000,
@@ -292,31 +290,14 @@ describe("Stage 1", () => {
     };
     const state = createInitialGameState(world);
     const hazard = state.hazards[0];
-    const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
-    const transitionMidpoint =
-      (STAGE_ONE_CONFIG.electricHazardNearDistance +
-        STAGE_ONE_CONFIG.electricHazardFarDistance) /
-      2;
-    hazard.activationElapsed = 2.999;
-    expect(STAGE_ONE_CONFIG.electricHazardInitialSpeedRatio).toBe(0.2);
-    expect(getElectricHazardSpeed(0, hazard)).toBe(50);
+    hazard.activationElapsed = 0.999;
+    expect(STAGE_ONE_CONFIG.electricHazardInitialSpeedSeconds).toBe(1);
+    expect(STAGE_ONE_CONFIG.electricHazardInitialSpeed).toBe(50);
+    expect(getElectricHazardSpeed(hazard)).toBe(50);
     hazard.activationElapsed =
       STAGE_ONE_CONFIG.electricHazardInitialSpeedSeconds;
-
-    expect(getElectricHazardSpeed(hazardCenterX, hazard)).toBe(250);
-    expect(getElectricHazardSpeed(
-      hazardCenterX - STAGE_ONE_CONFIG.electricHazardNearDistance,
-      hazard,
-    )).toBe(250);
-    expect(getElectricHazardSpeed(
-      hazardCenterX - transitionMidpoint,
-      hazard,
-    )).toBeCloseTo(450);
-    expect(getElectricHazardSpeed(
-      hazardCenterX - STAGE_ONE_CONFIG.electricHazardFarDistance,
-      hazard,
-    )).toBe(650);
-    expect(getElectricHazardSpeed(0, hazard)).toBe(650);
+    expect(STAGE_ONE_CONFIG.electricHazardSpeed).toBe(600);
+    expect(getElectricHazardSpeed(hazard)).toBe(600);
 
     hazard.activationElapsed = 0;
     updateWorldEnvironment(state, world, 2);
@@ -325,22 +306,25 @@ describe("Stage 1", () => {
     hazard.activated = true;
     hazard.timeUntilPulse = 0;
     state.player.position.y = -100;
-    updateWorldEnvironment(state, world, 2.5);
-    expect(hazard.bounds.x).toBeCloseTo(9875);
-    expect(hazard.activationElapsed).toBeCloseTo(2.5);
-    updateWorldEnvironment(state, world, 0.5);
-    expect(hazard.bounds.x).toBeCloseTo(9850);
-    expect(hazard.activationElapsed).toBeCloseTo(3);
+    updateWorldEnvironment(state, world, 0.75);
+    expect(hazard.bounds.x).toBeCloseTo(9962.5);
+    expect(hazard.activationElapsed).toBeCloseTo(0.75);
+    updateWorldEnvironment(state, world, 0.25);
+    expect(hazard.bounds.x).toBeCloseTo(9950);
+    expect(hazard.activationElapsed).toBeCloseTo(1);
+
+    state.player.position.x = hazard.bounds.x + hazard.bounds.width / 2 - 10;
     updateWorldEnvironment(state, world, 1);
-    expect(hazard.bounds.x).toBeCloseTo(9200);
+    expect(hazard.bounds.x).toBeCloseTo(9350);
     expect(hazard.bounds.width).toBe(40);
     expect(hazard.bounds.height).toBe(40);
 
-    state.player.position.x = hazard.bounds.x + hazard.bounds.width / 2 - 100;
+    state.player.position.x = 0;
     updateWorldEnvironment(state, world, 1);
-    expect(hazard.bounds.x).toBeCloseTo(8950);
+    expect(hazard.bounds.x).toBeCloseTo(8750);
+    expect(getElectricHazardSpeed(hazard)).toBe(600);
     expect(getElectricHazardDamageBounds(world, hazard)).toEqual({
-      x: 8950,
+      x: 8750,
       y: 100,
       width: 40,
       height: 900,
@@ -385,16 +369,13 @@ describe("Stage 1", () => {
     const initialBounds = { ...hazard.bounds };
     const elapsedSeconds = 0.2;
     const expectedTravel =
-      STAGE_ONE_CONFIG.electricHazardMinimumSpeed *
-      STAGE_ONE_CONFIG.electricHazardInitialSpeedRatio *
-      elapsedSeconds;
+      STAGE_ONE_CONFIG.electricHazardInitialSpeed * elapsedSeconds;
     state.player.position = {
       x: initialBounds.x - expectedTravel + initialBounds.width / 2,
       y: initialBounds.y + initialBounds.height + PLAYER_CONFIG.height,
     };
-    expect(getElectricHazardSpeed(state.player.position.x, hazard)).toBe(
-      STAGE_ONE_CONFIG.electricHazardMinimumSpeed *
-        STAGE_ONE_CONFIG.electricHazardInitialSpeedRatio,
+    expect(getElectricHazardSpeed(hazard)).toBe(
+      STAGE_ONE_CONFIG.electricHazardInitialSpeed,
     );
 
     updateWorldEnvironment(state, STAGE_ONE, elapsedSeconds);

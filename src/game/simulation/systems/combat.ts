@@ -202,16 +202,10 @@ export function updateEnemyContactDamage(state: GameState): void {
   const playerBounds = getPlayerBounds(state.player);
 
   for (const enemy of state.enemies) {
-    const phaseThreeMode = state.bossEncounter?.phaseThree?.mode;
-    const ravenBossCannotDamage =
-      enemy.kind === ENEMY_KINDS.ravenBoss &&
-      (phaseThreeMode === "death-shake" ||
-        phaseThreeMode === "death-explosion" ||
-        phaseThreeMode === "defeated");
     if (
       !enemy.alive ||
       enemy.kind === ENEMY_KINDS.cocoonBoss ||
-      ravenBossCannotDamage
+      enemy.kind === ENEMY_KINDS.ravenBoss
     ) continue;
 
     const body = getEnemyBodySize(enemy.kind);

@@ -32,39 +32,15 @@ export function getElectricHazardDamageBounds(
 }
 
 export function getElectricHazardSpeed(
-  playerX: number,
   hazard: GameState["hazards"][number],
 ): number {
   if (
     hazard.activationElapsed <
     STAGE_ONE_CONFIG.electricHazardInitialSpeedSeconds
   ) {
-    return (
-      STAGE_ONE_CONFIG.electricHazardMinimumSpeed *
-      STAGE_ONE_CONFIG.electricHazardInitialSpeedRatio
-    );
+    return STAGE_ONE_CONFIG.electricHazardInitialSpeed;
   }
-  const hazardCenterX = hazard.bounds.x + hazard.bounds.width / 2;
-  const distance = Math.abs(playerX - hazardCenterX);
-  const distanceRange = Math.max(
-    1,
-    STAGE_ONE_CONFIG.electricHazardFarDistance -
-      STAGE_ONE_CONFIG.electricHazardNearDistance,
-  );
-  const ratio = Math.max(
-    0,
-    Math.min(
-      1,
-      (distance - STAGE_ONE_CONFIG.electricHazardNearDistance) / distanceRange,
-    ),
-  );
-  const smoothRatio = ratio * ratio * (3 - 2 * ratio);
-  return (
-    STAGE_ONE_CONFIG.electricHazardMinimumSpeed +
-    (STAGE_ONE_CONFIG.electricHazardMaximumSpeed -
-      STAGE_ONE_CONFIG.electricHazardMinimumSpeed) *
-      smoothRatio
-  );
+  return STAGE_ONE_CONFIG.electricHazardSpeed;
 }
 
 function updateElectricHazard(
@@ -101,9 +77,7 @@ function updateElectricHazard(
   hazard.bounds.x = Math.max(
     0,
     hazard.bounds.x -
-      STAGE_ONE_CONFIG.electricHazardMinimumSpeed *
-        STAGE_ONE_CONFIG.electricHazardInitialSpeedRatio *
-        initialSpeedSeconds,
+      STAGE_ONE_CONFIG.electricHazardInitialSpeed * initialSpeedSeconds,
   );
   hazard.activationElapsed += initialSpeedSeconds;
 
@@ -112,8 +86,7 @@ function updateElectricHazard(
     hazard.bounds.x = Math.max(
       0,
       hazard.bounds.x -
-        getElectricHazardSpeed(state.player.position.x, hazard) *
-          distanceScaledSeconds,
+        getElectricHazardSpeed(hazard) * distanceScaledSeconds,
     );
     hazard.activationElapsed += distanceScaledSeconds;
   }

@@ -8,6 +8,7 @@ import {
 import {
   FIXED_STEP_SECONDS,
   PLAYER_CONFIG,
+  SOUND_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../src/game/simulation/rules/config";
 import { resolveBossEndingText } from "../src/game/simulation/rules/bossEnding";
@@ -389,7 +390,7 @@ describe("Stage 2", () => {
     )).toBe(false);
   });
 
-  it("damages on phase-three boss body contact except while rolling or dying", () => {
+  it("does not damage on phase-three boss body contact", () => {
     const { state, boss } = enterPhaseThree();
     state.player.position = { ...boss.position };
     state.player.action = "normal";
@@ -397,8 +398,8 @@ describe("Stage 2", () => {
 
     updateEnemyContactDamage(state);
 
-    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
-    expect(state.player.action).toBe("hurt");
+    expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+    expect(state.player.action).toBe("normal");
 
     state.player.health = PLAYER_CONFIG.maxHealth;
     state.player.action = "roll";
@@ -411,6 +412,25 @@ describe("Stage 2", () => {
     boss.health = 0;
     updateEnemyContactDamage(state);
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+  });
+
+  it("lets phase-three boss visibility expire between its sounds", () => {
+    const { state, boss } = enterPhaseThree();
+    const phaseThree = state.bossEncounter!.phaseThree!;
+    state.soundWaves = [];
+    state.events = [];
+    boss.echoTime = 0;
+    boss.echoDuration = SOUND_CONFIG.enemyEchoSeconds;
+    phaseThree.mode = "pattern-enter";
+    phaseThree.modeTime = 0;
+    phaseThree.moveStart = { ...boss.position };
+    phaseThree.moveTarget = { ...boss.position };
+    phaseThree.moveDuration = 1;
+
+    updateBossEncounter(state, STAGE_TWO, 0.1, () => false);
+
+    expect(boss.echoTime).toBe(0);
+    expect(state.soundWaves.some((wave) => wave.sourceId === boss.id)).toBe(false);
   });
 
   it("fires the three phase-three patterns with boss and spawn wave radii kept separate", () => {
