@@ -1048,6 +1048,9 @@ export function createCocoonBossThreatCells(
   const add = (x: number, y: number) => {
     cells.set(cellKey(x, y), { x, y });
   };
+  const remove = (x: number, y: number) => {
+    cells.delete(cellKey(x, y));
+  };
 
   if (frame === "corpse" || frame === "death-collapse") {
     const halfWidth = frame === "corpse" ? 26 : 20;
@@ -1062,44 +1065,92 @@ export function createCocoonBossThreatCells(
   const recoilX = frame === "hurt" || frame === "death-recoil" ? 3 : 0;
   const droopY = frame === "death-fall" ? 5 : 0;
 
-  for (let y = -50; y <= -39; y += 1) {
-    const halfWidth = y < -44 ? 2 : 4;
+  for (let y = -55; y <= -39; y += 1) {
+    const halfWidth = y < -49 ? 2 : y < -44 ? 4 : 6;
     for (let x = -halfWidth; x <= halfWidth; x += 1) {
       add(x + recoilX, y + droopY);
     }
   }
   for (const root of [
-    { x: -8, y: -48 }, { x: -7, y: -47 }, { x: -6, y: -46 },
-    { x: 6, y: -46 }, { x: 7, y: -48 }, { x: 10, y: -49 },
+    { x: -13, y: -51 }, { x: -11, y: -49 }, { x: -8, y: -46 },
+    { x: 8, y: -47 }, { x: 11, y: -51 }, { x: 15, y: -53 },
+    { x: -17, y: -48 }, { x: 18, y: -46 },
   ]) add(root.x + recoilX, root.y + droopY);
 
   const topY = -40;
   const bottomY = 40;
   for (let y = topY; y <= bottomY; y += 1) {
     const progress = (y - topY) / (bottomY - topY);
-    const organicBulge = Math.sin(progress * Math.PI) * 21;
-    const unevenEdge = Math.sin(progress * Math.PI * 5) * 2.5;
-    const halfWidth = Math.max(5, Math.round(7 + organicBulge + unevenEdge));
-    for (let x = -halfWidth; x <= halfWidth; x += 1) {
+    const organicBulge = Math.pow(Math.sin(progress * Math.PI), 0.72) * 22;
+    const leftWidth = Math.max(
+      6,
+      Math.round(
+        8 + organicBulge + Math.sin(progress * Math.PI * 5.2) * 2.5,
+      ),
+    );
+    const rightWidth = Math.max(
+      6,
+      Math.round(
+        7 + organicBulge + Math.cos(progress * Math.PI * 6.4) * 2,
+      ),
+    );
+    for (let x = -leftWidth; x <= rightWidth; x += 1) {
       add(x + recoilX, y + droopY);
     }
-    if (y % 9 === 0) add(-halfWidth - 2 + recoilX, y + droopY);
-    if ((y + 4) % 11 === 0) add(halfWidth + 2 + recoilX, y + droopY);
+    if ((y + 27) % 17 === 0) {
+      for (let offset = 1; offset <= 5; offset += 1) {
+        add(
+          -leftWidth - offset + recoilX,
+          y - Math.floor(offset / 2) + droopY,
+        );
+      }
+    }
+    if ((y + 18) % 19 === 0) {
+      for (let offset = 1; offset <= 6; offset += 1) {
+        add(
+          rightWidth + offset + recoilX,
+          y + Math.floor(offset / 2) + droopY,
+        );
+      }
+    }
+  }
+
+  // 굳은 외피 사이로 보이는 비대칭 수축 홈과 찢긴 흔적.
+  for (let offset = 0; offset < 9; offset += 1) {
+    remove(-13 + Math.floor(offset / 3) + recoilX, -24 + offset + droopY);
+    remove(14 - Math.floor(offset / 4) + recoilX, 5 + offset + droopY);
+  }
+  for (let offset = 0; offset < 6; offset += 1) {
+    remove(-18 + offset + recoilX, 18 + Math.floor(offset / 2) + droopY);
   }
 
   for (const tip of [
-    { x: -11, length: 7 },
-    { x: -4, length: 11 },
-    { x: 3, length: 9 },
-    { x: 10, length: 6 },
+    { x: -17, length: 7, bend: -1 },
+    { x: -9, length: 13, bend: 1 },
+    { x: -2, length: 17, bend: -1 },
+    { x: 6, length: 12, bend: 1 },
+    { x: 14, length: 8, bend: 1 },
   ]) {
     for (let offset = 1; offset <= tip.length; offset += 1) {
-      const sway = offset > tip.length / 2 ? Math.sign(tip.x) : 0;
-      add(tip.x + sway + recoilX, bottomY + offset + droopY);
+      const bend = Math.floor((offset / tip.length) * 4) * tip.bend;
+      const thickness = offset < tip.length * 0.55 ? 1 : 0;
+      for (let x = -thickness; x <= thickness; x += 1) {
+        add(tip.x + bend + x + recoilX, bottomY + offset + droopY);
+      }
     }
   }
 
   return [...cells.values()];
+}
+
+function cocoonCrackCenterX(y: number): number {
+  const steppedOffset =
+    y < -22 ? -2 : y < -5 ? 3 : y < 14 ? -4 : y < 29 ? 2 : -1;
+  return Math.round(
+    steppedOffset +
+      Math.sin((y + 41) * 0.41) * 2.2 +
+      Math.sin((y + 7) * 0.17) * 1.5,
+  );
 }
 
 export function createCrackedCocoonBossThreatCells(
@@ -1107,16 +1158,51 @@ export function createCrackedCocoonBossThreatCells(
 ): ThreatPixelCell[] {
   const clamped = Math.max(0, Math.min(1, progress));
   const separation = Math.round(clamped * 13);
-  return createCocoonBossThreatCells("idle")
+  const pivot = { x: cocoonCrackCenterX(-39), y: -39 };
+  const crackedCells = createCocoonBossThreatCells("idle")
     .filter((cell) => {
-      const crackCenter = Math.round(Math.sin((cell.y + 42) * 0.34) * 2);
-      const crackWidth = 1 + Math.floor(clamped * 2);
-      return Math.abs(cell.x - crackCenter) > crackWidth;
+      if (clamped <= 0) return true;
+      const crackCenter = cocoonCrackCenterX(cell.y);
+      const crackWidth = Math.ceil(clamped * 2.5);
+      const onMainCrack = Math.abs(cell.x - crackCenter) <= crackWidth;
+      const firstBranchX = crackCenter - Math.round((cell.y + 14) * 0.58);
+      const onFirstBranch =
+        clamped > 0.28 &&
+        cell.y >= -14 &&
+        cell.y <= 1 &&
+        Math.abs(cell.x - firstBranchX) <= 1;
+      const secondBranchX = crackCenter + Math.round((cell.y - 9) * 0.48);
+      const onSecondBranch =
+        clamped > 0.5 &&
+        cell.y >= 9 &&
+        cell.y <= 27 &&
+        Math.abs(cell.x - secondBranchX) <= 1;
+      return !onMainCrack && !onFirstBranch && !onSecondBranch;
     })
-    .map((cell) => ({
-      x: cell.x + (cell.x < 0 ? -separation : separation),
-      y: cell.y + Math.round(clamped * Math.abs(cell.x) * 0.08),
-    }));
+    .map((cell) => {
+      const side = cell.x < cocoonCrackCenterX(cell.y) ? -1 : 1;
+      const angle = -side * clamped * 0.13;
+      const relativeX = cell.x - pivot.x;
+      const relativeY = cell.y - pivot.y;
+      return {
+        x: Math.round(
+          pivot.x +
+            relativeX * Math.cos(angle) -
+            relativeY * Math.sin(angle) +
+            side * separation,
+        ),
+        y: Math.round(
+          pivot.y +
+            relativeX * Math.sin(angle) +
+            relativeY * Math.cos(angle) +
+            clamped * (side < 0 ? 1 : 3),
+        ),
+      };
+    });
+  return [
+    ...new Map(crackedCells.map((cell) => [cellKey(cell.x, cell.y), cell]))
+      .values(),
+  ];
 }
 
 function createRavenInsectBossThreatCells(

@@ -3,7 +3,6 @@ import { centerRect, rectanglesOverlap } from "../collision/aabb";
 import {
   ENEMY_HIT_WAVE_CONFIG,
   getEnemyBodySize,
-  STAGE_ONE_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../rules/config";
 import { getPlayerBounds } from "../rules/player";
@@ -46,13 +45,22 @@ function nextActorId(encounter: BossEncounterState, prefix: string): string {
   return id;
 }
 
-function nextRandomPattern(encounter: BossEncounterState): BossAttackPattern {
+function nextRandomValue(encounter: BossEncounterState): number {
   let value = encounter.randomState >>> 0;
   value ^= value << 13;
   value ^= value >>> 17;
   value ^= value << 5;
   encounter.randomState = value >>> 0;
-  return ((encounter.randomState % 4) + 1) as BossAttackPattern;
+  return encounter.randomState;
+}
+
+function nextRandomPattern(encounter: BossEncounterState): BossAttackPattern {
+  const candidates = ([1, 2, 3, 4] as const).filter(
+    (pattern) => pattern !== encounter.lastPattern,
+  );
+  return candidates[
+    nextRandomValue(encounter) % candidates.length
+  ] as BossAttackPattern;
 }
 
 function createActor(
@@ -194,7 +202,8 @@ function spawnPhaseOneMinion(
     echoTime: 0,
     echoDuration: 0,
     activated: true,
-    timeUntilPulse: STAGE_ONE_CONFIG.activeEnemyPulseIntervalSeconds,
+    timeUntilPulse: STAGE_TWO_CONFIG.phaseOneMinionPulseIntervalSeconds,
+    pulseIntervalSeconds: STAGE_TWO_CONFIG.phaseOneMinionPulseIntervalSeconds,
   };
   state.enemies.push(minion);
   emitSound(
@@ -259,21 +268,25 @@ export function damageCocoonBoss(
   );
 
   if (encounter.phase === 1) {
-    spawnPhaseOneMinion(state, encounter, boss, knockbackDirection);
-    if (boss.health === 0) beginPhaseTwo(encounter, boss);
+    if (boss.health > 0) {
+      spawnPhaseOneMinion(state, encounter, boss, knockbackDirection);
+    } else {
+      beginPhaseTwo(encounter, boss);
+    }
   } else if (boss.health === 0) {
     startPhaseThree(state, encounter, boss);
   }
   return true;
 }
 
-export function triggerBossPattern(
+function spawnBossPattern(
   state: GameState,
   world: WorldDefinition,
   pattern: BossAttackPattern,
+  rememberPattern: boolean,
 ): BossActorState[] {
   const encounter = state.bossEncounter;
-  if (!encounter || encounter.phase !== 2) return [];
+  if (!encounter) return [];
 
   const speed = STAGE_TWO_CONFIG.phaseTwoPatternSpeed;
   const leftX = PATTERN_EDGE_INSET;
@@ -281,7 +294,7 @@ export function triggerBossPattern(
   const spawned: BossActorState[] = [];
 
   if (pattern === 1) {
-    const side: Facing = nextRandomPattern(encounter) % 2 === 0 ? -1 : 1;
+    const side: Facing = nextRandomValue(encounter) % 2 === 0 ? -1 : 1;
     const position = {
       x: side < 0 ? leftX : rightX,
       y: PATTERN_FLOOR_Y,
@@ -349,10 +362,20 @@ export function triggerBossPattern(
     }
   }
 
-  encounter.lastPattern = pattern;
+  if (rememberPattern) encounter.lastPattern = pattern;
   encounter.actors.push(...spawned);
   for (const actor of spawned) emitActorCall(state, actor, pattern === 4);
   return spawned;
+}
+
+export function triggerBossPattern(
+  state: GameState,
+  world: WorldDefinition,
+  pattern: BossAttackPattern,
+): BossActorState[] {
+  const encounter = state.bossEncounter;
+  if (!encounter || encounter.phase !== 2) return [];
+  return spawnBossPattern(state, world, pattern, true);
 }
 
 function actorTouchesPlayer(state: GameState, actor: BossActorState): boolean {
@@ -444,7 +467,16 @@ export function updateBossEncounter(
   updateActors(state, world, deltaSeconds, damagePlayer);
   if (encounter.phase === 3) {
     const boss = getBoss(state, encounter);
-    if (boss) updatePhaseThreeBoss(state, world, encounter, boss, deltaSeconds);
+    if (boss) {
+      updatePhaseThreeBoss(
+        state,
+        world,
+        encounter,
+        boss,
+        deltaSeconds,
+        (pattern) => spawnBossPattern(state, world, pattern, false),
+      );
+    }
     return;
   }
   if (encounter.phase !== 2 || state.player.action === "dead") return;

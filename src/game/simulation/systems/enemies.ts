@@ -186,17 +186,26 @@ function updateWaker(
   const deltaX = state.player.position.x - enemy.position.x;
   const deltaY = state.player.position.y - enemy.position.y;
   const distance = Math.hypot(deltaX, deltaY);
-  if (distance > 0.001 && state.player.action !== "dead") {
-    enemy.velocity.x +=
-      (deltaX / distance) * STAGE_ONE_CONFIG.wakerAcceleration * deltaSeconds;
-    enemy.velocity.y +=
-      (deltaY / distance) * STAGE_ONE_CONFIG.wakerAcceleration * deltaSeconds;
-  }
-  const speed = Math.hypot(enemy.velocity.x, enemy.velocity.y);
-  if (speed > STAGE_ONE_CONFIG.wakerMaximumSpeed) {
-    const scale = STAGE_ONE_CONFIG.wakerMaximumSpeed / speed;
-    enemy.velocity.x *= scale;
-    enemy.velocity.y *= scale;
+  const desiredVelocity =
+    distance > 0.001 && state.player.action !== "dead"
+      ? {
+          x: (deltaX / distance) * STAGE_ONE_CONFIG.wakerMaximumSpeed,
+          y: (deltaY / distance) * STAGE_ONE_CONFIG.wakerMaximumSpeed,
+        }
+      : { x: 0, y: 0 };
+  const velocityDelta = {
+    x: desiredVelocity.x - enemy.velocity.x,
+    y: desiredVelocity.y - enemy.velocity.y,
+  };
+  const velocityDeltaLength = Math.hypot(velocityDelta.x, velocityDelta.y);
+  const maximumVelocityChange =
+    STAGE_ONE_CONFIG.wakerAcceleration * deltaSeconds;
+  if (velocityDeltaLength > maximumVelocityChange) {
+    const scale = maximumVelocityChange / velocityDeltaLength;
+    enemy.velocity.x += velocityDelta.x * scale;
+    enemy.velocity.y += velocityDelta.y * scale;
+  } else {
+    enemy.velocity = desiredVelocity;
   }
   enemy.position.x += enemy.velocity.x * deltaSeconds;
   enemy.position.y += enemy.velocity.y * deltaSeconds;
@@ -284,7 +293,8 @@ export function updateEnemies(
           state,
           enemy,
           deltaSeconds,
-          STAGE_ONE_CONFIG.activeEnemyPulseIntervalSeconds,
+          enemy.pulseIntervalSeconds ??
+            STAGE_ONE_CONFIG.activeEnemyPulseIntervalSeconds,
           STAGE_ONE_CONFIG.wakerPulseDistance,
           "waker-call",
           STAGE_ONE_CONFIG.activeEnemyPulseIntensity,

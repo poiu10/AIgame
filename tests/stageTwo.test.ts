@@ -160,7 +160,7 @@ describe("Stage 2", () => {
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
   });
 
-  it("ejects one two-health pursuing enemy and plays its call on every phase-one hit", () => {
+  it("ejects a two-health pursuing enemy with a one-second call interval", () => {
     const state = createInitialGameState(STAGE_TWO);
     const cocoon = state.enemies[0];
 
@@ -174,6 +174,8 @@ describe("Stage 2", () => {
       action: "eject",
       activated: true,
       facing: -1,
+      pulseIntervalSeconds:
+        STAGE_TWO_CONFIG.phaseOneMinionPulseIntervalSeconds,
     });
     expect(minion!.position.y).toBeLessThan(cocoon.position.y);
     expect(minion!.velocity.x).toBeLessThan(0);
@@ -196,6 +198,38 @@ describe("Stage 2", () => {
     );
     expect(minion!.action).toBe("pursue");
     expect(minion!.position.x).toBeLessThan(cocoon.position.x);
+
+    state.soundWaves = [];
+    state.events = [];
+    updateEnemies(state, STAGE_TWO, 0.59);
+    expect(state.soundWaves).toHaveLength(0);
+    updateEnemies(state, STAGE_TWO, 0.03);
+    expect(state.soundWaves).toContainEqual(
+      expect.objectContaining({ kind: "waker-call", sourceId: minion!.id }),
+    );
+  });
+
+  it("steers pursuing enemies into attack range instead of orbiting the player", () => {
+    const state = createInitialGameState(STAGE_TWO);
+    const cocoon = state.enemies[0];
+    damageEnemy(state, cocoon, 1);
+    const minion = state.enemies.find((enemy) =>
+      enemy.id.startsWith("boss-minion")
+    )!;
+    state.player.position = { x: 650, y: 350 };
+    minion.position = { x: 210, y: 180 };
+    minion.velocity = { x: -120, y: 520 };
+    minion.action = "pursue";
+
+    let enteredAttackSequence = false;
+    for (let step = 0; step < 720; step += 1) {
+      updateEnemies(state, STAGE_TWO, FIXED_STEP_SECONDS);
+      if (minion.action === "alert" || minion.action === "attack") {
+        enteredAttackSequence = true;
+        break;
+      }
+    }
+    expect(enteredAttackSequence).toBe(true);
   });
 
   it("refills the cocoon to fifteen health and sprays a harmless phase-two intro swarm", () => {
@@ -206,7 +240,7 @@ describe("Stage 2", () => {
     expect(cocoon.health).toBe(STAGE_TWO_CONFIG.phaseTwoHealth);
     expect(cocoon.maxHealth).toBe(STAGE_TWO_CONFIG.phaseTwoHealth);
     expect(state.enemies.filter((enemy) => enemy.id.startsWith("boss-minion")))
-      .toHaveLength(STAGE_TWO_CONFIG.phaseOneHealth);
+      .toHaveLength(STAGE_TWO_CONFIG.phaseOneHealth - 1);
     expect(state.bossEncounter?.actors).toHaveLength(
       STAGE_TWO_CONFIG.phaseTwoIntroActorCount,
     );
@@ -218,7 +252,9 @@ describe("Stage 2", () => {
     updateBossEncounter(state, STAGE_TWO, 2, (direction) =>
       damagePlayer(state, direction),
     );
-    expect(state.bossEncounter?.actors).toHaveLength(0);
+    expect(state.bossEncounter?.actors.filter(
+      (actor) => actor.kind === "intro-swarm",
+    )).toHaveLength(0);
     expect(state.player.health).toBe(initialHealth);
     expect(state.events.filter(
       (event) => event.type === "sound" && event.kind === "waker-call-burst",
@@ -289,15 +325,24 @@ describe("Stage 2", () => {
     )).toBe(true);
   });
 
-  it("chooses a new phase-two pattern every five seconds and attack actors damage on contact", () => {
+  it("chooses a non-repeating phase-two pattern every two seconds and damages on contact", () => {
     const { state } = enterPhaseTwo();
     const encounter = state.bossEncounter!;
     encounter.actors = [];
 
-    updateBossEncounter(state, STAGE_TWO, 4.99, () => false);
+    updateBossEncounter(state, STAGE_TWO, 1.99, () => false);
     expect(encounter.lastPattern).toBeNull();
     updateBossEncounter(state, STAGE_TWO, 0.02, () => false);
     expect([1, 2, 3, 4]).toContain(encounter.lastPattern);
+    const firstPattern = encounter.lastPattern;
+    encounter.actors = [];
+    updateBossEncounter(
+      state,
+      STAGE_TWO,
+      STAGE_TWO_CONFIG.phaseTwoPatternIntervalSeconds,
+      () => false,
+    );
+    expect(encounter.lastPattern).not.toBe(firstPattern);
 
     encounter.actors = [];
     state.player.action = "normal";
@@ -340,9 +385,8 @@ describe("Stage 2", () => {
     );
     expect(state.bossEncounter?.phaseThree?.mode).toBe("pattern-enter");
     expect(state.soundWaves.some((wave) =>
-      wave.kind === "waker-call" &&
-      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 540
-    )).toBe(true);
+      wave.kind === "waker-call" && wave.sourceId === boss.id
+    )).toBe(false);
   });
 
   it("fires the three phase-three patterns with boss and spawn wave radii kept separate", () => {
@@ -375,6 +419,8 @@ describe("Stage 2", () => {
     state.events = [];
     state.player.position = { x: 300, y: 390 };
     triggerPhaseThreePattern(state, STAGE_TWO, 2);
+    const boss = state.enemies.find((enemy) => enemy.id === encounter.bossId)!;
+    expect(boss.position.y).toBe(78);
     state.player.position = { x: 700, y: 200 };
     updateBossEncounter(state, STAGE_TWO, 0.51, () => false);
     const aimed = encounter.actors.find(
@@ -385,6 +431,18 @@ describe("Stage 2", () => {
     expect(state.events).toContainEqual(
       expect.objectContaining({ type: "sound", kind: "waker-call" }),
     );
+    updateBossEncounter(state, STAGE_TWO, 1.5, () => false);
+    expect(encounter.phaseThree?.phaseTwoPatternsStarted).toBe(1);
+    expect(encounter.actors.some((actor) => actor.kind === "pattern"))
+      .toBe(true);
+    const firstOverlappingPattern =
+      encounter.phaseThree?.lastOverlappingPattern;
+    updateBossEncounter(state, STAGE_TWO, 2, () => false);
+    expect(encounter.phaseThree?.phaseTwoPatternsStarted).toBe(2);
+    expect(encounter.phaseThree?.lastOverlappingPattern)
+      .not.toBe(firstOverlappingPattern);
+    expect(encounter.phaseThree?.volleysStarted).toBe(2);
+    expect(encounter.phaseThree?.shotsFired).toBe(2);
 
     state.soundWaves = [];
     state.events = [];
@@ -434,6 +492,22 @@ describe("Stage 2", () => {
     expect(encounter.phaseThree?.mode).toBe("intermission");
     updateBossEncounter(state, STAGE_TWO, 1, () => false);
     expect(encounter.phaseThree?.mode).toBe("pattern-enter");
+  });
+
+  it("does not select the same phase-three pattern twice in a row", () => {
+    const { state, boss } = enterPhaseThree();
+    const encounter = state.bossEncounter!;
+    triggerPhaseThreePattern(state, STAGE_TWO, 2);
+    encounter.phaseThree!.mode = "intermission";
+    encounter.phaseThree!.modeTime =
+      STAGE_TWO_CONFIG.phaseThreeIntermissionSeconds - 0.01;
+    encounter.phaseThree!.moveStart = { ...boss.position };
+    encounter.randomState = 0;
+
+    updateBossEncounter(state, STAGE_TWO, 0.02, () => false);
+
+    expect(encounter.phaseThree?.mode).toBe("pattern-enter");
+    expect(encounter.phaseThree?.pattern).not.toBe(2);
   });
 
   it("shakes, squelches, explodes into body pieces, and reveals End...? after twenty hits", () => {

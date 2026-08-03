@@ -95,6 +95,7 @@ export interface EnemyState {
   echoDuration: number;
   activated: boolean;
   timeUntilPulse: number;
+  pulseIntervalSeconds?: number;
 }
 
 export type BossPhase = 1 | 2 | 3;
@@ -135,10 +136,11 @@ export interface PhaseThreeBossState {
   moveStart: Vector2State;
   moveTarget: Vector2State;
   moveDuration: number;
-  bossWaveTimer: number;
   bossCallTimer: number;
   shotsFired: number;
   volleysStarted: number;
+  phaseTwoPatternsStarted: number;
+  lastOverlappingPattern: BossAttackPattern | null;
   volleyTargets: Vector2State[];
   secondCallWaveEmitted: boolean;
   deathSquelchTimer: number;

@@ -5,6 +5,7 @@ import {
 } from "../rules/config";
 import type {
   BossActorState,
+  BossAttackPattern,
   BossEncounterState,
   EnemyState,
   Facing,
@@ -13,19 +14,21 @@ import type {
   PhaseThreeBossState,
   Vector2State,
 } from "../state";
-import { emitSound, emitSoundWave } from "./sound";
+import { emitSound } from "./sound";
 
 const OFFSCREEN_Y = -100;
-const INTERMISSION_FLIGHT_Y = 105;
+const INTERMISSION_FLIGHT_Y = 150;
 const PATTERN_SIDE_X = 86;
 const PATTERN_SIDE_Y = 220;
 const PATTERN_TOP_Y = 68;
-const PATTERN_CENTER_TOP_Y = 45;
+const PATTERN_CENTER_TOP_Y = 78;
 const PROJECTILE_LOWER_Y = 404;
 const PROJECTILE_UPPER_Y = 300;
 const PROJECTILE_EDGE_X = 54;
 const PROJECTILE_EXIT_MARGIN = 120;
 const BOSS_REVEAL_SECONDS = 1;
+
+type SpawnPhaseTwoPattern = (pattern: BossAttackPattern) => void;
 
 function nextRandom(encounter: BossEncounterState): number {
   let value = encounter.randomState >>> 0;
@@ -71,7 +74,26 @@ function setBossPositionAlongMove(
 }
 
 function choosePattern(encounter: BossEncounterState): PhaseThreePattern {
-  return (Math.floor(nextRandom(encounter) * 3) + 1) as PhaseThreePattern;
+  const candidates = ([1, 2, 3] as const).filter(
+    (pattern) => pattern !== encounter.lastPattern,
+  );
+  return candidates[
+    Math.floor(nextRandom(encounter) * candidates.length)
+  ] as PhaseThreePattern;
+}
+
+function chooseOverlappingPattern(
+  encounter: BossEncounterState,
+): BossAttackPattern {
+  const phaseThree = encounter.phaseThree!;
+  const candidates = ([1, 2, 3, 4] as const).filter(
+    (pattern) => pattern !== phaseThree.lastOverlappingPattern,
+  );
+  const pattern = candidates[
+    Math.floor(nextRandom(encounter) * candidates.length)
+  ] as BossAttackPattern;
+  phaseThree.lastOverlappingPattern = pattern;
+  return pattern;
 }
 
 function chooseSide(encounter: BossEncounterState): Facing {
@@ -96,17 +118,6 @@ function bossPatternTarget(
     x: side < 0 ? PATTERN_SIDE_X : world.width - PATTERN_SIDE_X,
     y: PATTERN_TOP_Y,
   };
-}
-
-function emitBossWave(state: GameState, boss: EnemyState): void {
-  emitSoundWave(
-    state,
-    "waker-call",
-    boss.position,
-    STAGE_TWO_CONFIG.phaseThreeBossWaveDistance,
-    STAGE_TWO_CONFIG.bossCallIntensity,
-    boss.id,
-  );
 }
 
 function emitBossCall(state: GameState, boss: EnemyState): void {
@@ -351,6 +362,7 @@ function beginPatternActive(
   phaseThree.modeTime = 0;
   phaseThree.shotsFired = 0;
   phaseThree.volleysStarted = 0;
+  phaseThree.phaseTwoPatternsStarted = 0;
   phaseThree.volleyTargets = [];
   phaseThree.secondCallWaveEmitted = false;
 
@@ -481,9 +493,14 @@ function updatePatternTwo(
   world: WorldDefinition,
   encounter: BossEncounterState,
   boss: EnemyState,
+  spawnPhaseTwoPattern: SpawnPhaseTwoPattern,
 ): void {
   const phaseThree = encounter.phaseThree!;
-  while (phaseThree.volleysStarted < 3) {
+  const maximumVolleys = Math.ceil(
+    STAGE_TWO_CONFIG.phaseThreePatternTwoDurationSeconds /
+      STAGE_TWO_CONFIG.phaseThreePatternTwoIntervalSeconds,
+  );
+  while (phaseThree.volleysStarted < maximumVolleys) {
     const cueTime =
       phaseThree.volleysStarted *
       STAGE_TWO_CONFIG.phaseThreePatternTwoIntervalSeconds;
@@ -508,6 +525,18 @@ function updatePatternTwo(
     );
     phaseThree.shotsFired += 1;
   }
+  const maximumOverlappingPatterns = Math.floor(
+    (STAGE_TWO_CONFIG.phaseThreePatternTwoDurationSeconds - 0.001) /
+      STAGE_TWO_CONFIG.phaseThreePatternTwoOverlapIntervalSeconds,
+  );
+  while (phaseThree.phaseTwoPatternsStarted < maximumOverlappingPatterns) {
+    const patternTime =
+      (phaseThree.phaseTwoPatternsStarted + 1) *
+      STAGE_TWO_CONFIG.phaseThreePatternTwoOverlapIntervalSeconds;
+    if (phaseThree.modeTime < patternTime) break;
+    spawnPhaseTwoPattern(chooseOverlappingPattern(encounter));
+    phaseThree.phaseTwoPatternsStarted += 1;
+  }
   if (
     phaseThree.modeTime >=
     STAGE_TWO_CONFIG.phaseThreePatternTwoDurationSeconds
@@ -528,7 +557,7 @@ function updatePatternThree(
     phaseThree.modeTime >= STAGE_TWO_CONFIG.phaseTwoDoubleCallDelaySeconds
   ) {
     phaseThree.secondCallWaveEmitted = true;
-    emitBossWave(state, boss);
+    emitBossCall(state, boss);
   }
 
   const shotCount = Math.round(
@@ -557,10 +586,19 @@ function updatePatternActive(
   world: WorldDefinition,
   encounter: BossEncounterState,
   boss: EnemyState,
+  spawnPhaseTwoPattern: SpawnPhaseTwoPattern,
 ): void {
   const pattern = encounter.phaseThree?.pattern;
   if (pattern === 1) updatePatternOne(state, world, encounter, boss);
-  if (pattern === 2) updatePatternTwo(state, world, encounter, boss);
+  if (pattern === 2) {
+    updatePatternTwo(
+      state,
+      world,
+      encounter,
+      boss,
+      spawnPhaseTwoPattern,
+    );
+  }
   if (pattern === 3) updatePatternThree(state, world, encounter, boss);
 }
 
@@ -646,10 +684,11 @@ export function startPhaseThree(
     moveStart: cocoonPosition,
     moveTarget: cocoonPosition,
     moveDuration: STAGE_TWO_CONFIG.phaseThreeIntroSeconds,
-    bossWaveTimer: 0,
     bossCallTimer: 0,
     shotsFired: 0,
     volleysStarted: 0,
+    phaseTwoPatternsStarted: 0,
+    lastOverlappingPattern: null,
     volleyTargets: [],
     secondCallWaveEmitted: false,
     deathSquelchTimer: 0,
@@ -729,6 +768,7 @@ export function updatePhaseThreeBoss(
   encounter: BossEncounterState,
   boss: EnemyState,
   deltaSeconds: number,
+  spawnPhaseTwoPattern: SpawnPhaseTwoPattern,
 ): void {
   const phaseThree = encounter.phaseThree;
   if (!phaseThree) return;
@@ -752,12 +792,6 @@ export function updatePhaseThreeBoss(
 
   boss.echoTime = BOSS_REVEAL_SECONDS;
   boss.echoDuration = BOSS_REVEAL_SECONDS;
-  phaseThree.bossWaveTimer -= deltaSeconds;
-  while (phaseThree.bossWaveTimer <= 0) {
-    emitBossWave(state, boss);
-    phaseThree.bossWaveTimer +=
-      STAGE_TWO_CONFIG.phaseThreeBossWaveIntervalSeconds;
-  }
 
   phaseThree.modeTime += deltaSeconds;
   if (phaseThree.mode === "death-shake") {
@@ -808,7 +842,13 @@ export function updatePhaseThreeBoss(
     return;
   }
   if (phaseThree.mode === "pattern-active") {
-    updatePatternActive(state, world, encounter, boss);
+    updatePatternActive(
+      state,
+      world,
+      encounter,
+      boss,
+      spawnPhaseTwoPattern,
+    );
     return;
   }
   if (phaseThree.mode === "pattern-exit") {
