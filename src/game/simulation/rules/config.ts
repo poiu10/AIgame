@@ -138,7 +138,8 @@ export const STAGE_TWO_CONFIG = {
   phaseThreeDeathPieceCount: 24,
   phaseThreeDeathPieceLifetimeSeconds: 2.6,
   phaseThreeDeathPieceGravity: 360,
-  phaseThreeEndTextDelaySeconds: 0.5,
+  phaseThreeEndTitleDelaySeconds: 1,
+  phaseThreeEndSuffixDelaySeconds: 0.5,
   phaseThreeEndTextCharacterIntervalSeconds: 0.45,
 } as const;
 

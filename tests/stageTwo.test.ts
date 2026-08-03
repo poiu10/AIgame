@@ -488,19 +488,21 @@ describe("Stage 2", () => {
         Number.isInteger(cell.x) && Number.isInteger(cell.y)
       )).toBe(true);
     }
-    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("End");
-    expect(resolveBossEndingText(0.499)).toBe("End");
-    expect(resolveBossEndingText(0.5)).toBe("End.");
-    expect(resolveBossEndingText(0.951)).toBe("End..");
-    expect(resolveBossEndingText(1.401)).toBe("End...");
-    expect(resolveBossEndingText(1.851)).toBe("End...?");
+    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("");
+    expect(resolveBossEndingText(0.999)).toBe("");
+    expect(resolveBossEndingText(1)).toBe("End");
+    expect(resolveBossEndingText(1.499)).toBe("End");
+    expect(resolveBossEndingText(1.5)).toBe("End.");
+    expect(resolveBossEndingText(1.951)).toBe("End..");
+    expect(resolveBossEndingText(2.401)).toBe("End...");
+    expect(resolveBossEndingText(2.851)).toBe("End...?");
 
-    updateBossEncounter(state, STAGE_TWO, 0.5, () => false);
-    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("End.");
+    updateBossEncounter(state, STAGE_TWO, 1, () => false);
+    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("End");
     updateBossEncounter(
       state,
       STAGE_TWO,
-      STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds - 0.5,
+      STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds - 1,
       () => false,
     );
     expect(phaseThree.deathPieces).toHaveLength(0);
