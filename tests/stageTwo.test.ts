@@ -165,6 +165,11 @@ describe("Stage 2", () => {
     expect(state.soundWaves).toContainEqual(
       expect.objectContaining({ kind: "waker-call", sourceId: minion!.id }),
     );
+    const summonCallWave = state.soundWaves.find(
+      (wave) => wave.kind === "waker-call" && wave.sourceId === minion!.id,
+    );
+    expect(Math.max(...summonCallWave!.rays.map((ray) => ray.remainingDistance)))
+      .toBe(160);
     expect(state.events).toContainEqual(
       expect.objectContaining({ type: "sound", kind: "waker-call" }),
     );
@@ -203,8 +208,13 @@ describe("Stage 2", () => {
     expect(state.events.filter(
       (event) => event.type === "sound" && event.kind === "waker-call-burst",
     )).toHaveLength(STAGE_TWO_CONFIG.phaseTwoIntroActorCount);
-    expect(state.soundWaves.filter((wave) => wave.kind === "waker-call-burst"))
-      .toHaveLength(STAGE_TWO_CONFIG.phaseTwoIntroActorCount);
+    const introCallWaves = state.soundWaves.filter(
+      (wave) => wave.kind === "waker-call-burst",
+    );
+    expect(introCallWaves).toHaveLength(STAGE_TWO_CONFIG.phaseTwoIntroActorCount);
+    expect(introCallWaves.every((wave) =>
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 160
+    )).toBe(true);
   });
 
   it("builds all four warned, invulnerable phase-two attack formations", () => {
@@ -235,6 +245,9 @@ describe("Stage 2", () => {
     expect(doubleDrop.every((actor) => actor.secondCallTime !== null)).toBe(true);
     expect(state.soundWaves.filter((wave) => wave.kind === "waker-call-short"))
       .toHaveLength(2);
+    expect(state.soundWaves.every((wave) =>
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 160
+    )).toBe(true);
 
     const enemyIds = new Set(state.enemies.map((enemy) => enemy.id));
     expect(encounter.actors.every((actor) => !enemyIds.has(actor.id))).toBe(true);
@@ -252,6 +265,9 @@ describe("Stage 2", () => {
     updateBossEncounter(state, STAGE_TWO, 0.27, () => false);
     expect(state.soundWaves.filter((wave) => wave.kind === "waker-call"))
       .toHaveLength(6);
+    expect(state.soundWaves.every((wave) =>
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 160
+    )).toBe(true);
     expect(encounter.actors.some((actor, index) =>
       actor.position.x !== positionsBeforeWarning[index]?.position.x ||
       actor.position.y !== positionsBeforeWarning[index]?.position.y

@@ -112,8 +112,8 @@ export const STAGE_TWO_CONFIG = {
   phaseTwoIntroActorCount: 14,
   phaseTwoIntroSpawnIntervalSeconds: 0.055,
   phaseTwoIntroMinimumSpeed: 620,
-  phaseTwoCallDistance: STAGE_ONE_CONFIG.wakerPulseDistance,
-  phaseTwoCallIntensity: STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
+  bossCallDistance: MELEE_ATTACK_WAVE_CONFIG.distance,
+  bossCallIntensity: STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
 } as const;
 
 export function getEnemyBodySize(kind?: string): {

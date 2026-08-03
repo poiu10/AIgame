@@ -103,8 +103,8 @@ function emitActorCall(
     state,
     shortened ? "waker-call-short" : "waker-call",
     actor.position,
-    STAGE_TWO_CONFIG.phaseTwoCallDistance,
-    STAGE_TWO_CONFIG.phaseTwoCallIntensity,
+    STAGE_TWO_CONFIG.bossCallDistance,
+    STAGE_TWO_CONFIG.bossCallIntensity,
     actor.id,
   );
 }
@@ -114,8 +114,8 @@ function emitActorCallWave(state: GameState, actor: BossActorState): void {
     state,
     "waker-call",
     actor.position,
-    STAGE_TWO_CONFIG.phaseTwoCallDistance,
-    STAGE_TWO_CONFIG.phaseTwoCallIntensity,
+    STAGE_TWO_CONFIG.bossCallDistance,
+    STAGE_TWO_CONFIG.bossCallIntensity,
     actor.id,
   );
 }
@@ -196,8 +196,8 @@ function spawnPhaseOneMinion(
     state,
     "waker-call",
     minion.position,
-    STAGE_ONE_CONFIG.wakerPulseDistance,
-    STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
+    STAGE_TWO_CONFIG.bossCallDistance,
+    STAGE_TWO_CONFIG.bossCallIntensity,
     minion.id,
   );
 }
@@ -389,8 +389,8 @@ function updateActors(
         state,
         "waker-call-burst",
         actor.position,
-        STAGE_TWO_CONFIG.phaseTwoCallDistance,
-        STAGE_TWO_CONFIG.phaseTwoCallIntensity,
+        STAGE_TWO_CONFIG.bossCallDistance,
+        STAGE_TWO_CONFIG.bossCallIntensity,
         actor.id,
       );
     }
