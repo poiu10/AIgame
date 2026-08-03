@@ -92,6 +92,11 @@ describe("sample-backed sound", () => {
       assetKey: ASSET_KEYS.audio.wetSquelch,
       playbackFraction: 0.18,
     });
+    expect(SOUND_PLAYBACK_PROFILES["boss-death-squelch"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.wetSquelch,
+      rate: 1.12,
+      playbackFraction: 0.16,
+    });
   });
 
   it("uses down_cut_before_tak for landing sounds", () => {

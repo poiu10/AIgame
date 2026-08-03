@@ -17,6 +17,7 @@ import type {
   GameState,
   PlayerState,
 } from "../../game/simulation/state";
+import { resolveBossEndingText } from "../../game/simulation/rules/bossEnding";
 import { resolveTerrainBounds } from "../../game/simulation/systems/stageMechanisms";
 import {
   getPixelThicknessOffsets,
@@ -28,6 +29,10 @@ import {
   MAP_SCROLL_INDICATOR_DOT_SIZE,
 } from "./mapScrollIndicator";
 import { rasterizePixelText } from "./pixelText";
+import {
+  createBossDeathPieceCells,
+  resolveBossDeathShakeOffset,
+} from "./bossDeathPresentation";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
 import {
   createCenteredRestartPrompt,
@@ -64,6 +69,8 @@ const BUTTON_PRESS_GUIDE_WIDTH = 3;
 const ELECTRIC_LIGHTNING_FRAME_COUNT = 4;
 const ELECTRIC_LIGHTNING_FRAME_RATE = 20;
 const MAP_SCROLL_INDICATOR_ALPHA = 0.62;
+const ENDING_TEXT_PIXEL_SIZE = 9;
+const ENDING_TEXT_SHADOW_OFFSET = 3;
 const BOSS_ACTOR_WALK_FRAMES: readonly EnemyThreatFrame[] = [
   "walk-0",
   "walk-1",
@@ -88,9 +95,12 @@ export class GameViewAdapter {
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
   private readonly bossCocoonGraphics: Phaser.GameObjects.Graphics;
+  private readonly bossDeathGraphics: Phaser.GameObjects.Graphics;
+  private readonly endingTextGraphics: Phaser.GameObjects.Graphics;
   private readonly terrainMechanismGraphics: Phaser.GameObjects.Graphics;
   private readonly mapScrollIndicatorGraphics: Phaser.GameObjects.Graphics;
   private currentTutorialPrompt = "";
+  private currentEndingText = "";
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -100,12 +110,17 @@ export class GameViewAdapter {
     this.waveGraphics = scene.add.graphics().setDepth(4);
     this.hazardGraphics = scene.add.graphics().setDepth(7);
     this.bossCocoonGraphics = scene.add.graphics().setDepth(7.5);
+    this.bossDeathGraphics = scene.add.graphics().setDepth(9);
     this.terrainMechanismGraphics = scene.add.graphics().setDepth(6);
     this.mapScrollIndicatorGraphics = scene.add.graphics().setDepth(20);
     this.mapScrollIndicatorGraphics.fillStyle(
       TERRAIN_ECHO_COLOR,
       MAP_SCROLL_INDICATOR_ALPHA,
     );
+    this.endingTextGraphics = scene.add
+      .graphics()
+      .setDepth(30)
+      .setScrollFactor(0);
     for (const dot of createMapScrollIndicatorDots(
       world.width,
       world.height,
@@ -178,6 +193,8 @@ export class GameViewAdapter {
     this.drawEnemies(state);
     this.drawBossCocoon(state);
     this.drawBossActors(state);
+    this.drawBossDeath(state);
+    this.drawEndingText(state);
     this.drawTerrainMechanisms(state);
     this.drawHazards(state);
     this.drawEchoes(state);
@@ -232,6 +249,8 @@ export class GameViewAdapter {
     this.echoGraphics.destroy();
     this.hazardGraphics.destroy();
     this.bossCocoonGraphics.destroy();
+    this.bossDeathGraphics.destroy();
+    this.endingTextGraphics.destroy();
     this.terrainMechanismGraphics.destroy();
     this.mapScrollIndicatorGraphics.destroy();
   }
@@ -382,7 +401,18 @@ export class GameViewAdapter {
     }
     for (const enemy of state.enemies) {
       const view = this.ensureThreatView(this.enemyViews, enemy.id);
-      view.container.setPosition(enemy.position.x, enemy.position.y);
+      let renderX = enemy.position.x;
+      let renderY = enemy.position.y;
+      const phaseThree = state.bossEncounter?.phaseThree;
+      if (
+        enemy.kind === ENEMY_KINDS.ravenBoss &&
+        phaseThree?.mode === "death-shake"
+      ) {
+        const offset = resolveBossDeathShakeOffset(phaseThree.modeTime);
+        renderX += offset.x;
+        renderY += offset.y;
+      }
+      view.container.setPosition(renderX, renderY);
       const visible = enemy.echoTime > 0;
       view.container.setVisible(visible);
       if (!visible) {
@@ -393,7 +423,6 @@ export class GameViewAdapter {
         1,
         enemy.echoTime / Math.max(enemy.echoDuration, 0.001),
       );
-      const phaseThree = state.bossEncounter?.phaseThree;
       if (
         enemy.kind === ENEMY_KINDS.ravenBoss &&
         phaseThree?.mode === "intro"
@@ -404,6 +433,63 @@ export class GameViewAdapter {
         );
       }
       this.drawEnemy(view.graphics, enemy, state.elapsedTime, alpha);
+    }
+  }
+
+  private drawBossDeath(state: GameState): void {
+    this.bossDeathGraphics.clear();
+    const phaseThree = state.bossEncounter?.phaseThree;
+    if (!phaseThree || phaseThree.deathPieces.length === 0) return;
+    for (const piece of phaseThree.deathPieces) {
+      const life = Math.max(0, 1 - piece.age / piece.lifetime);
+      this.bossDeathGraphics.fillStyle(THREAT_COLOR, life);
+      const originX = Math.round(piece.position.x / THREAT_PIXEL_SIZE) *
+        THREAT_PIXEL_SIZE;
+      const originY = Math.round(piece.position.y / THREAT_PIXEL_SIZE) *
+        THREAT_PIXEL_SIZE;
+      for (const cell of createBossDeathPieceCells(piece)) {
+        this.bossDeathGraphics.fillRect(
+          originX + cell.x * THREAT_PIXEL_SIZE,
+          originY + cell.y * THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+        );
+      }
+    }
+  }
+
+  private drawEndingText(state: GameState): void {
+    const text = resolveBossEndingText(
+      state.bossEncounter?.phaseThree?.endingTime ?? null,
+    );
+    if (text === this.currentEndingText) return;
+    this.currentEndingText = text;
+    this.endingTextGraphics.clear();
+    if (!text) return;
+    const pixels = rasterizePixelText(text);
+    const originX = Math.floor(
+      (this.scene.cameras.main.width - pixels.width * ENDING_TEXT_PIXEL_SIZE) / 2,
+    );
+    const originY = Math.floor(
+      (this.scene.cameras.main.height - pixels.height * ENDING_TEXT_PIXEL_SIZE) / 2,
+    );
+    this.endingTextGraphics.fillStyle(0x030608, 0.9);
+    for (const cell of pixels.cells) {
+      this.endingTextGraphics.fillRect(
+        originX + cell.x * ENDING_TEXT_PIXEL_SIZE + ENDING_TEXT_SHADOW_OFFSET,
+        originY + cell.y * ENDING_TEXT_PIXEL_SIZE + ENDING_TEXT_SHADOW_OFFSET,
+        ENDING_TEXT_PIXEL_SIZE,
+        ENDING_TEXT_PIXEL_SIZE,
+      );
+    }
+    this.endingTextGraphics.fillStyle(0xeaffff, 1);
+    for (const cell of pixels.cells) {
+      this.endingTextGraphics.fillRect(
+        originX + cell.x * ENDING_TEXT_PIXEL_SIZE,
+        originY + cell.y * ENDING_TEXT_PIXEL_SIZE,
+        ENDING_TEXT_PIXEL_SIZE,
+        ENDING_TEXT_PIXEL_SIZE,
+      );
     }
   }
 

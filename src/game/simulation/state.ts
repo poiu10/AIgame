@@ -35,6 +35,7 @@ export type SoundKind =
   | "boss-flesh-growth"
   | "boss-wet-squelch"
   | "spawn-wet-squelch"
+  | "boss-death-squelch"
   | "enemy-hit"
   | "enemy-death"
   | "sleep"
@@ -105,6 +106,8 @@ export type PhaseThreeMode =
   | "pattern-active"
   | "pattern-exit"
   | "intermission"
+  | "death-shake"
+  | "death-explosion"
   | "defeated";
 
 export interface BossActorState {
@@ -138,6 +141,20 @@ export interface PhaseThreeBossState {
   volleysStarted: number;
   volleyTargets: Vector2State[];
   secondCallWaveEmitted: boolean;
+  deathSquelchTimer: number;
+  deathSquelchesEmitted: number;
+  deathPieces: BossDeathPieceState[];
+  endingTime: number | null;
+}
+
+export interface BossDeathPieceState {
+  position: Vector2State;
+  velocity: Vector2State;
+  age: number;
+  lifetime: number;
+  spin: number;
+  spinSpeed: number;
+  shape: number;
 }
 
 export interface BossEncounterState {

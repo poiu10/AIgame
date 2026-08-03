@@ -19,4 +19,14 @@ describe("pixel text rasterization", () => {
   it("returns an empty layout for an empty prompt", () => {
     expect(rasterizePixelText("")).toEqual({ cells: [], width: 0, height: 0 });
   });
+
+  it("renders an actual period for the slowly revealed ending", () => {
+    const period = rasterizePixelText(".");
+    expect(period).toEqual({
+      cells: [{ x: 1, y: 6 }],
+      width: 3,
+      height: 7,
+    });
+    expect(period).not.toEqual(rasterizePixelText("?"));
+  });
 });

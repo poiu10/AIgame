@@ -1,7 +1,5 @@
 import { ENEMY_KINDS, type WorldDefinition } from "../../content/world";
 import {
-  ENEMY_CONFIG,
-  ENEMY_DEATH_WAVE_CONFIG,
   ENEMY_HIT_WAVE_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../rules/config";
@@ -130,6 +128,88 @@ function emitBossWetSquelch(state: GameState, boss: EnemyState): void {
     STAGE_TWO_CONFIG.phaseThreeBossWaveDistance,
     1,
     boss.id,
+  );
+}
+
+function emitBossDeathSquelch(state: GameState, boss: EnemyState): void {
+  emitSound(
+    state,
+    "boss-death-squelch",
+    boss.position,
+    STAGE_TWO_CONFIG.phaseThreeSpawnWaveDistance,
+    1,
+    boss.id,
+  );
+}
+
+function createDeathPieces(
+  encounter: BossEncounterState,
+  boss: EnemyState,
+): PhaseThreeBossState["deathPieces"] {
+  return Array.from(
+    { length: STAGE_TWO_CONFIG.phaseThreeDeathPieceCount },
+    (_, index) => {
+      const baseAngle =
+        (index / STAGE_TWO_CONFIG.phaseThreeDeathPieceCount) * Math.PI * 2;
+      const angle = baseAngle + (nextRandom(encounter) - 0.5) * 0.24;
+      const speed = 250 + nextRandom(encounter) * 470;
+      return {
+        position: {
+          x: boss.position.x + (nextRandom(encounter) - 0.5) * 70,
+          y: boss.position.y + (nextRandom(encounter) - 0.5) * 48,
+        },
+        velocity: {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed,
+        },
+        age: 0,
+        lifetime: STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds,
+        spin: nextRandom(encounter) * Math.PI * 2,
+        spinSpeed: (nextRandom(encounter) - 0.5) * 11,
+        shape: index % 4,
+      };
+    },
+  );
+}
+
+function explodeBoss(
+  state: GameState,
+  encounter: BossEncounterState,
+  boss: EnemyState,
+): void {
+  const phaseThree = encounter.phaseThree!;
+  phaseThree.mode = "death-explosion";
+  phaseThree.modeTime = 0;
+  phaseThree.endingTime = 0;
+  phaseThree.deathPieces = createDeathPieces(encounter, boss);
+  boss.alive = false;
+  boss.action = "dead";
+  boss.actionTime = 0;
+  boss.velocity = { x: 0, y: 0 };
+  boss.echoTime = 0;
+  boss.echoDuration = 0;
+  state.events.push({
+    type: "impact",
+    position: { ...boss.position },
+    strength: 1.7,
+  });
+  emitBossWetSquelch(state, boss);
+}
+
+function updateDeathPieces(
+  phaseThree: PhaseThreeBossState,
+  deltaSeconds: number,
+): void {
+  for (const piece of phaseThree.deathPieces) {
+    piece.age += deltaSeconds;
+    piece.velocity.y +=
+      STAGE_TWO_CONFIG.phaseThreeDeathPieceGravity * deltaSeconds;
+    piece.position.x += piece.velocity.x * deltaSeconds;
+    piece.position.y += piece.velocity.y * deltaSeconds;
+    piece.spin += piece.spinSpeed * deltaSeconds;
+  }
+  phaseThree.deathPieces = phaseThree.deathPieces.filter(
+    (piece) => piece.age < piece.lifetime,
   );
 }
 
@@ -572,6 +652,10 @@ export function startPhaseThree(
     volleysStarted: 0,
     volleyTargets: [],
     secondCallWaveEmitted: false,
+    deathSquelchTimer: 0,
+    deathSquelchesEmitted: 0,
+    deathPieces: [],
+    endingTime: null,
   };
   emitSound(
     state,
@@ -589,7 +673,13 @@ export function damagePhaseThreeBoss(
   boss: EnemyState,
 ): boolean {
   const phaseThree = encounter.phaseThree;
-  if (!phaseThree || phaseThree.mode === "defeated" || !boss.alive) {
+  if (
+    !phaseThree ||
+    phaseThree.mode === "death-shake" ||
+    phaseThree.mode === "death-explosion" ||
+    phaseThree.mode === "defeated" ||
+    !boss.alive
+  ) {
     return false;
   }
   boss.health = Math.max(0, boss.health - 1);
@@ -614,25 +704,22 @@ export function damagePhaseThreeBoss(
     return true;
   }
 
-  boss.alive = false;
-  boss.action = "dead";
+  boss.action = "hurt";
   boss.actionTime = 0;
   boss.velocity = { x: 0, y: 0 };
-  boss.echoTime = ENEMY_CONFIG.deathRevealSeconds;
-  boss.echoDuration = ENEMY_CONFIG.deathRevealSeconds;
-  phaseThree.mode = "defeated";
+  boss.echoTime = BOSS_REVEAL_SECONDS;
+  boss.echoDuration = BOSS_REVEAL_SECONDS;
+  phaseThree.mode = "death-shake";
   phaseThree.modeTime = 0;
+  phaseThree.deathSquelchTimer =
+    STAGE_TWO_CONFIG.phaseThreeDeathSquelchIntervalSeconds;
+  phaseThree.deathSquelchesEmitted = 1;
+  phaseThree.deathPieces = [];
+  phaseThree.endingTime = null;
   encounter.actors = encounter.actors.filter(
     (actor) => actor.kind !== "phase-three-projectile",
   );
-  emitSound(
-    state,
-    "enemy-death",
-    boss.position,
-    ENEMY_DEATH_WAVE_CONFIG.distance,
-    ENEMY_DEATH_WAVE_CONFIG.intensity,
-    boss.id,
-  );
+  emitBossDeathSquelch(state, boss);
   return true;
 }
 
@@ -644,7 +731,24 @@ export function updatePhaseThreeBoss(
   deltaSeconds: number,
 ): void {
   const phaseThree = encounter.phaseThree;
-  if (!phaseThree || phaseThree.mode === "defeated" || !boss.alive) return;
+  if (!phaseThree) return;
+  if (phaseThree.mode === "defeated") {
+    if (phaseThree.endingTime !== null) {
+      phaseThree.endingTime += deltaSeconds;
+    }
+    return;
+  }
+  if (phaseThree.mode === "death-explosion") {
+    phaseThree.modeTime += deltaSeconds;
+    phaseThree.endingTime = (phaseThree.endingTime ?? 0) + deltaSeconds;
+    updateDeathPieces(phaseThree, deltaSeconds);
+    if (phaseThree.deathPieces.length === 0) {
+      phaseThree.mode = "defeated";
+      phaseThree.modeTime = 0;
+    }
+    return;
+  }
+  if (!boss.alive) return;
 
   boss.echoTime = BOSS_REVEAL_SECONDS;
   boss.echoDuration = BOSS_REVEAL_SECONDS;
@@ -656,6 +760,30 @@ export function updatePhaseThreeBoss(
   }
 
   phaseThree.modeTime += deltaSeconds;
+  if (phaseThree.mode === "death-shake") {
+    boss.action = "hurt";
+    boss.actionTime = 0;
+    phaseThree.deathSquelchTimer -= deltaSeconds;
+    const maximumSquelches = Math.ceil(
+      STAGE_TWO_CONFIG.phaseThreeDeathShakeSeconds /
+        STAGE_TWO_CONFIG.phaseThreeDeathSquelchIntervalSeconds,
+    );
+    while (
+      phaseThree.deathSquelchTimer <= 0 &&
+      phaseThree.deathSquelchesEmitted < maximumSquelches
+    ) {
+      emitBossDeathSquelch(state, boss);
+      phaseThree.deathSquelchesEmitted += 1;
+      phaseThree.deathSquelchTimer +=
+        STAGE_TWO_CONFIG.phaseThreeDeathSquelchIntervalSeconds;
+    }
+    if (
+      phaseThree.modeTime >= STAGE_TWO_CONFIG.phaseThreeDeathShakeSeconds
+    ) {
+      explodeBoss(state, encounter, boss);
+    }
+    return;
+  }
   if (phaseThree.mode === "intro") {
     const ratio = easeInOut(
       phaseThree.modeTime / STAGE_TWO_CONFIG.phaseThreeIntroSeconds,

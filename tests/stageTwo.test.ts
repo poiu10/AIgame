@@ -10,6 +10,7 @@ import {
   PLAYER_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../src/game/simulation/rules/config";
+import { resolveBossEndingText } from "../src/game/simulation/rules/bossEnding";
 import { createInitialGameState } from "../src/game/simulation/state";
 import {
   damagePlayer,
@@ -30,6 +31,10 @@ import {
   createCrackedCocoonBossThreatCells,
   createFloorHazardThreatCells,
 } from "../src/phaser/view/threatPixelArt";
+import {
+  createBossDeathPieceCells,
+  resolveBossDeathShakeOffset,
+} from "../src/phaser/view/bossDeathPresentation";
 
 function getTerrainState(
   state: ReturnType<typeof createInitialGameState>,
@@ -431,15 +436,75 @@ describe("Stage 2", () => {
     expect(encounter.phaseThree?.mode).toBe("pattern-enter");
   });
 
-  it("lets attacks defeat the phase-three boss after twenty hits", () => {
+  it("shakes, squelches, explodes into body pieces, and reveals End...? after twenty hits", () => {
     const { state, boss } = enterPhaseThree();
     for (let hit = 0; hit < STAGE_TWO_CONFIG.phaseThreeHealth; hit += 1) {
       expect(damageEnemy(state, boss, 1)).toBe(true);
     }
-    expect(boss.alive).toBe(false);
+    const phaseThree = state.bossEncounter!.phaseThree!;
+    expect(boss.alive).toBe(true);
     expect(boss.health).toBe(0);
-    expect(state.bossEncounter?.phaseThree?.mode).toBe("defeated");
+    expect(phaseThree.mode).toBe("death-shake");
+    expect(phaseThree.deathSquelchesEmitted).toBe(1);
     expect(damageEnemy(state, boss, 1)).toBe(false);
+
+    const firstShake = resolveBossDeathShakeOffset(0);
+    const nextShake = resolveBossDeathShakeOffset(0.05);
+    expect(firstShake).not.toEqual(nextShake);
+    expect(Math.abs(firstShake.x % 3)).toBe(0);
+    expect(Math.abs(firstShake.y % 3)).toBe(0);
+
+    updateBossEncounter(
+      state,
+      STAGE_TWO,
+      STAGE_TWO_CONFIG.phaseThreeDeathShakeSeconds - 0.01,
+      () => false,
+    );
+    expect(phaseThree.mode).toBe("death-shake");
+    expect(boss.alive).toBe(true);
+    expect(phaseThree.deathSquelchesEmitted).toBe(10);
+    expect(state.events.filter((event) =>
+      event.type === "sound" && event.kind === "boss-death-squelch"
+    )).toHaveLength(10);
+    expect(state.soundWaves.filter((wave) =>
+      wave.kind === "boss-death-squelch" &&
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 160
+    )).toHaveLength(10);
+
+    updateBossEncounter(state, STAGE_TWO, 0.02, () => false);
+    expect(phaseThree.mode).toBe("death-explosion");
+    expect(boss.alive).toBe(false);
+    expect(phaseThree.deathPieces).toHaveLength(
+      STAGE_TWO_CONFIG.phaseThreeDeathPieceCount,
+    );
+    expect(phaseThree.deathPieces.some((piece) => piece.velocity.x < 0)).toBe(true);
+    expect(phaseThree.deathPieces.some((piece) => piece.velocity.x > 0)).toBe(true);
+    expect(phaseThree.deathPieces.some((piece) => piece.velocity.y < 0)).toBe(true);
+    expect(phaseThree.deathPieces.some((piece) => piece.velocity.y > 0)).toBe(true);
+    for (const piece of phaseThree.deathPieces) {
+      const cells = createBossDeathPieceCells(piece);
+      expect(cells.length).toBeGreaterThanOrEqual(3);
+      expect(cells.every((cell) =>
+        Number.isInteger(cell.x) && Number.isInteger(cell.y)
+      )).toBe(true);
+    }
+    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("End");
+    expect(resolveBossEndingText(0.499)).toBe("End");
+    expect(resolveBossEndingText(0.5)).toBe("End.");
+    expect(resolveBossEndingText(0.951)).toBe("End..");
+    expect(resolveBossEndingText(1.401)).toBe("End...");
+    expect(resolveBossEndingText(1.851)).toBe("End...?");
+
+    updateBossEncounter(state, STAGE_TWO, 0.5, () => false);
+    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("End.");
+    updateBossEncounter(
+      state,
+      STAGE_TWO,
+      STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds - 0.5,
+      () => false,
+    );
+    expect(phaseThree.deathPieces).toHaveLength(0);
+    expect(phaseThree.mode).toBe("defeated");
   });
 
   it("deals one damage from the floor hazard instead of killing", () => {
