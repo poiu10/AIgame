@@ -81,6 +81,9 @@ describe("sample-backed sound", () => {
     expect(AUDIO_ASSETS.wetSquelch.path).toBe(
       "assets/audio/universfield-wet-squelch-276679.mp3",
     );
+    expect(AUDIO_ASSETS.bossDeathExplosion.path).toBe(
+      "assets/audio/freesound_community-splat2ogg-14668.mp3",
+    );
     expect(SOUND_PLAYBACK_PROFILES["boss-flesh-growth"]).toMatchObject({
       assetKey: ASSET_KEYS.audio.fleshGrowth,
       volume: 0.34,
@@ -96,6 +99,11 @@ describe("sample-backed sound", () => {
       assetKey: ASSET_KEYS.audio.wetSquelch,
       rate: 1.12,
       playbackFraction: 0.16,
+    });
+    expect(SOUND_PLAYBACK_PROFILES["boss-death-explosion"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.bossDeathExplosion,
+      volume: 0.38,
+      rate: 1,
     });
   });
 

@@ -29,6 +29,7 @@ export const ASSET_KEYS = {
     water: "audio.water",
     fleshGrowth: "audio.boss-flesh-growth",
     wetSquelch: "audio.wet-squelch",
+    bossDeathExplosion: "audio.boss-death-explosion",
   },
 } as const;
 
@@ -220,5 +221,9 @@ export const AUDIO_ASSETS = {
   wetSquelch: {
     key: ASSET_KEYS.audio.wetSquelch,
     path: "assets/audio/universfield-wet-squelch-276679.mp3",
+  },
+  bossDeathExplosion: {
+    key: ASSET_KEYS.audio.bossDeathExplosion,
+    path: "assets/audio/freesound_community-splat2ogg-14668.mp3",
   },
 } as const;

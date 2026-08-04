@@ -6,6 +6,7 @@
 - `1grrrrrun.mp3`, `jiiiingggg.mp3`, `1kaaaaaak.mp3`, `1sleep.mp3`,
   `1water.mp3`, `stonedoor.mp3`, `electric_shock_seamless_loop.ogg`,
   `tanweraman-flesh-growing-horror-392360.mp3`,
-  `universfield-wet-squelch-276679.mp3`: copied from the user-supplied
+  `universfield-wet-squelch-276679.mp3`,
+  `freesound_community-splat2ogg-14668.mp3`: copied from the user-supplied
   `sound/pixabay` folder. The repository does not contain more specific source
   or license metadata for these files.

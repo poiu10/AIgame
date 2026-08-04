@@ -663,6 +663,14 @@ describe("Stage 2", () => {
     updateBossEncounter(state, STAGE_TWO, 0.02, () => false);
     expect(phaseThree.mode).toBe("death-explosion");
     expect(boss.alive).toBe(false);
+    expect(state.events).toContainEqual(expect.objectContaining({
+      type: "sound",
+      kind: "boss-death-explosion",
+    }));
+    expect(state.soundWaves.some((wave) =>
+      wave.kind === "boss-death-explosion" &&
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 540
+    )).toBe(true);
     expect(phaseThree.deathPieces).toHaveLength(
       STAGE_TWO_CONFIG.phaseThreeDeathPieceCount,
     );

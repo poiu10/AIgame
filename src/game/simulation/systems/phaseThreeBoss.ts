@@ -160,6 +160,17 @@ function emitBossWetSquelch(state: GameState, boss: EnemyState): void {
   );
 }
 
+function emitBossDeathExplosion(state: GameState, boss: EnemyState): void {
+  emitSound(
+    state,
+    "boss-death-explosion",
+    boss.position,
+    STAGE_TWO_CONFIG.phaseThreeBossWaveDistance,
+    1,
+    boss.id,
+  );
+}
+
 function emitBossDeathSquelch(state: GameState, boss: EnemyState): void {
   emitSound(
     state,
@@ -225,7 +236,7 @@ function explodeBoss(
     position: { ...boss.position },
     strength: 1.7,
   });
-  emitBossWetSquelch(state, boss);
+  emitBossDeathExplosion(state, boss);
 }
 
 function updateDeathPieces(

@@ -106,6 +106,11 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     rate: 1.12,
     playbackFraction: 0.16,
   },
+  "boss-death-explosion": {
+    assetKey: ASSET_KEYS.audio.bossDeathExplosion,
+    volume: 0.38,
+    rate: 1,
+  },
   sleep: {
     assetKey: ASSET_KEYS.audio.sleepingEnemy,
     volume: 0.065,

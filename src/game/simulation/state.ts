@@ -37,6 +37,7 @@ export type SoundKind =
   | "boss-wet-squelch"
   | "spawn-wet-squelch"
   | "boss-death-squelch"
+  | "boss-death-explosion"
   | "enemy-hit"
   | "enemy-death"
   | "sleep"
