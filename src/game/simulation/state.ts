@@ -65,7 +65,6 @@ export interface PlayerState {
   maxHealth: number;
   action: PlayerAction;
   actionTime: number;
-  rollStartVelocityX: number;
   rollCooldown: number;
   attackCooldown: number;
   invulnerabilityTime: number;
@@ -282,7 +281,6 @@ export function createInitialGameState(
       maxHealth: PLAYER_CONFIG.maxHealth,
       action: "normal",
       actionTime: 0,
-      rollStartVelocityX: 0,
       rollCooldown: 0,
       attackCooldown: 0,
       invulnerabilityTime: 0,

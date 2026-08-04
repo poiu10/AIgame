@@ -28,7 +28,6 @@ function approach(value: number, target: number, amount: number): number {
 function cancelPlayerAction(player: PlayerState): void {
   player.action = "normal";
   player.actionTime = 0;
-  player.rollStartVelocityX = 0;
   player.attackHitIds = [];
 }
 
@@ -41,7 +40,6 @@ function advanceGroundAttackVariant(
 function startPlayerAttack(player: PlayerState, input: InputActions): void {
   player.action = "attack";
   player.actionTime = 0;
-  player.rollStartVelocityX = 0;
   player.attackFacing =
     Math.abs(input.moveX) > 0.01
       ? input.moveX < 0
@@ -150,11 +148,10 @@ export function updatePlayerMovement(
         endingAction === "roll" &&
         input.moveX * player.facing <= 0.01
       ) {
-        player.velocity.x = player.rollStartVelocityX;
+        player.velocity.x = 0;
       }
       player.action = "normal";
       player.actionTime = 0;
-      player.rollStartVelocityX = 0;
       player.attackHitIds = [];
     }
   }
@@ -172,7 +169,6 @@ export function updatePlayerMovement(
     player.rollCooldown <= 0
   ) {
     const startsOnGround = player.grounded;
-    player.rollStartVelocityX = player.velocity.x;
     player.action = "roll";
     player.actionTime = 0;
     player.attackHitIds = [];

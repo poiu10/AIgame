@@ -335,7 +335,7 @@ describe("player controller", () => {
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
   });
 
-  it("removes only roll-added speed when its direction is not held", () => {
+  it("stops immediately when the roll direction is not held at its end", () => {
     const state = createInitialGameState(flatWorld);
     state.player.position = { x: 200, y: 500 };
     state.player.velocity.x = 240;
@@ -348,7 +348,6 @@ describe("player controller", () => {
       0,
     );
     expect(state.player.velocity.x).toBe(PLAYER_CONFIG.rollSpeed);
-    expect(state.player.rollStartVelocityX).toBe(240);
 
     state.player.actionTime = PLAYER_CONFIG.rollSeconds - FIXED_STEP_SECONDS / 2;
     updatePlayerMovement(
@@ -359,8 +358,7 @@ describe("player controller", () => {
     );
 
     expect(state.player.action).toBe("normal");
-    expect(state.player.velocity.x).toBe(240);
-    expect(state.player.rollStartVelocityX).toBe(0);
+    expect(state.player.velocity.x).toBe(0);
   });
 
   it("keeps roll momentum when its direction remains held", () => {
