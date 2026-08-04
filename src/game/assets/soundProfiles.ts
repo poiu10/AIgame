@@ -108,7 +108,7 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
   },
   "boss-death-explosion": {
     assetKey: ASSET_KEYS.audio.bossDeathExplosion,
-    volume: 0.38,
+    volume: 0.44,
     rate: 1,
   },
   sleep: {

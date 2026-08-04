@@ -102,7 +102,7 @@ describe("sample-backed sound", () => {
     });
     expect(SOUND_PLAYBACK_PROFILES["boss-death-explosion"]).toMatchObject({
       assetKey: ASSET_KEYS.audio.bossDeathExplosion,
-      volume: 0.38,
+      volume: 0.44,
       rate: 1,
     });
   });
@@ -180,7 +180,11 @@ describe("sample-backed sound", () => {
     expect(SOUND_PLAYBACK_PROFILES["enemy-attack"].rate).toBe(0.9);
     expect(Math.max(
       ...Object.entries(SOUND_PLAYBACK_PROFILES)
-        .filter(([kind]) => kind !== "crusher-pulse" && kind !== "electric-pulse")
+        .filter(([kind]) =>
+          kind !== "crusher-pulse" &&
+          kind !== "electric-pulse" &&
+          kind !== "boss-death-explosion"
+        )
         .map(([, profile]) => profile.volume),
     )).toBeLessThanOrEqual(0.38);
     expect(getPlaybackVolume("water", 0.5)).toBeCloseTo(0.085);

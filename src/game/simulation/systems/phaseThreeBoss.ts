@@ -236,6 +236,7 @@ function explodeBoss(
     position: { ...boss.position },
     strength: 1.7,
   });
+  emitBossWetSquelch(state, boss);
   emitBossDeathExplosion(state, boss);
 }
 

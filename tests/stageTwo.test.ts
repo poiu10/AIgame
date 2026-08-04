@@ -660,6 +660,9 @@ describe("Stage 2", () => {
       Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 160
     )).toHaveLength(10);
 
+    const wetExplosionSoundsBefore = state.events.filter((event) =>
+      event.type === "sound" && event.kind === "boss-wet-squelch"
+    ).length;
     updateBossEncounter(state, STAGE_TWO, 0.02, () => false);
     expect(phaseThree.mode).toBe("death-explosion");
     expect(boss.alive).toBe(false);
@@ -667,8 +670,15 @@ describe("Stage 2", () => {
       type: "sound",
       kind: "boss-death-explosion",
     }));
+    expect(state.events.filter((event) =>
+      event.type === "sound" && event.kind === "boss-wet-squelch"
+    )).toHaveLength(wetExplosionSoundsBefore + 1);
     expect(state.soundWaves.some((wave) =>
       wave.kind === "boss-death-explosion" &&
+      Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 540
+    )).toBe(true);
+    expect(state.soundWaves.some((wave) =>
+      wave.kind === "boss-wet-squelch" &&
       Math.max(...wave.rays.map((ray) => ray.remainingDistance)) === 540
     )).toBe(true);
     expect(phaseThree.deathPieces).toHaveLength(
