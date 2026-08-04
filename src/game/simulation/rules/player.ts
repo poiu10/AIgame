@@ -5,10 +5,7 @@ import { PLAYER_CONFIG } from "./config";
 
 export function getPlayerBounds(player: PlayerState): RectState {
   return centerRect(
-    {
-      x: player.position.x + player.hitboxOffsetX,
-      y: player.position.y,
-    },
+    player.position,
     PLAYER_CONFIG.width,
     PLAYER_CONFIG.height,
   );

@@ -52,7 +52,6 @@ export function killPlayer(
   player.action = "dead";
   player.actionTime = 0;
   player.attackHitIds = [];
-  player.hitboxOffsetX = 0;
   player.velocity.x = 0;
   player.velocity.y = 0;
   state.events.push({ type: "impact", position: { ...player.position }, strength: 1 });
@@ -78,7 +77,6 @@ export function damagePlayer(
   player.velocity.y = -560;
   player.actionTime = 0;
   player.attackHitIds = [];
-  player.hitboxOffsetX = 0;
   emitPlayerHitFeedback(state);
 
   if (player.health <= 0) {

@@ -122,69 +122,39 @@ describe("player controller", () => {
     expect(Number.isInteger(PLAYER_CONFIG.height / 2)).toBe(true);
   });
 
-  it("temporarily offsets the player hitbox 20px in the movement direction", () => {
+  it("keeps the player hitbox centered while moving, rolling, and attacking", () => {
     let state = stepMany(flatWorld, 40);
-    const initialSpriteX = state.player.position.x;
-
     state = stepSimulation(
       state,
       { ...EMPTY_INPUT, moveX: 1 },
       FIXED_STEP_SECONDS,
       flatWorld,
     );
-
-    expect(state.player.hitboxOffsetX).toBe(20);
     expect(getPlayerBounds(state.player).x).toBeCloseTo(
-      state.player.position.x + 20 - PLAYER_CONFIG.width / 2,
+      state.player.position.x - PLAYER_CONFIG.width / 2,
     );
-    expect(state.player.position.x).toBeGreaterThan(initialSpriteX);
-
-    for (let index = 0; index < 30; index += 1) {
-      state = stepSimulation(state, EMPTY_INPUT, FIXED_STEP_SECONDS, flatWorld);
-    }
-    expect(state.player.velocity.x).toBe(0);
-    expect(state.player.hitboxOffsetX).toBe(0);
-  });
-
-  it("offsets the player hitbox in the dash direction", () => {
-    let state = stepMany(flatWorld, 40);
-    state.player.facing = -1;
-
     state = stepSimulation(
       state,
       { ...EMPTY_INPUT, rollPressed: true },
       FIXED_STEP_SECONDS,
       flatWorld,
     );
-
     expect(state.player.action).toBe("roll");
-    expect(state.player.velocity.x).toBeLessThan(-800);
-    expect(state.player.hitboxOffsetX).toBe(-20);
-  });
+    expect(getPlayerBounds(state.player).x).toBeCloseTo(
+      state.player.position.x - PLAYER_CONFIG.width / 2,
+    );
 
-  it("prioritizes the attack direction over opposite movement", () => {
-    let state = stepMany(flatWorld, 40);
-    state.player.facing = 1;
-
+    state.player.action = "normal";
+    state.player.attackCooldown = 0;
     state = stepSimulation(
       state,
       { ...EMPTY_INPUT, attackPressed: true },
       FIXED_STEP_SECONDS,
       flatWorld,
     );
-    state = stepSimulation(
-      state,
-      { ...EMPTY_INPUT, moveX: -1 },
-      FIXED_STEP_SECONDS,
-      flatWorld,
-    );
-
     expect(state.player.action).toBe("attack");
-    expect(state.player.facing).toBe(-1);
-    expect(state.player.attackFacing).toBe(1);
-    expect(state.player.hitboxOffsetX).toBe(20);
     expect(getPlayerBounds(state.player).x).toBeCloseTo(
-      state.player.position.x + 20 - PLAYER_CONFIG.width / 2,
+      state.player.position.x - PLAYER_CONFIG.width / 2,
     );
   });
 

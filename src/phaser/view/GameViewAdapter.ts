@@ -63,6 +63,7 @@ import {
   THREAT_COLOR,
   TRIGGER_COLOR,
 } from "./viewPalette";
+import { GAME_VIEW_DEPTH } from "./viewDepth";
 
 const PLAYER_SPRITE_FEET_Y = 80;
 const STANDARD_WAVE_PIXEL_OFFSETS = getPixelThicknessOffsets(2);
@@ -101,6 +102,7 @@ export class GameViewAdapter {
   private readonly waveGraphics: Phaser.GameObjects.Graphics;
   private readonly echoGraphics: Phaser.GameObjects.Graphics;
   private readonly hazardGraphics: Phaser.GameObjects.Graphics;
+  private readonly floorHazardStrikeGraphics: Phaser.GameObjects.Graphics;
   private readonly bossCocoonGraphics: Phaser.GameObjects.Graphics;
   private readonly bossDeathGraphics: Phaser.GameObjects.Graphics;
   private readonly endingTextGraphics: Phaser.GameObjects.Graphics;
@@ -113,15 +115,24 @@ export class GameViewAdapter {
     private readonly scene: Phaser.Scene,
     private readonly world: WorldDefinition,
   ) {
-    this.echoGraphics = scene.add.graphics().setDepth(3);
-    this.waveGraphics = scene.add.graphics().setDepth(4);
-    this.hazardGraphics = scene.add.graphics().setDepth(7);
-    this.bossCocoonGraphics = scene.add.graphics().setDepth(7.5);
-    this.bossDeathGraphics = scene.add.graphics().setDepth(9);
-    this.terrainMechanismGraphics = scene.add.graphics().setDepth(6);
+    this.echoGraphics = scene.add.graphics().setDepth(GAME_VIEW_DEPTH.echoes);
+    this.waveGraphics = scene.add.graphics().setDepth(GAME_VIEW_DEPTH.waves);
+    this.hazardGraphics = scene.add.graphics().setDepth(GAME_VIEW_DEPTH.hazards);
+    this.floorHazardStrikeGraphics = scene.add
+      .graphics()
+      .setDepth(GAME_VIEW_DEPTH.floorHazardStrikes);
+    this.bossCocoonGraphics = scene.add
+      .graphics()
+      .setDepth(GAME_VIEW_DEPTH.bossCocoon);
+    this.bossDeathGraphics = scene.add
+      .graphics()
+      .setDepth(GAME_VIEW_DEPTH.bossDeath);
+    this.terrainMechanismGraphics = scene.add
+      .graphics()
+      .setDepth(GAME_VIEW_DEPTH.terrainMechanisms);
     this.mapScrollIndicatorGraphics = scene.add
       .graphics()
-      .setDepth(20)
+      .setDepth(GAME_VIEW_DEPTH.mapScrollIndicator)
       .setScrollFactor(1, 0);
     this.mapScrollIndicatorGraphics.fillStyle(
       TERRAIN_ECHO_COLOR,
@@ -129,7 +140,7 @@ export class GameViewAdapter {
     );
     this.endingTextGraphics = scene.add
       .graphics()
-      .setDepth(30)
+      .setDepth(GAME_VIEW_DEPTH.overlay)
       .setScrollFactor(0);
     for (const dot of createMapScrollIndicatorDots(
       world.width,
@@ -149,7 +160,7 @@ export class GameViewAdapter {
     this.tutorialText = scene.add.graphics();
     this.restartPrompt = scene.add
       .graphics()
-      .setDepth(30)
+      .setDepth(GAME_VIEW_DEPTH.overlay)
       .setScrollFactor(0)
       .setAlpha(0);
     const restartPrompt = createCenteredRestartPrompt(
@@ -183,13 +194,13 @@ export class GameViewAdapter {
         this.playerSprite,
         this.tutorialText,
       ])
-      .setDepth(10);
+      .setDepth(GAME_VIEW_DEPTH.player);
 
     for (const spawn of world.enemies) {
       const graphics = scene.add.graphics();
       const container = scene.add
         .container(spawn.position.x, spawn.position.y, [graphics])
-        .setDepth(8)
+        .setDepth(GAME_VIEW_DEPTH.enemies)
         .setVisible(false);
       this.enemyViews.set(spawn.id, { container, graphics });
     }
@@ -307,6 +318,7 @@ export class GameViewAdapter {
 
   private drawHazards(state: GameState): void {
     this.hazardGraphics.clear();
+    this.floorHazardStrikeGraphics.clear();
     for (const hazard of state.hazards) {
       if (
         hazard.kind === HAZARD_KINDS.lethal ||
@@ -314,13 +326,13 @@ export class GameViewAdapter {
       ) {
         const extension = resolveFloorHazardStrikeExtension(hazard);
         if (extension !== null) {
-          this.hazardGraphics.fillStyle(THREAT_COLOR, 1);
+          this.floorHazardStrikeGraphics.fillStyle(THREAT_COLOR, 1);
           for (const cell of createFloorHazardStrikeCells(
             hazard.bounds.width,
             extension,
             hazard.reactionOffsetX,
           )) {
-            this.hazardGraphics.fillRect(
+            this.floorHazardStrikeGraphics.fillRect(
               hazard.bounds.x + cell.x * THREAT_PIXEL_SIZE,
               hazard.bounds.y + cell.y * THREAT_PIXEL_SIZE,
               THREAT_PIXEL_SIZE,
@@ -634,7 +646,7 @@ export class GameViewAdapter {
       graphics,
       container: this.scene.add
         .container(0, 0, [graphics])
-        .setDepth(8)
+        .setDepth(GAME_VIEW_DEPTH.enemies)
         .setVisible(false),
     };
     views.set(id, view);

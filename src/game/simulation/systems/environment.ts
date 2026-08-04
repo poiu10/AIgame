@@ -240,12 +240,10 @@ export function updateWorldEnvironment(
     state.player.position.x =
       rejectionDirection < 0
         ? hazard.bounds.x -
-          PLAYER_CONFIG.width / 2 -
-          state.player.hitboxOffsetX
+          PLAYER_CONFIG.width / 2
         : hazard.bounds.x +
           hazard.bounds.width +
-          PLAYER_CONFIG.width / 2 -
-          state.player.hitboxOffsetX;
+          PLAYER_CONFIG.width / 2;
     state.player.velocity.x = rejectionDirection * 660;
   }
 

@@ -23,7 +23,6 @@ export const ENEMY_DEATH_WAVE_CONFIG = {
 export const PLAYER_CONFIG = {
   width: 32,
   height: 84,
-  actionHitboxOffset: 20,
   maxHealth: 4,
   acceleration: 3800,
   airAcceleration: 2100,

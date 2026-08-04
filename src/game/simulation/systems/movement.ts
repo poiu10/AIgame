@@ -57,28 +57,6 @@ function startPlayerAttack(player: PlayerState, input: InputActions): void {
   player.attackCooldown = PLAYER_CONFIG.attackCooldownSeconds;
 }
 
-function getActionHitboxOffset(
-  player: PlayerState,
-  input: InputActions,
-): number {
-  if (player.action === "attack") {
-    return player.attackFacing * PLAYER_CONFIG.actionHitboxOffset;
-  }
-  if (player.action === "roll") {
-    return player.facing * PLAYER_CONFIG.actionHitboxOffset;
-  }
-  if (player.action === "hurt" || player.action === "dead") {
-    return 0;
-  }
-  if (Math.abs(input.moveX) > 0.01) {
-    return (input.moveX < 0 ? -1 : 1) * PLAYER_CONFIG.actionHitboxOffset;
-  }
-  if (Math.abs(player.velocity.x) > 0.01) {
-    return (player.velocity.x < 0 ? -1 : 1) * PLAYER_CONFIG.actionHitboxOffset;
-  }
-  return 0;
-}
-
 export function getLandingSoundProfile(fallHeight: number): {
   distance: number;
   intensity: number;
@@ -130,7 +108,6 @@ export function updatePlayerMovement(
     player.actionTime += deltaSeconds;
     player.velocity.x = 0;
     player.velocity.y = 0;
-    player.hitboxOffsetX = 0;
     return sounds;
   }
 
@@ -255,18 +232,12 @@ export function updatePlayerMovement(
     player.velocity.y + PLAYER_CONFIG.gravity * deltaSeconds,
     PLAYER_CONFIG.maxFallSpeed,
   );
-  const previousHitboxOffsetX = player.hitboxOffsetX;
-  player.hitboxOffsetX = getActionHitboxOffset(player, input);
   const motion = moveBodyAgainstTerrain(
     player,
     PLAYER_CONFIG.width,
     PLAYER_CONFIG.height,
     world.terrain,
     deltaSeconds,
-    {
-      horizontalOffset: player.hitboxOffsetX,
-      previousHorizontalOffset: previousHitboxOffsetX,
-    },
   );
 
   if (
