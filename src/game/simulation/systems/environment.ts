@@ -18,6 +18,29 @@ import {
 
 const HAZARD_REVEAL_SECONDS = 0.62;
 
+function getFloorHazardKnockbackDirection(state: GameState): -1 | 1 {
+  return state.player.velocity.x < 0
+    ? -1
+    : state.player.velocity.x > 0
+      ? 1
+      : state.player.facing;
+}
+
+function startFloorHazardStrike(
+  state: GameState,
+  hazard: GameState["hazards"][number],
+  direction: -1 | 1,
+): void {
+  hazard.reactionTime = HAZARD_CONFIG.floorStrikeSeconds;
+  hazard.reactionDuration = HAZARD_CONFIG.floorStrikeSeconds;
+  hazard.reactionSide = direction;
+  hazard.reactionOffsetX = Math.max(
+    0,
+    Math.min(hazard.bounds.width, state.player.position.x - hazard.bounds.x),
+  );
+  hazard.reactionOffsetY = 0;
+}
+
 export function getElectricHazardDamageBounds(
   world: WorldDefinition,
   hazard: GameState["hazards"][number],
@@ -181,7 +204,10 @@ export function updateWorldEnvironment(
     }
 
     if (hazard.kind === HAZARD_KINDS.lethal) {
-      killPlayer(state);
+      const direction = getFloorHazardKnockbackDirection(state);
+      if (killPlayer(state, { emitHitFeedback: true })) {
+        startFloorHazardStrike(state, hazard, direction);
+      }
       break;
     }
     if (hazard.kind === HAZARD_KINDS.electric) {
@@ -189,12 +215,10 @@ export function updateWorldEnvironment(
       break;
     }
     if (hazard.kind === HAZARD_KINDS.damagingFloor) {
-      const knockbackDirection = state.player.velocity.x < 0
-        ? -1
-        : state.player.velocity.x > 0
-          ? 1
-          : state.player.facing;
-      damagePlayer(state, knockbackDirection);
+      const knockbackDirection = getFloorHazardKnockbackDirection(state);
+      if (damagePlayer(state, knockbackDirection)) {
+        startFloorHazardStrike(state, hazard, knockbackDirection);
+      }
       continue;
     }
     if (state.player.action === "roll") continue;

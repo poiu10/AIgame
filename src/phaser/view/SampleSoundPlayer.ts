@@ -32,25 +32,41 @@ function getPan(
 
 export class SampleSoundPlayer {
   private electricLoop: AdjustableSound | null = null;
+  private readonly oneShotSounds = new Set<AdjustableSound>();
+  private readonly handleVisibilityChange = () => {
+    if (this.isPageInactive()) this.discardHiddenPageAudio();
+  };
 
-  constructor(private readonly scene: Phaser.Scene) {}
+  constructor(private readonly scene: Phaser.Scene) {
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", this.handleVisibilityChange);
+      window.addEventListener("blur", this.handleVisibilityChange);
+    }
+  }
 
   play(event: SoundEvent, listenerX: number, viewportWidth: number): void {
+    if (this.isPageInactive()) return;
     const profile = SOUND_PLAYBACK_PROFILES[event.kind];
     const volume = getPlaybackVolume(event.kind, event.intensity);
     if (volume <= 0) return;
 
     const sound = this.scene.sound.add(profile.assetKey) as AdjustableSound;
+    this.oneShotSounds.add(sound);
     const config: Phaser.Types.Sound.SoundConfig = {
       volume,
       rate: profile.rate,
       pan: getPan(event.position.x, listenerX, viewportWidth),
     };
     const destroy = () => {
+      this.oneShotSounds.delete(sound);
       if (!sound.pendingRemove) sound.destroy();
     };
     if (profile.followWithFullPlayback) {
       sound.once(Phaser.Sound.Events.COMPLETE, () => {
+        if (this.isPageInactive()) {
+          destroy();
+          return;
+        }
         sound.once(Phaser.Sound.Events.COMPLETE, destroy);
         if (!sound.play(config)) destroy();
       });
@@ -85,6 +101,10 @@ export class SampleSoundPlayer {
     state: GameState,
     viewportWidth: number,
   ): void {
+    if (this.isPageInactive()) {
+      this.stopElectricLoop();
+      return;
+    }
     const source = this.findActiveElectricHazard(state);
     if (!source) {
       this.stopElectricLoop();
@@ -110,7 +130,25 @@ export class SampleSoundPlayer {
   }
 
   dispose(): void {
+    if (typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+      window.removeEventListener("blur", this.handleVisibilityChange);
+    }
+    this.discardHiddenPageAudio();
+  }
+
+  discardHiddenPageAudio(): void {
+    for (const sound of this.oneShotSounds) {
+      sound.stop();
+      if (!sound.pendingRemove) sound.destroy();
+    }
+    this.oneShotSounds.clear();
     this.stopElectricLoop();
+  }
+
+  private isPageInactive(): boolean {
+    return typeof document !== "undefined" &&
+      (document.hidden || !document.hasFocus());
   }
 
   private findActiveElectricHazard(state: GameState): Vector2State | null {

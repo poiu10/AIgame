@@ -7,6 +7,7 @@ import {
   createEnemyThreatCells,
   createCrackedCocoonBossThreatCells,
   createElectricHazardLightningCells,
+  createFloorHazardStrikeCells,
   createFloorHazardThreatCells,
   createHazardDamageLightningCells,
   createHazardThreatCells,
@@ -14,6 +15,7 @@ import {
   createShortFloorHazardThreatCells,
   LONG_FLOOR_HAZARD_ID,
   resolveEnemyThreatFrame,
+  resolveFloorHazardStrikeExtension,
   resolveHazardReactionFrame,
   SHORT_FLOOR_HAZARD_ID,
   THREAT_PIXEL_SIZE,
@@ -366,6 +368,27 @@ describe("threat pixel art", () => {
     );
   });
 
+  it("raises and retracts a clustered floor strike at the contact point", () => {
+    const hazardReaction = { reactionTime: 0.42, reactionDuration: 0.42 };
+    expect(resolveFloorHazardStrikeExtension(hazardReaction)).toBe(0);
+    hazardReaction.reactionTime = 0.3;
+    const rising = resolveFloorHazardStrikeExtension(hazardReaction)!;
+    hazardReaction.reactionTime = 0.21;
+    const extended = resolveFloorHazardStrikeExtension(hazardReaction)!;
+    hazardReaction.reactionTime = 0.04;
+    const retracting = resolveFloorHazardStrikeExtension(hazardReaction)!;
+    expect(rising).toBeGreaterThan(0);
+    expect(extended).toBe(1);
+    expect(retracting).toBeLessThan(extended);
+
+    const cells = createFloorHazardStrikeCells(120, extended, 60);
+    expectUniqueIntegerCells(cells);
+    expect(Math.min(...cells.map((cell) => cell.y))).toBeLessThan(-20);
+    expect(Math.min(...cells.map((cell) => cell.x))).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...cells.map((cell) => cell.x)) * THREAT_PIXEL_SIZE)
+      .toBeLessThan(120);
+  });
+
   it("bursts 3px damage lightning from only the contacted side", () => {
     const bodyBefore = createHazardThreatCells(120, 320);
     const impactLeft = createHazardDamageLightningCells(
@@ -423,6 +446,7 @@ describe("threat pixel art", () => {
       reactionTime: 1,
       reactionDuration: 1,
       reactionSide: -1 as const,
+      reactionOffsetX: 60,
       reactionOffsetY: 160,
     };
 

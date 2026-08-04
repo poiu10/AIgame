@@ -43,10 +43,12 @@ import {
   createEnemyThreatCells,
   createCrackedCocoonBossThreatCells,
   createElectricHazardLightningCells,
+  createFloorHazardStrikeCells,
   createFloorHazardThreatCells,
   createHazardDamageLightningCells,
   createHazardThreatCells,
   resolveEnemyThreatFrame,
+  resolveFloorHazardStrikeExtension,
   resolveHazardReactionFrame,
   THREAT_PIXEL_SIZE,
   type EnemyThreatFrame,
@@ -70,7 +72,9 @@ const ELECTRIC_LIGHTNING_FRAME_COUNT = 4;
 const ELECTRIC_LIGHTNING_FRAME_RATE = 20;
 const MAP_SCROLL_INDICATOR_ALPHA = 0.62;
 const ENDING_TEXT_PIXEL_SIZE = 9;
+const ENDING_DEMO_PIXEL_SIZE = 5;
 const ENDING_TEXT_SHADOW_OFFSET = 3;
+const ENDING_DEMO_GAP = 15;
 const BOSS_ACTOR_WALK_FRAMES: readonly EnemyThreatFrame[] = [
   "walk-0",
   "walk-1",
@@ -305,6 +309,22 @@ export class GameViewAdapter {
         hazard.kind === HAZARD_KINDS.lethal ||
         hazard.kind === HAZARD_KINDS.damagingFloor
       ) {
+        const extension = resolveFloorHazardStrikeExtension(hazard);
+        if (extension !== null) {
+          this.hazardGraphics.fillStyle(THREAT_COLOR, 1);
+          for (const cell of createFloorHazardStrikeCells(
+            hazard.bounds.width,
+            extension,
+            hazard.reactionOffsetX,
+          )) {
+            this.hazardGraphics.fillRect(
+              hazard.bounds.x + cell.x * THREAT_PIXEL_SIZE,
+              hazard.bounds.y + cell.y * THREAT_PIXEL_SIZE,
+              THREAT_PIXEL_SIZE,
+              THREAT_PIXEL_SIZE,
+            );
+          }
+        }
         continue;
       }
       if (hazard.kind === HAZARD_KINDS.electric) {
@@ -475,22 +495,49 @@ export class GameViewAdapter {
     const originY = Math.floor(
       (this.scene.cameras.main.height - pixels.height * ENDING_TEXT_PIXEL_SIZE) / 2,
     );
+    const demoPixels = rasterizePixelText("(Demo)", true);
+    const demoOriginX = Math.floor(
+      (this.scene.cameras.main.width -
+        demoPixels.width * ENDING_DEMO_PIXEL_SIZE) / 2,
+    );
+    const demoOriginY =
+      originY - demoPixels.height * ENDING_DEMO_PIXEL_SIZE - ENDING_DEMO_GAP;
+    this.drawEndingLabel(
+      demoPixels,
+      demoOriginX,
+      demoOriginY,
+      ENDING_DEMO_PIXEL_SIZE,
+    );
+    this.drawEndingLabel(
+      pixels,
+      originX,
+      originY,
+      ENDING_TEXT_PIXEL_SIZE,
+    );
+  }
+
+  private drawEndingLabel(
+    pixels: ReturnType<typeof rasterizePixelText>,
+    originX: number,
+    originY: number,
+    pixelSize: number,
+  ): void {
     this.endingTextGraphics.fillStyle(0x030608, 0.9);
     for (const cell of pixels.cells) {
       this.endingTextGraphics.fillRect(
-        originX + cell.x * ENDING_TEXT_PIXEL_SIZE + ENDING_TEXT_SHADOW_OFFSET,
-        originY + cell.y * ENDING_TEXT_PIXEL_SIZE + ENDING_TEXT_SHADOW_OFFSET,
-        ENDING_TEXT_PIXEL_SIZE,
-        ENDING_TEXT_PIXEL_SIZE,
+        originX + cell.x * pixelSize + ENDING_TEXT_SHADOW_OFFSET,
+        originY + cell.y * pixelSize + ENDING_TEXT_SHADOW_OFFSET,
+        pixelSize,
+        pixelSize,
       );
     }
     this.endingTextGraphics.fillStyle(0xeaffff, 1);
     for (const cell of pixels.cells) {
       this.endingTextGraphics.fillRect(
-        originX + cell.x * ENDING_TEXT_PIXEL_SIZE,
-        originY + cell.y * ENDING_TEXT_PIXEL_SIZE,
-        ENDING_TEXT_PIXEL_SIZE,
-        ENDING_TEXT_PIXEL_SIZE,
+        originX + cell.x * pixelSize,
+        originY + cell.y * pixelSize,
+        pixelSize,
+        pixelSize,
       );
     }
   }

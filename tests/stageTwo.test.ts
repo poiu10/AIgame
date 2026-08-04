@@ -562,23 +562,35 @@ describe("Stage 2", () => {
     expect(encounter.phaseThree?.mode).toBe("pattern-enter");
   });
 
-  it("does not select the same phase-three pattern twice in a row", () => {
+  it("runs the fixed alternating lower-side and upper phase-three sequence", () => {
     const { state, boss } = enterPhaseThree();
     const encounter = state.bossEncounter!;
-    triggerPhaseThreePattern(state, STAGE_TWO, 2);
-    encounter.phaseThree!.mode = "intermission";
-    encounter.phaseThree!.modeTime =
-      STAGE_TWO_CONFIG.phaseThreeIntermissionSeconds - 0.01;
-    encounter.phaseThree!.moveStart = { ...boss.position };
-    encounter.randomState = 0;
+    const selections: { pattern: number | null; side: number }[] = [];
+    for (let index = 0; index < 8; index += 1) {
+      encounter.phaseThree!.mode = "intermission";
+      encounter.phaseThree!.modeTime =
+        STAGE_TWO_CONFIG.phaseThreeIntermissionSeconds - 0.01;
+      encounter.phaseThree!.moveStart = { ...boss.position };
+      updateBossEncounter(state, STAGE_TWO, 0.02, () => false);
+      selections.push({
+        pattern: encounter.phaseThree!.pattern,
+        side: encounter.phaseThree!.side,
+      });
+    }
 
-    updateBossEncounter(state, STAGE_TWO, 0.02, () => false);
-
-    expect(encounter.phaseThree?.mode).toBe("pattern-enter");
-    expect(encounter.phaseThree?.pattern).not.toBe(2);
+    expect(selections).toEqual([
+      { pattern: 1, side: -1 },
+      { pattern: 2, side: 1 },
+      { pattern: 1, side: 1 },
+      { pattern: 3, side: -1 },
+      { pattern: 1, side: -1 },
+      { pattern: 2, side: 1 },
+      { pattern: 1, side: 1 },
+      { pattern: 3, side: 1 },
+    ]);
   });
 
-  it("shakes, squelches, explodes into body pieces, and reveals End...? after twenty hits", () => {
+  it("shakes, explodes into body pieces, and reveals End five seconds after death", () => {
     const { state, boss } = enterPhaseThree();
     for (let hit = 0; hit < STAGE_TWO_CONFIG.phaseThreeHealth; hit += 1) {
       expect(damageEnemy(state, boss, 1)).toBe(true);
@@ -631,24 +643,27 @@ describe("Stage 2", () => {
       )).toBe(true);
     }
     expect(resolveBossEndingText(phaseThree.endingTime)).toBe("");
-    expect(resolveBossEndingText(0.999)).toBe("");
-    expect(resolveBossEndingText(1)).toBe("End");
-    expect(resolveBossEndingText(1.499)).toBe("End");
-    expect(resolveBossEndingText(1.5)).toBe("End.");
-    expect(resolveBossEndingText(1.951)).toBe("End..");
-    expect(resolveBossEndingText(2.401)).toBe("End...");
-    expect(resolveBossEndingText(2.851)).toBe("End...?");
+    expect(resolveBossEndingText(4.999)).toBe("");
+    expect(resolveBossEndingText(5)).toBe("End");
+    expect(resolveBossEndingText(20)).toBe("End");
 
-    updateBossEncounter(state, STAGE_TWO, 1, () => false);
-    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("End");
     updateBossEncounter(
       state,
       STAGE_TWO,
-      STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds - 1,
+      STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds,
       () => false,
     );
     expect(phaseThree.deathPieces).toHaveLength(0);
     expect(phaseThree.mode).toBe("defeated");
+    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("");
+    updateBossEncounter(
+      state,
+      STAGE_TWO,
+      STAGE_TWO_CONFIG.phaseThreeEndTitleDelaySeconds -
+        STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds,
+      () => false,
+    );
+    expect(resolveBossEndingText(phaseThree.endingTime)).toBe("End");
   });
 
   it("deals one damage from the floor hazard instead of killing", () => {
@@ -663,6 +678,8 @@ describe("Stage 2", () => {
 
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);
     expect(state.player.action).toBe("hurt");
+    expect(hazard.reactionTime).toBeGreaterThan(0);
+    expect(hazard.reactionOffsetX).toBe(hazard.bounds.width / 2);
 
     updateWorldEnvironment(state, STAGE_TWO, FIXED_STEP_SECONDS);
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth - 1);

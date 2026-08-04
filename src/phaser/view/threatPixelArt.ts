@@ -1548,6 +1548,65 @@ export function createFloorHazardThreatCells(
   return [];
 }
 
+export function resolveFloorHazardStrikeExtension(
+  hazard: Pick<HazardState, "reactionTime" | "reactionDuration">,
+): number | null {
+  if (hazard.reactionTime <= 0 || hazard.reactionDuration <= 0) return null;
+  const progress = Math.max(
+    0,
+    Math.min(1, 1 - hazard.reactionTime / hazard.reactionDuration),
+  );
+  if (progress < 0.32) {
+    const rise = progress / 0.32;
+    return 1 - (1 - rise) * (1 - rise);
+  }
+  if (progress < 0.62) return 1;
+  return Math.max(0, 1 - (progress - 0.62) / 0.38);
+}
+
+export function createFloorHazardStrikeCells(
+  width: number,
+  extension: number,
+  contactOffsetX: number,
+): ThreatPixelCell[] {
+  const widthCells = Math.max(1, Math.ceil(width / THREAT_PIXEL_SIZE));
+  const centerX = Math.max(
+    4,
+    Math.min(widthCells - 5, Math.round(contactOffsetX / THREAT_PIXEL_SIZE)),
+  );
+  const cells = new Map<string, ThreatPixelCell>();
+  const addCell = (x: number, y: number) => {
+    if (x < 0 || x >= widthCells) return;
+    cells.set(cellKey(x, y), { x, y });
+  };
+
+  for (let x = centerX - 7; x <= centerX + 7; x += 1) {
+    if (Math.abs(x - centerX) % 3 !== 1) addCell(x, 0);
+  }
+
+  const mainHeight = Math.max(1, Math.round(2 + extension * 20));
+  for (let level = 0; level < mainHeight; level += 1) {
+    const ratio = level / Math.max(1, mainHeight - 1);
+    const halfWidth = Math.max(0, Math.floor((1 - ratio) * 3));
+    for (let x = centerX - halfWidth; x <= centerX + halfWidth; x += 1) {
+      addCell(x, -level - 1);
+    }
+  }
+
+  const sideHeight = Math.max(1, Math.round(mainHeight * 0.58));
+  for (const side of [-1, 1] as const) {
+    const sideCenter = centerX + side * 6;
+    for (let level = 0; level < sideHeight; level += 1) {
+      const inwardLean = Math.floor(level / 5) * -side;
+      addCell(sideCenter + inwardLean, -level);
+      if (level < sideHeight * 0.55) {
+        addCell(sideCenter + inwardLean - side, -level);
+      }
+    }
+  }
+  return [...cells.values()];
+}
+
 export function resolveHazardReactionFrame(
   hazard: HazardState,
 ): HazardReactionFrame | null {

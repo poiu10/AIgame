@@ -21,9 +21,28 @@ import { emitSound, PLAYER_SOUND_SOURCE_ID } from "./sound";
 import { damageCocoonBoss } from "./bossEncounter";
 import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
 
-export function killPlayer(state: GameState): boolean {
+interface KillPlayerOptions {
+  emitHitFeedback?: boolean;
+}
+
+function emitPlayerHitFeedback(state: GameState): void {
+  emitSound(
+    state,
+    "player-hit",
+    state.player.position,
+    PLAYER_HIT_WAVE_CONFIG.distance,
+    PLAYER_HIT_WAVE_CONFIG.intensity,
+    PLAYER_SOUND_SOURCE_ID,
+  );
+}
+
+export function killPlayer(
+  state: GameState,
+  options: KillPlayerOptions = {},
+): boolean {
   const player = state.player;
   if (player.action === "dead") return false;
+  if (options.emitHitFeedback) emitPlayerHitFeedback(state);
   if (state.hazards.some(
     (hazard) => hazard.kind === HAZARD_KINDS.electric && hazard.activated,
   )) {
@@ -60,14 +79,7 @@ export function damagePlayer(
   player.actionTime = 0;
   player.attackHitIds = [];
   player.hitboxOffsetX = 0;
-  emitSound(
-    state,
-    "player-hit",
-    player.position,
-    PLAYER_HIT_WAVE_CONFIG.distance,
-    PLAYER_HIT_WAVE_CONFIG.intensity,
-    PLAYER_SOUND_SOURCE_ID,
-  );
+  emitPlayerHitFeedback(state);
 
   if (player.health <= 0) {
     killPlayer(state);

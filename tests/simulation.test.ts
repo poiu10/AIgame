@@ -707,39 +707,42 @@ describe("player controller", () => {
     );
   });
 
-  it("uses an integer attack width nearest to 90% of the previous width", () => {
+  it("uses an 80%-length attack hitbox with half the former active time", () => {
     const state = createInitialGameState(flatWorld);
     state.player.position = { x: 200, y: 400 };
     state.player.attackFacing = 1;
 
     expect(PLAYER_SPRITE_DISPLAY_SCALE).toBe(3);
     expect(PLAYER_GROUND_ATTACK_HITBOX).toEqual({
-      width: 116,
+      width: 92,
       height: 120,
       verticalOffset: 0,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
       x: 216,
       y: 340,
-      width: 116,
+      width: 92,
       height: 120,
     });
 
     state.player.attackFacing = -1;
-    expect(getPlayerAttackBounds(state.player).x).toBe(68);
+    expect(getPlayerAttackBounds(state.player).x).toBe(92);
 
     state.player.attackAirborne = true;
     expect(PLAYER_AIR_ATTACK_HITBOX).toEqual({
-      width: 116,
+      width: 92,
       height: 140,
       verticalOffset: -8,
     });
     expect(getPlayerAttackBounds(state.player)).toEqual({
-      x: 68,
+      x: 92,
       y: 322,
-      width: 116,
+      width: 92,
       height: 140,
     });
+    expect(
+      PLAYER_CONFIG.attackActiveEnd - PLAYER_CONFIG.attackActiveStart,
+    ).toBeCloseTo(0.05);
   });
 
   it("does not keep moving after death", () => {

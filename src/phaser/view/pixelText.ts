@@ -24,6 +24,8 @@ function glyph(...rows: string[]): PixelGlyph {
 const PIXEL_GLYPHS: Readonly<Record<string, PixelGlyph>> = {
   " ": glyph("000", "000", "000", "000", "000", "000", "000"),
   "/": glyph("00001", "00010", "00100", "00100", "01000", "10000", "00000"),
+  "(": glyph("001", "010", "100", "100", "100", "010", "001"),
+  ")": glyph("100", "010", "001", "001", "001", "010", "100"),
   ".": glyph("000", "000", "000", "000", "000", "000", "010"),
   "?": glyph("01110", "10001", "00001", "00010", "00100", "00000", "00100"),
   A: glyph("01110", "10001", "10001", "11111", "10001", "10001", "10001"),
@@ -52,10 +54,16 @@ const PIXEL_GLYPHS: Readonly<Record<string, PixelGlyph>> = {
   X: glyph("10001", "10001", "01010", "00100", "01010", "10001", "10001"),
   Y: glyph("10001", "10001", "01010", "00100", "00100", "00100", "00100"),
   Z: glyph("11111", "00001", "00010", "00100", "01000", "10000", "11111"),
+  e: glyph("00000", "01110", "10001", "11111", "10000", "01111", "00000"),
+  m: glyph("00000", "11010", "10101", "10101", "10101", "10101", "00000"),
+  o: glyph("00000", "01110", "10001", "10001", "10001", "01110", "00000"),
 };
 
-export function rasterizePixelText(text: string): RasterizedPixelText {
-  const glyphs = [...text.toUpperCase()].map(
+export function rasterizePixelText(
+  text: string,
+  preserveCase = false,
+): RasterizedPixelText {
+  const glyphs = [...(preserveCase ? text : text.toUpperCase())].map(
     (character) => PIXEL_GLYPHS[character] ?? PIXEL_GLYPHS["?"],
   );
   const cells: PixelTextCell[] = [];

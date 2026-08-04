@@ -141,6 +141,14 @@ describe("Stage 1", () => {
 
     expect(state.player.health).toBe(0);
     expect(state.player.action).toBe("dead");
+    expect(state.soundWaves).toContainEqual(
+      expect.objectContaining({ kind: "player-hit", sourceId: "player" }),
+    );
+    expect(state.events).toContainEqual(
+      expect.objectContaining({ type: "sound", kind: "player-hit" }),
+    );
+    expect(hazard.reactionTime).toBeGreaterThan(0);
+    expect(hazard.reactionOffsetX).toBe(hazard.bounds.width / 2);
   });
 
   it("keeps fixed lethal hazards active after every enemy is defeated", () => {
@@ -459,7 +467,7 @@ describe("Stage 1", () => {
       ],
     };
     const state = createInitialGameState(world);
-    state.player.position = { x: 1_220, y: 200 };
+    state.player.position = { x: 1_233, y: 200 };
     state.player.attackFacing = 1;
     state.player.action = "attack";
     state.player.actionTime = PLAYER_CONFIG.attackActiveStart;

@@ -141,6 +141,7 @@ export interface PhaseThreeBossState {
   shotsFired: number;
   volleysStarted: number;
   phaseTwoPatternsStarted: number;
+  patternSequenceIndex: number;
   lastOverlappingPattern: BossAttackPattern | null;
   volleyTargets: Vector2State[];
   secondCallWaveEmitted: boolean;
@@ -188,6 +189,7 @@ export interface HazardState {
   reactionTime: number;
   reactionDuration: number;
   reactionSide: Facing;
+  reactionOffsetX: number;
   reactionOffsetY: number;
   activated: boolean;
   activationElapsed: number;
@@ -347,6 +349,7 @@ export function createInitialGameState(
       reactionTime: 0,
       reactionDuration: 0,
       reactionSide: 1,
+      reactionOffsetX: 0,
       reactionOffsetY: 0,
       activated: false,
       activationElapsed: 0,

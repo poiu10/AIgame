@@ -20,7 +20,7 @@ describe("pixel text rasterization", () => {
     expect(rasterizePixelText("")).toEqual({ cells: [], width: 0, height: 0 });
   });
 
-  it("renders an actual period for the slowly revealed ending", () => {
+  it("renders punctuation without falling back to a question mark", () => {
     const period = rasterizePixelText(".");
     expect(period).toEqual({
       cells: [{ x: 1, y: 6 }],
@@ -28,5 +28,11 @@ describe("pixel text rasterization", () => {
       height: 7,
     });
     expect(period).not.toEqual(rasterizePixelText("?"));
+  });
+
+  it("preserves the mixed-case Demo label when requested", () => {
+    const demo = rasterizePixelText("(Demo)", true);
+    expect(demo.cells.length).toBeGreaterThan(0);
+    expect(demo).not.toEqual(rasterizePixelText("(DEMO)"));
   });
 });

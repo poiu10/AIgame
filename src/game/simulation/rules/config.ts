@@ -42,7 +42,7 @@ export const PLAYER_CONFIG = {
   attackSeconds: 0.3,
   attackCooldownSeconds: 0.8,
   attackActiveStart: 0.08,
-  attackActiveEnd: 0.18,
+  attackActiveEnd: 0.13,
   hurtSeconds: 0.3,
   damageInvulnerabilitySeconds: 0.8,
   landingWaveMinimumDistance: 180,
@@ -146,9 +146,7 @@ export const STAGE_TWO_CONFIG = {
   phaseThreeDeathPieceCount: 24,
   phaseThreeDeathPieceLifetimeSeconds: 2.6,
   phaseThreeDeathPieceGravity: 360,
-  phaseThreeEndTitleDelaySeconds: 1,
-  phaseThreeEndSuffixDelaySeconds: 0.5,
-  phaseThreeEndTextCharacterIntervalSeconds: 0.45,
+  phaseThreeEndTitleDelaySeconds: 5,
 } as const;
 
 export function getEnemyBodySize(kind?: string): {
@@ -167,6 +165,7 @@ export function getEnemyBodySize(kind?: string): {
 
 export const HAZARD_CONFIG = {
   damageReactionSeconds: 0.32,
+  floorStrikeSeconds: 0.42,
 } as const;
 
 export const SOUND_CONFIG = {

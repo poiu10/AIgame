@@ -71,13 +71,29 @@ function setBossPositionAlongMove(
   );
 }
 
-function choosePattern(encounter: BossEncounterState): PhaseThreePattern {
-  const candidates = ([1, 2, 3] as const).filter(
-    (pattern) => pattern !== encounter.lastPattern,
-  );
-  return candidates[
-    Math.floor(nextRandom(encounter) * candidates.length)
-  ] as PhaseThreePattern;
+const PHASE_THREE_PATTERN_SEQUENCE: readonly {
+  pattern: PhaseThreePattern;
+  side: Facing;
+}[] = [
+  { pattern: 1, side: -1 },
+  { pattern: 2, side: 1 },
+  { pattern: 1, side: 1 },
+  { pattern: 3, side: -1 },
+  { pattern: 1, side: -1 },
+  { pattern: 2, side: 1 },
+  { pattern: 1, side: 1 },
+  { pattern: 3, side: 1 },
+];
+
+function takeNextPattern(phaseThree: PhaseThreeBossState): {
+  pattern: PhaseThreePattern;
+  side: Facing;
+} {
+  const selection = PHASE_THREE_PATTERN_SEQUENCE[
+    phaseThree.patternSequenceIndex % PHASE_THREE_PATTERN_SEQUENCE.length
+  ];
+  phaseThree.patternSequenceIndex += 1;
+  return selection;
 }
 
 function chooseOverlappingPattern(
@@ -92,10 +108,6 @@ function chooseOverlappingPattern(
   ] as BossAttackPattern;
   phaseThree.lastOverlappingPattern = pattern;
   return pattern;
-}
-
-function chooseSide(encounter: BossEncounterState): Facing {
-  return nextRandom(encounter) < 0.5 ? -1 : 1;
 }
 
 function bossPatternTarget(
@@ -418,8 +430,7 @@ function beginPatternEntry(
 ): void {
   const phaseThree = encounter.phaseThree;
   if (!phaseThree) return;
-  const pattern = choosePattern(encounter);
-  const side = pattern === 2 ? 1 : chooseSide(encounter);
+  const { pattern, side } = takeNextPattern(phaseThree);
   const target = bossPatternTarget(world, pattern, side);
   phaseThree.mode = "pattern-enter";
   phaseThree.modeTime = 0;
@@ -696,6 +707,7 @@ export function startPhaseThree(
     shotsFired: 0,
     volleysStarted: 0,
     phaseTwoPatternsStarted: 0,
+    patternSequenceIndex: 0,
     lastOverlappingPattern: null,
     volleyTargets: [],
     secondCallWaveEmitted: false,

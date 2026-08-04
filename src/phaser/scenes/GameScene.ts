@@ -52,6 +52,14 @@ export class GameScene extends Phaser.Scene {
   private readonly restartHold = new RestartHoldTracker();
   private accumulator = 0;
   private lastHudSignature = "";
+  private readonly handleVisibilityChange = () => {
+    this.accumulator = 0;
+    this.pending = { ...EMPTY_PENDING };
+    drainGameEvents(this.gameState);
+    if (document.hidden || !document.hasFocus()) {
+      this.soundPlayer.discardHiddenPageAudio();
+    }
+  };
 
   constructor() {
     super("game");
@@ -77,9 +85,15 @@ export class GameScene extends Phaser.Scene {
     }) as Record<ActionKey, Phaser.Input.Keyboard.Key>;
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      document.removeEventListener("visibilitychange", this.handleVisibilityChange);
+      window.removeEventListener("blur", this.handleVisibilityChange);
+      window.removeEventListener("focus", this.handleVisibilityChange);
       this.view.destroy();
       this.soundPlayer.dispose();
     });
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    window.addEventListener("blur", this.handleVisibilityChange);
+    window.addEventListener("focus", this.handleVisibilityChange);
     this.view.sync(this.gameState);
     this.soundPlayer.syncElectricHazard(this.gameState, this.cameras.main.width);
     this.publishHud();
