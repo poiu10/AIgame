@@ -153,6 +153,7 @@ export interface PhaseThreeBossState {
 export interface BossDeathPieceState {
   position: Vector2State;
   velocity: Vector2State;
+  facing: Facing;
   age: number;
   lifetime: number;
   spin: number;

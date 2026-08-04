@@ -1,3 +1,5 @@
+import { BOSS_DEATH_PIECE_ANCHORS } from "./bossDeath";
+
 export const FIXED_STEP_SECONDS = 1 / 120;
 
 export const MELEE_ATTACK_WAVE_CONFIG = {
@@ -142,9 +144,9 @@ export const STAGE_TWO_CONFIG = {
   phaseThreeSpawnWaveDistance: 160,
   phaseThreeDeathShakeSeconds: 1.6,
   phaseThreeDeathSquelchIntervalSeconds: 0.16,
-  phaseThreeDeathPieceCount: 24,
-  phaseThreeDeathPieceLifetimeSeconds: 2.6,
-  phaseThreeDeathPieceGravity: 360,
+  phaseThreeDeathPieceCount: BOSS_DEATH_PIECE_ANCHORS.length,
+  phaseThreeDeathPieceLifetimeSeconds: 3.2,
+  phaseThreeDeathPieceGravity: 420,
   phaseThreeEndTitleDelaySeconds: 5,
   phaseThreeEndFadeSeconds: 1,
 } as const;

@@ -3,6 +3,11 @@ import {
   ENEMY_HIT_WAVE_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../rules/config";
+import {
+  BOSS_DEATH_PIECE_ANCHORS,
+  BOSS_DEATH_PIECE_CELL_SIZE,
+  resolveBossDeathPieceAnchor,
+} from "../rules/bossDeath";
 import type {
   BossActorState,
   BossAttackPattern,
@@ -171,26 +176,29 @@ function createDeathPieces(
   boss: EnemyState,
 ): PhaseThreeBossState["deathPieces"] {
   return Array.from(
-    { length: STAGE_TWO_CONFIG.phaseThreeDeathPieceCount },
+    { length: BOSS_DEATH_PIECE_ANCHORS.length },
     (_, index) => {
-      const baseAngle =
-        (index / STAGE_TWO_CONFIG.phaseThreeDeathPieceCount) * Math.PI * 2;
-      const angle = baseAngle + (nextRandom(encounter) - 0.5) * 0.24;
-      const speed = 250 + nextRandom(encounter) * 470;
+      const anchor = resolveBossDeathPieceAnchor(index, boss.facing);
+      const outwardLength = Math.max(1, Math.hypot(anchor.x, anchor.y));
+      const angle =
+        Math.atan2(anchor.y, anchor.x) +
+        (nextRandom(encounter) - 0.5) * 0.28;
+      const speed = 230 + nextRandom(encounter) * 170;
       return {
         position: {
-          x: boss.position.x + (nextRandom(encounter) - 0.5) * 70,
-          y: boss.position.y + (nextRandom(encounter) - 0.5) * 48,
+          x: boss.position.x + anchor.x * BOSS_DEATH_PIECE_CELL_SIZE,
+          y: boss.position.y + anchor.y * BOSS_DEATH_PIECE_CELL_SIZE,
         },
         velocity: {
-          x: Math.cos(angle) * speed,
-          y: Math.sin(angle) * speed,
+          x: Math.cos(angle) * speed + (anchor.x / outwardLength) * 55,
+          y: Math.sin(angle) * speed - 85,
         },
+        facing: boss.facing,
         age: 0,
         lifetime: STAGE_TWO_CONFIG.phaseThreeDeathPieceLifetimeSeconds,
-        spin: nextRandom(encounter) * Math.PI * 2,
-        spinSpeed: (nextRandom(encounter) - 0.5) * 11,
-        shape: index % 4,
+        spin: 0,
+        spinSpeed: (nextRandom(encounter) - 0.5) * 5.2,
+        shape: index,
       };
     },
   );

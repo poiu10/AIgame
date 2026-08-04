@@ -11,6 +11,7 @@ import {
   SOUND_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../../game/simulation/rules/config";
+import { isEnemyBodyPresent } from "../../game/simulation/rules/enemyDeath";
 import type {
   BossActorState,
   EnemyState,
@@ -34,6 +35,7 @@ import {
 import { rasterizePixelText } from "./pixelText";
 import {
   createBossDeathPieceCells,
+  resolveBossDeathPieceAlpha,
   resolveBossDeathShakeOffset,
 } from "./bossDeathPresentation";
 import { resolvePlayerAnimationKey } from "./playerAnimation";
@@ -437,6 +439,7 @@ export class GameViewAdapter {
       view.container.setVisible(false);
     }
     for (const enemy of state.enemies) {
+      if (!isEnemyBodyPresent(this.world, enemy)) continue;
       const view = this.ensureThreatView(this.enemyViews, enemy.id);
       let renderX = enemy.position.x;
       let renderY = enemy.position.y;
@@ -478,7 +481,7 @@ export class GameViewAdapter {
     const phaseThree = state.bossEncounter?.phaseThree;
     if (!phaseThree || phaseThree.deathPieces.length === 0) return;
     for (const piece of phaseThree.deathPieces) {
-      const life = Math.max(0, 1 - piece.age / piece.lifetime);
+      const life = resolveBossDeathPieceAlpha(piece);
       this.bossDeathGraphics.fillStyle(THREAT_COLOR, life);
       const originX = Math.round(piece.position.x / THREAT_PIXEL_SIZE) *
         THREAT_PIXEL_SIZE;

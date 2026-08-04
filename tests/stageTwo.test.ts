@@ -6,11 +6,13 @@ import {
   TERRAIN_KINDS,
 } from "../src/game/content/world";
 import {
+  ENEMY_CONFIG,
   FIXED_STEP_SECONDS,
   PLAYER_CONFIG,
   SOUND_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../src/game/simulation/rules/config";
+import { isEnemyBodyPresent } from "../src/game/simulation/rules/enemyDeath";
 import {
   resolveBossEndingAlpha,
   resolveBossEndingText,
@@ -33,10 +35,12 @@ import { getActiveTerrain } from "../src/game/simulation/systems/stageMechanisms
 import {
   createCocoonBossThreatCells,
   createCrackedCocoonBossThreatCells,
+  createEnemyThreatCells,
   createFloorHazardThreatCells,
 } from "../src/phaser/view/threatPixelArt";
 import {
   createBossDeathPieceCells,
+  resolveBossDeathPieceAlpha,
   resolveBossDeathShakeOffset,
 } from "../src/phaser/view/bossDeathPresentation";
 import { createHudState } from "../src/ui/hud/mountHud";
@@ -233,6 +237,34 @@ describe("Stage 2", () => {
     expect(state.soundWaves).toContainEqual(
       expect.objectContaining({ kind: "waker-call", sourceId: minion!.id }),
     );
+  });
+
+  it("removes non-boss bodies after their Stage 2 death animation", () => {
+    const { state } = enterPhaseTwo();
+    const minion = state.enemies.find(
+      (enemy) => enemy.kind === ENEMY_KINDS.waker,
+    )!;
+    expect(damageEnemy(state, minion, 1)).toBe(true);
+    expect(damageEnemy(state, minion, 1)).toBe(true);
+    expect(isEnemyBodyPresent(STAGE_TWO, minion)).toBe(true);
+
+    updateEnemies(
+      state,
+      STAGE_TWO,
+      ENEMY_CONFIG.deathAnimationSeconds + FIXED_STEP_SECONDS,
+    );
+
+    expect(minion.alive).toBe(false);
+    expect(isEnemyBodyPresent(STAGE_TWO, minion)).toBe(false);
+    expect(isEnemyBodyPresent(STAGE_TWO, state.enemies[0])).toBe(true);
+
+    minion.echoTime = 0;
+    state.soundWaves = [];
+    emitSound(state, "player-step", minion.position, 160, 1);
+    for (let step = 0; step < 8; step += 1) {
+      updateSoundPropagation(state, STAGE_TWO, FIXED_STEP_SECONDS);
+    }
+    expect(minion.echoTime).toBe(0);
   });
 
   it("steers pursuing enemies into attack range instead of orbiting the player", () => {
@@ -638,13 +670,29 @@ describe("Stage 2", () => {
     expect(phaseThree.deathPieces.some((piece) => piece.velocity.x > 0)).toBe(true);
     expect(phaseThree.deathPieces.some((piece) => piece.velocity.y < 0)).toBe(true);
     expect(phaseThree.deathPieces.some((piece) => piece.velocity.y > 0)).toBe(true);
+    const reconstructedBossCells = new Set<string>();
     for (const piece of phaseThree.deathPieces) {
       const cells = createBossDeathPieceCells(piece);
-      expect(cells.length).toBeGreaterThanOrEqual(3);
+      expect(cells.length).toBeGreaterThanOrEqual(20);
       expect(cells.every((cell) =>
         Number.isInteger(cell.x) && Number.isInteger(cell.y)
       )).toBe(true);
+      const offsetX = Math.round((piece.position.x - boss.position.x) / 3);
+      const offsetY = Math.round((piece.position.y - boss.position.y) / 3);
+      for (const cell of cells) {
+        reconstructedBossCells.add(`${offsetX + cell.x},${offsetY + cell.y}`);
+      }
     }
+    const sourceBossCells = new Set(
+      createEnemyThreatCells("hurt", boss.facing, ENEMY_KINDS.ravenBoss)
+        .map((cell) => `${cell.x},${cell.y}`),
+    );
+    expect(reconstructedBossCells).toEqual(sourceBossCells);
+    expect(resolveBossDeathPieceAlpha(phaseThree.deathPieces[0])).toBe(1);
+    expect(resolveBossDeathPieceAlpha({
+      ...phaseThree.deathPieces[0],
+      age: phaseThree.deathPieces[0].lifetime * 0.84,
+    })).toBeCloseTo(0.5);
     expect(resolveBossEndingText(phaseThree.endingTime)).toBe("");
     expect(resolveBossEndingText(4.999)).toBe("");
     expect(resolveBossEndingText(5)).toBe("End");

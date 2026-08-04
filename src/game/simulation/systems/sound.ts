@@ -12,6 +12,7 @@ import {
   segmentIntersectsAabb,
 } from "../collision/aabb";
 import { ENEMY_CONFIG, getEnemyBodySize, SOUND_CONFIG } from "../rules/config";
+import { isEnemyBodyPresent } from "../rules/enemyDeath";
 import type {
   EchoMarkState,
   Facing,
@@ -419,6 +420,7 @@ export function updateSoundPropagation(
       }
 
       for (const enemy of state.enemies) {
+        if (!isEnemyBodyPresent(world, enemy)) continue;
         const body = getEnemyBodySize(enemy.kind);
         const echoPosition = enemy.alive
           ? enemy.position
