@@ -4,6 +4,8 @@
 액션 플랫포머 프로토타입이다. 튜토리얼에서 복도를 통해 1스테이지로 전환되며,
 맵 전환 체크포인트와 게임과 동일한 스키마를 쓰는 외부 맵 에디터를 제공한다.
 
+[게임 플레이하기](https://poiu10.github.io/AIgame/)
+
 ## 조작
 
 - `A/D` 또는 방향키: 이동
@@ -11,35 +13,4 @@
 - `Shift`: 구르기
 - `J`: 공격
 - `R`: 가장 최근 맵 전환 체크포인트로 복귀
-
-## 로컬 실행과 검증
-
-Node.js 22 이상과 npm이 필요하다.
-
-```bash
-npm install
-npm run dev
-```
-
-게임은 `http://localhost:5173/`에서 연다.
-
-외부 맵 에디터에는 Node.js나 개발 서버가 필요하지 않다. 저장소의
-[`editor.html`](editor.html)을 탐색기에서 더블클릭하면 기본 웹 브라우저에서
-바로 실행된다. `JSON 생성` 결과는 다시 불러올 수 있고, `TypeScript 생성`
-결과는 `src/game/content`에 그대로 옮겨 스테이지 레지스트리에 등록할 수 있다.
-
-자동화 테스트와 프로덕션 빌드는 다음 명령으로 확인한다.
-
-```bash
-npm test
-npm run build
-npm run preview
-```
-
-## 프로젝트 문서
-
-- 게임 구조와 기술 결정: [`docs/GAME_ARCHITECTURE.md`](docs/GAME_ARCHITECTURE.md)
-- 저장소 작업 규칙: [`AGENTS.md`](AGENTS.md)
-
-`main` 브랜치에 푸시하면 GitHub Actions가 게임을 GitHub Pages에 자동
-배포한다.
+- `R` 3초 이상 누르기: 저장된 진행 상황을 지우고 게임 전체 초기화
