@@ -105,6 +105,17 @@ describe("sample-backed sound", () => {
     );
   });
 
+  it("uses the supplied restrained player hit sample", () => {
+    expect(AUDIO_ASSETS.playerHit.path).toBe(
+      "assets/audio/hard-punch-high-ring-removed.mp3",
+    );
+    expect(SOUND_PLAYBACK_PROFILES["player-hit"]).toMatchObject({
+      assetKey: ASSET_KEYS.audio.playerHit,
+      volume: 0.16,
+      rate: 1,
+    });
+  });
+
   it("uses the supplied stone door sample for the opening door", () => {
     expect(AUDIO_ASSETS.doorOpen.path).toBe("assets/audio/stonedoor.mp3");
     expect(SOUND_PLAYBACK_PROFILES["door-open"]).toMatchObject({

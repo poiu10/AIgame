@@ -95,6 +95,70 @@ export function raycastAabb(
   };
 }
 
+export function raycastAabbExit(
+  origin: Vector2State,
+  direction: Vector2State,
+  maximumDistance: number,
+  bounds: RectState,
+): RayHit | null {
+  if (
+    origin.x < bounds.x ||
+    origin.x > bounds.x + bounds.width ||
+    origin.y < bounds.y ||
+    origin.y > bounds.y + bounds.height
+  ) {
+    return null;
+  }
+
+  let exit = Infinity;
+  let normal: Vector2State = { x: 0, y: 0 };
+  const axes = [
+    {
+      origin: origin.x,
+      direction: direction.x,
+      minimum: bounds.x,
+      maximum: bounds.x + bounds.width,
+      negativeNormal: { x: -1, y: 0 },
+      positiveNormal: { x: 1, y: 0 },
+    },
+    {
+      origin: origin.y,
+      direction: direction.y,
+      minimum: bounds.y,
+      maximum: bounds.y + bounds.height,
+      negativeNormal: { x: 0, y: -1 },
+      positiveNormal: { x: 0, y: 1 },
+    },
+  ];
+
+  for (const axis of axes) {
+    if (Math.abs(axis.direction) < EPSILON) {
+      continue;
+    }
+    const boundary = axis.direction < 0 ? axis.minimum : axis.maximum;
+    const distance = (boundary - axis.origin) / axis.direction;
+    if (distance < exit) {
+      exit = distance;
+      normal = axis.direction < 0
+        ? axis.negativeNormal
+        : axis.positiveNormal;
+    }
+  }
+
+  if (exit < EPSILON || exit > maximumDistance) {
+    return null;
+  }
+
+  return {
+    distance: exit,
+    point: {
+      x: origin.x + direction.x * exit,
+      y: origin.y + direction.y * exit,
+    },
+    normal,
+  };
+}
+
 export function segmentIntersectsAabb(
   start: Vector2State,
   end: Vector2State,

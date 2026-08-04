@@ -5,7 +5,12 @@ import {
   type TerrainBlock,
   type WorldDefinition,
 } from "../../content/world";
-import { centerRect, raycastAabb, segmentIntersectsAabb } from "../collision/aabb";
+import {
+  centerRect,
+  raycastAabb,
+  raycastAabbExit,
+  segmentIntersectsAabb,
+} from "../collision/aabb";
 import { ENEMY_CONFIG, getEnemyBodySize, SOUND_CONFIG } from "../rules/config";
 import type {
   EchoMarkState,
@@ -385,12 +390,19 @@ export function updateSoundPropagation(
           hazard.kind === HAZARD_KINDS.lethal ||
           hazard.kind === HAZARD_KINDS.damagingFloor
         ) {
-          const hit = raycastAabb(
-            ray.position,
-            ray.direction,
-            segmentDistance,
-            hazard.bounds,
-          );
+          const hit =
+            raycastAabb(
+              ray.position,
+              ray.direction,
+              segmentDistance,
+              hazard.bounds,
+            ) ??
+            raycastAabbExit(
+              ray.position,
+              ray.direction,
+              segmentDistance,
+              hazard.bounds,
+            );
           if (hit) {
             addHazardEchoMark(
               state,

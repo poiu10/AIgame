@@ -9,7 +9,10 @@ import {
 } from "../src/game/content/world";
 import { TUTORIAL_STAGE } from "../src/game/content/tutorialStage";
 import { EMPTY_INPUT, type InputActions } from "../src/game/input/actions";
-import { raycastAabb } from "../src/game/simulation/collision/aabb";
+import {
+  raycastAabb,
+  raycastAabbExit,
+} from "../src/game/simulation/collision/aabb";
 import {
   ENEMY_CONFIG,
   ENEMY_DEATH_WAVE_CONFIG,
@@ -17,6 +20,7 @@ import {
   FIXED_STEP_SECONDS,
   MELEE_ATTACK_WAVE_CONFIG,
   PLAYER_CONFIG,
+  PLAYER_HIT_WAVE_CONFIG,
 } from "../src/game/simulation/rules/config";
 import {
   getEnemyAttackBounds,
@@ -91,6 +95,20 @@ describe("AABB ray casting", () => {
     expect(hit?.distance).toBeCloseTo(100);
     expect(hit?.point).toEqual({ x: 100, y: 50 });
     expect(hit?.normal).toEqual({ x: -1, y: 0 });
+  });
+
+  it("returns the exit surface when a ray starts inside the bounds", () => {
+    const hit = raycastAabbExit(
+      { x: 110, y: 50 },
+      { x: 0, y: -1 },
+      100,
+      { x: 100, y: 20, width: 20, height: 60 },
+    );
+
+    expect(hit).not.toBeNull();
+    expect(hit?.distance).toBeCloseTo(30);
+    expect(hit?.point).toEqual({ x: 110, y: 20 });
+    expect(hit?.normal).toEqual({ x: 0, y: -1 });
   });
 });
 
@@ -317,6 +335,58 @@ describe("player controller", () => {
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
   });
 
+  it("removes only roll-added speed when its direction is not held", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = { x: 200, y: 500 };
+    state.player.velocity.x = 240;
+    state.player.facing = 1;
+
+    updatePlayerMovement(
+      state,
+      flatWorld,
+      { ...EMPTY_INPUT, rollPressed: true },
+      0,
+    );
+    expect(state.player.velocity.x).toBe(PLAYER_CONFIG.rollSpeed);
+    expect(state.player.rollStartVelocityX).toBe(240);
+
+    state.player.actionTime = PLAYER_CONFIG.rollSeconds - FIXED_STEP_SECONDS / 2;
+    updatePlayerMovement(
+      state,
+      flatWorld,
+      EMPTY_INPUT,
+      FIXED_STEP_SECONDS,
+    );
+
+    expect(state.player.action).toBe("normal");
+    expect(state.player.velocity.x).toBe(240);
+    expect(state.player.rollStartVelocityX).toBe(0);
+  });
+
+  it("keeps roll momentum when its direction remains held", () => {
+    const state = createInitialGameState(flatWorld);
+    state.player.position = { x: 200, y: 500 };
+    state.player.velocity.x = 240;
+    state.player.facing = 1;
+
+    updatePlayerMovement(
+      state,
+      flatWorld,
+      { ...EMPTY_INPUT, rollPressed: true },
+      0,
+    );
+    state.player.actionTime = PLAYER_CONFIG.rollSeconds - FIXED_STEP_SECONDS / 2;
+    updatePlayerMovement(
+      state,
+      flatWorld,
+      { ...EMPTY_INPUT, moveX: 1 },
+      FIXED_STEP_SECONDS,
+    );
+
+    expect(state.player.action).toBe("normal");
+    expect(state.player.velocity.x).toBeGreaterThan(800);
+  });
+
   it("uses a shallow roll arc to clear a pit and return to its starting height", () => {
     const pitWorld: WorldDefinition = {
       width: 1_000,
@@ -477,6 +547,26 @@ describe("player controller", () => {
     expect(state.player.attackHitIds).toEqual([]);
     expect(damagePlayer(state, -1)).toBe(true);
     expect(state.player.action).toBe("hurt");
+  });
+
+  it("emits a small player hit sound and wave only on successful damage", () => {
+    const state = createInitialGameState(flatWorld);
+
+    expect(damagePlayer(state, -1)).toBe(true);
+    const hitWave = state.soundWaves.find((wave) => wave.kind === "player-hit");
+    expect(hitWave?.rays[0]).toMatchObject({
+      remainingDistance: PLAYER_HIT_WAVE_CONFIG.distance,
+      intensity: PLAYER_HIT_WAVE_CONFIG.intensity,
+    });
+    expect(state.events).toContainEqual(expect.objectContaining({
+      type: "sound",
+      kind: "player-hit",
+      intensity: PLAYER_HIT_WAVE_CONFIG.intensity,
+    }));
+
+    expect(damagePlayer(state, 1)).toBe(false);
+    expect(state.soundWaves.filter((wave) => wave.kind === "player-hit"))
+      .toHaveLength(1);
   });
 
   it("cancels an attack into a grounded jump", () => {

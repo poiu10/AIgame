@@ -5,6 +5,11 @@ export const MELEE_ATTACK_WAVE_CONFIG = {
   intensity: 0.76,
 } as const;
 
+export const PLAYER_HIT_WAVE_CONFIG = {
+  distance: 120,
+  intensity: 0.35,
+} as const;
+
 export const ENEMY_HIT_WAVE_CONFIG = {
   distance: 180,
   intensity: 0.82,

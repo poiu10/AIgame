@@ -10,12 +10,13 @@ import {
   ENEMY_HIT_WAVE_CONFIG,
   getEnemyBodySize,
   PLAYER_CONFIG,
+  PLAYER_HIT_WAVE_CONFIG,
   STAGE_ONE_CONFIG,
 } from "../rules/config";
 import { getPlayerAttackBounds } from "../rules/combat";
 import { getPlayerBounds } from "../rules/player";
 import type { EnemyState, Facing, GameState } from "../state";
-import { emitSound } from "./sound";
+import { emitSound, PLAYER_SOUND_SOURCE_ID } from "./sound";
 import { damageCocoonBoss } from "./bossEncounter";
 import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
 
@@ -53,6 +54,14 @@ export function damagePlayer(
   player.actionTime = 0;
   player.attackHitIds = [];
   player.hitboxOffsetX = 0;
+  emitSound(
+    state,
+    "player-hit",
+    player.position,
+    PLAYER_HIT_WAVE_CONFIG.distance,
+    PLAYER_HIT_WAVE_CONFIG.intensity,
+    PLAYER_SOUND_SOURCE_ID,
+  );
 
   if (player.health <= 0) {
     killPlayer(state);

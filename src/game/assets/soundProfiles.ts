@@ -30,6 +30,11 @@ export const SOUND_PLAYBACK_PROFILES: Readonly<
     volume: 0.34,
     rate: 1,
   },
+  "player-hit": {
+    assetKey: ASSET_KEYS.audio.playerHit,
+    volume: 0.16,
+    rate: 1,
+  },
   "player-attack": {
     assetKey: ASSET_KEYS.audio.attack,
     volume: MELEE_ATTACK_VOLUME,

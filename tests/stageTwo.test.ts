@@ -665,4 +665,28 @@ describe("Stage 2", () => {
     expect(state.echoMarks.some((mark) => mark.surfaceId === "hazard-13"))
       .toBe(true);
   });
+
+  it("reveals the floor hazard when a wave starts inside it", () => {
+    const state = createInitialGameState(STAGE_TWO);
+    const hazard = state.hazards[0];
+    emitSound(
+      state,
+      "landing",
+      {
+        x: hazard.bounds.x + hazard.bounds.width / 2,
+        y: hazard.bounds.y + hazard.bounds.height - 2,
+      },
+      120,
+      0.35,
+      "player",
+    );
+
+    for (let index = 0; index < 8; index += 1) {
+      updateSoundPropagation(state, STAGE_TWO, FIXED_STEP_SECONDS);
+    }
+
+    expect(state.echoMarks.some((mark) =>
+      mark.surfaceKind === "hazard" && mark.surfaceId === hazard.id
+    )).toBe(true);
+  });
 });

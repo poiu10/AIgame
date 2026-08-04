@@ -17,6 +17,7 @@ export const ASSET_KEYS = {
   audio: {
     attack: "audio.attack",
     landing: "audio.landing",
+    playerHit: "audio.player-hit",
     enemyHit: "audio.enemy-hit",
     walk: "audio.walk",
     enemyAlert: "audio.enemy-alert",
@@ -171,6 +172,10 @@ export const AUDIO_ASSETS = {
   landing: {
     key: ASSET_KEYS.audio.landing,
     path: "assets/audio/down_cut_before_tak.wav",
+  },
+  playerHit: {
+    key: ASSET_KEYS.audio.playerHit,
+    path: "assets/audio/hard-punch-high-ring-removed.mp3",
   },
   enemyHit: {
     key: ASSET_KEYS.audio.enemyHit,
