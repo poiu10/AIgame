@@ -95,6 +95,7 @@ export const STAGE_ONE_CONFIG = {
   electricHazardSpeed: 600,
   electricHazardDeathGraceCount: 3,
   electricHazardDeathSpeedReduction: 10,
+  electricHazardMinimumSpeed: 200,
   electricHazardPulseIntervalSeconds: 0.1,
   electricHazardPulseDistance: 72,
   electricSoundMaximumDistance: 720,

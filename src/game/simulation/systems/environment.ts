@@ -33,7 +33,7 @@ export function getElectricHazardDamageBounds(
 
 export function getElectricHazardSpeed(
   hazard: GameState["hazards"][number],
-  stageDeathCount = 0,
+  electricHazardDeathCount = 0,
 ): number {
   if (
     hazard.activationElapsed <
@@ -43,9 +43,12 @@ export function getElectricHazardSpeed(
   }
   const speedReduction = Math.max(
     0,
-    stageDeathCount - STAGE_ONE_CONFIG.electricHazardDeathGraceCount,
+    electricHazardDeathCount - STAGE_ONE_CONFIG.electricHazardDeathGraceCount,
   ) * STAGE_ONE_CONFIG.electricHazardDeathSpeedReduction;
-  return Math.max(0, STAGE_ONE_CONFIG.electricHazardSpeed - speedReduction);
+  return Math.max(
+    STAGE_ONE_CONFIG.electricHazardMinimumSpeed,
+    STAGE_ONE_CONFIG.electricHazardSpeed - speedReduction,
+  );
 }
 
 function updateElectricHazard(
@@ -91,7 +94,7 @@ function updateElectricHazard(
     hazard.bounds.x = Math.max(
       0,
       hazard.bounds.x -
-        getElectricHazardSpeed(hazard, state.stageDeathCount) *
+        getElectricHazardSpeed(hazard, state.electricHazardDeathCount) *
           distanceScaledSeconds,
     );
     hazard.activationElapsed += distanceScaledSeconds;

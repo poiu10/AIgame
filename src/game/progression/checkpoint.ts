@@ -17,7 +17,7 @@ export interface CheckpointSave {
   visitedStageIds: string[];
   completedStageIds: string[];
   stageProgress: Record<string, StageProgress>;
-  stageDeathCounts: Record<string, number>;
+  electricHazardDeathCounts: Record<string, number>;
 }
 
 export interface CheckpointStorage {
@@ -54,7 +54,7 @@ export function createInitialCheckpoint(stage: StageDefinition): CheckpointSave 
     visitedStageIds: [stage.id],
     completedStageIds: [],
     stageProgress: { [stage.id]: emptyProgress() },
-    stageDeathCounts: { [stage.id]: 0 },
+    electricHazardDeathCounts: { [stage.id]: 0 },
   };
 }
 
@@ -102,29 +102,29 @@ export function createTransitionCheckpoint(
       [currentStage.id]: currentProgress,
       [targetStage.id]: previous.stageProgress[targetStage.id] ?? emptyProgress(),
     },
-    stageDeathCounts: {
-      ...previous.stageDeathCounts,
+    electricHazardDeathCounts: {
+      ...previous.electricHazardDeathCounts,
       [currentStage.id]: Math.max(
-        previous.stageDeathCounts[currentStage.id] ?? 0,
-        state.stageDeathCount,
+        previous.electricHazardDeathCounts[currentStage.id] ?? 0,
+        state.electricHazardDeathCount,
       ),
-      [targetStage.id]: previous.stageDeathCounts[targetStage.id] ?? 0,
+      [targetStage.id]: previous.electricHazardDeathCounts[targetStage.id] ?? 0,
     },
   };
 }
 
-export function recordStageDeathCount(
+export function recordElectricHazardDeathCount(
   save: CheckpointSave,
   stageId: string,
-  deathCount: number,
+  electricHazardDeathCount: number,
 ): CheckpointSave {
   return {
     ...save,
-    stageDeathCounts: {
-      ...save.stageDeathCounts,
+    electricHazardDeathCounts: {
+      ...save.electricHazardDeathCounts,
       [stageId]: Math.max(
-        save.stageDeathCounts[stageId] ?? 0,
-        Math.max(0, Math.floor(deathCount)),
+        save.electricHazardDeathCounts[stageId] ?? 0,
+        Math.max(0, Math.floor(electricHazardDeathCount)),
       ),
     },
   };
@@ -155,7 +155,8 @@ export function restoreCheckpointState(save: CheckpointSave, stage: StageDefinit
   state.player.facing = save.playerFacing;
   state.player.attackFacing = save.playerFacing;
   state.player.health = PLAYER_CONFIG.maxHealth;
-  state.stageDeathCount = save.stageDeathCounts[stage.id] ?? 0;
+  state.electricHazardDeathCount =
+    save.electricHazardDeathCounts[stage.id] ?? 0;
   return state;
 }
 
@@ -177,7 +178,11 @@ export function serializeCheckpoint(save: CheckpointSave): string {
 
 export function parseCheckpoint(value: string): CheckpointSave | null {
   try {
-    const parsed = JSON.parse(value) as CheckpointSave & {
+    const parsed = JSON.parse(value) as Omit<
+      CheckpointSave,
+      "electricHazardDeathCounts"
+    > & {
+      electricHazardDeathCounts?: Record<string, unknown>;
       stageDeathCounts?: Record<string, unknown>;
     };
     if (parsed?.version !== 1 || typeof parsed.currentStageId !== "string") return null;
@@ -189,21 +194,24 @@ export function parseCheckpoint(value: string): CheckpointSave | null {
     if (progressEntries.some((entry) =>
       !Array.isArray(entry?.defeatedEnemyIds) || !Array.isArray(entry?.defeatedBossIds)
     )) return null;
-    const rawStageDeathCounts = parsed.stageDeathCounts;
+    const rawElectricHazardDeathCounts = parsed.electricHazardDeathCounts;
     if (
-      rawStageDeathCounts !== undefined &&
-      (typeof rawStageDeathCounts !== "object" ||
-        rawStageDeathCounts === null ||
-        Array.isArray(rawStageDeathCounts))
+      rawElectricHazardDeathCounts !== undefined &&
+      (typeof rawElectricHazardDeathCounts !== "object" ||
+        rawElectricHazardDeathCounts === null ||
+        Array.isArray(rawElectricHazardDeathCounts))
     ) return null;
-    const stageDeathCounts = rawStageDeathCounts ?? {};
-    if (Object.values(stageDeathCounts).some((count) =>
+    const electricHazardDeathCounts = rawElectricHazardDeathCounts ?? {};
+    if (Object.values(electricHazardDeathCounts).some((count) =>
       !Number.isInteger(count) || (count as number) < 0
     )) return null;
+    const normalized = { ...parsed };
+    delete normalized.stageDeathCounts;
     return {
-      ...parsed,
-      stageDeathCounts: stageDeathCounts as Record<string, number>,
-    };
+      ...normalized,
+      electricHazardDeathCounts:
+        electricHazardDeathCounts as Record<string, number>,
+    } as CheckpointSave;
   } catch {
     return null;
   }

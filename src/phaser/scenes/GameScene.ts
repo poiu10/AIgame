@@ -9,7 +9,7 @@ import {
   createTransitionCheckpoint,
   findTouchedExit,
   parseCheckpoint,
-  recordStageDeathCount,
+  recordElectricHazardDeathCount,
   restoreCheckpointState,
   serializeCheckpoint,
   type CheckpointSave,
@@ -106,6 +106,8 @@ export class GameScene extends Phaser.Scene {
     let stageChanged = false;
     while (this.accumulator >= FIXED_STEP_SECONDS) {
       const wasPlayerDead = this.gameState.player.action === "dead";
+      const electricHazardDeathCountBefore =
+        this.gameState.electricHazardDeathCount;
       this.gameState = stepSimulation(
         this.gameState,
         this.readInput(firstStep),
@@ -114,11 +116,16 @@ export class GameScene extends Phaser.Scene {
       );
       this.accumulator -= FIXED_STEP_SECONDS;
 
-      if (!wasPlayerDead && this.gameState.player.action === "dead") {
-        this.checkpoint = recordStageDeathCount(
+      if (
+        !wasPlayerDead &&
+        this.gameState.player.action === "dead" &&
+        this.gameState.electricHazardDeathCount >
+          electricHazardDeathCountBefore
+      ) {
+        this.checkpoint = recordElectricHazardDeathCount(
           this.checkpoint,
           this.currentStage.id,
-          this.gameState.stageDeathCount,
+          this.gameState.electricHazardDeathCount,
         );
         this.persistCheckpoint();
       }

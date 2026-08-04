@@ -6,12 +6,13 @@ import {
   createTransitionCheckpoint,
   findTouchedExit,
   parseCheckpoint,
-  recordStageDeathCount,
+  recordElectricHazardDeathCount,
   restoreCheckpointState,
   serializeCheckpoint,
 } from "../src/game/progression/checkpoint";
 import { createInitialGameState } from "../src/game/simulation/state";
 import { killPlayer } from "../src/game/simulation/systems/combat";
+import { pressTerrainButton } from "../src/game/simulation/systems/stageMechanisms";
 
 describe("stage progression checkpoints", () => {
   it("detects the tutorial corridor exit with the player hitbox", () => {
@@ -71,33 +72,37 @@ describe("stage progression checkpoints", () => {
     expect(parseCheckpoint("not-json")).toBeNull();
   });
 
-  it("persists stage death counts across checkpoint restores", () => {
+  it("persists post-activation electric hazard deaths across checkpoint restores", () => {
     let checkpoint = createInitialCheckpoint(STAGE_ONE);
     for (let death = 1; death <= 4; death += 1) {
       const state = restoreCheckpointState(checkpoint, STAGE_ONE);
-      expect(state.stageDeathCount).toBe(death - 1);
+      expect(state.electricHazardDeathCount).toBe(death - 1);
+      expect(pressTerrainButton(state, STAGE_ONE, "terrain-botton")).toBe(true);
       expect(killPlayer(state)).toBe(true);
-      checkpoint = recordStageDeathCount(
+      checkpoint = recordElectricHazardDeathCount(
         checkpoint,
         STAGE_ONE.id,
-        state.stageDeathCount,
+        state.electricHazardDeathCount,
       );
     }
 
-    expect(checkpoint.stageDeathCounts[STAGE_ONE.id]).toBe(4);
-    expect(restoreCheckpointState(checkpoint, STAGE_ONE).stageDeathCount).toBe(4);
+    expect(checkpoint.electricHazardDeathCounts[STAGE_ONE.id]).toBe(4);
+    expect(restoreCheckpointState(checkpoint, STAGE_ONE).electricHazardDeathCount)
+      .toBe(4);
   });
 
-  it("loads older version-one checkpoints without death counts", () => {
+  it("loads older version-one checkpoints without reusing broad death counts", () => {
     const checkpoint = createInitialCheckpoint(STAGE_ONE);
     const legacy = JSON.parse(serializeCheckpoint(checkpoint)) as Record<
       string,
       unknown
     >;
-    delete legacy.stageDeathCounts;
+    delete legacy.electricHazardDeathCounts;
+    legacy.stageDeathCounts = { [STAGE_ONE.id]: 9 };
 
-    expect(parseCheckpoint(JSON.stringify(legacy))?.stageDeathCounts).toEqual({});
-    legacy.stageDeathCounts = { [STAGE_ONE.id]: -1 };
+    expect(parseCheckpoint(JSON.stringify(legacy))?.electricHazardDeathCounts)
+      .toEqual({});
+    legacy.electricHazardDeathCounts = { [STAGE_ONE.id]: -1 };
     expect(parseCheckpoint(JSON.stringify(legacy))).toBeNull();
   });
 
