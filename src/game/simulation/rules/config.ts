@@ -121,7 +121,7 @@ export const STAGE_TWO_CONFIG = {
   phaseTwoIntroMinimumSpeed: 620,
   bossCallDistance: MELEE_ATTACK_WAVE_CONFIG.distance,
   bossCallIntensity: STAGE_ONE_CONFIG.activeEnemyPulseIntensity,
-  phaseThreeHealth: 20,
+  phaseThreeHealth: 25,
   phaseThreeIntroSeconds: 3.2,
   phaseThreeBossWaveDistance: 540,
   phaseThreeIntermissionSeconds: 8,

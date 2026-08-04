@@ -382,7 +382,7 @@ describe("Stage 2", () => {
     expect(state.player.health).toBe(healthBefore - 1);
   });
 
-  it("cracks the cocoon and starts the raven-insect phase at twenty health", () => {
+  it("cracks the cocoon and starts the raven-insect phase at twenty-five health", () => {
     const { state, boss } = enterPhaseThree();
 
     expect(state.bossEncounter?.phase).toBe(3);
