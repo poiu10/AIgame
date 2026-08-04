@@ -10,31 +10,11 @@
 - `Space`, `W` 또는 위 방향키: 점프
 - `Shift`: 구르기
 - `J`: 공격
-- `R`: 가장 최근 맵 전환 체크포인트로 복귀
+- `R`: 가장 최근 맵 체크포인트로 복귀, 3초 이상 누를 시 게임 전체 초기화
 
-## 로컬 실행과 검증
+## 실행
 
-Node.js 22 이상과 npm이 필요하다.
-
-```bash
-npm install
-npm run dev
-```
-
-게임은 `http://localhost:5173/`에서 연다.
-
-외부 맵 에디터에는 Node.js나 개발 서버가 필요하지 않다. 저장소의
-[`editor.html`](editor.html)을 탐색기에서 더블클릭하면 기본 웹 브라우저에서
-바로 실행된다. `JSON 생성` 결과는 다시 불러올 수 있고, `TypeScript 생성`
-결과는 `src/game/content`에 그대로 옮겨 스테이지 레지스트리에 등록할 수 있다.
-
-자동화 테스트와 프로덕션 빌드는 다음 명령으로 확인한다.
-
-```bash
-npm test
-npm run build
-npm run preview
-```
+https://poiu10.github.io/AIgame/ 에서 실행한다
 
 ## 프로젝트 문서
 
