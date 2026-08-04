@@ -17,11 +17,9 @@ import type {
 import { emitSound } from "./sound";
 
 const OFFSCREEN_Y = -100;
-const INTERMISSION_FLIGHT_Y = 150;
 const PATTERN_SIDE_X = 86;
 const PATTERN_SIDE_Y = 220;
 const PATTERN_TOP_Y = 68;
-const PATTERN_CENTER_TOP_Y = 78;
 const PROJECTILE_LOWER_Y = 404;
 const PROJECTILE_UPPER_Y = 300;
 const PROJECTILE_EDGE_X = 54;
@@ -112,7 +110,10 @@ function bossPatternTarget(
     };
   }
   if (pattern === 2) {
-    return { x: world.width / 2, y: PATTERN_CENTER_TOP_Y };
+    return {
+      x: world.width / 2,
+      y: STAGE_TWO_CONFIG.phaseThreeIntermissionFlightY,
+    };
   }
   return {
     x: side < 0 ? PATTERN_SIDE_X : world.width - PATTERN_SIDE_X,
@@ -622,18 +623,25 @@ function updateIntermission(
   } else if (time < descendStart + 1) {
     const ratio = easeInOut(time - descendStart);
     boss.position.x = lerp(phaseThree.moveStart.x, world.width / 2, ratio);
-    boss.position.y = lerp(OFFSCREEN_Y, INTERMISSION_FLIGHT_Y, ratio);
+    boss.position.y = lerp(
+      OFFSCREEN_Y,
+      STAGE_TWO_CONFIG.phaseThreeIntermissionFlightY,
+      ratio,
+    );
   } else if (time < exitStart) {
     const flightTime = time - descendStart - 1;
     boss.position.x =
       world.width / 2 + Math.sin(flightTime * 1.35) * world.width * 0.31;
-    boss.position.y = INTERMISSION_FLIGHT_Y + Math.sin(flightTime * 2.1) * 24;
+    boss.position.y =
+      STAGE_TWO_CONFIG.phaseThreeIntermissionFlightY +
+      Math.sin(flightTime * 2.1) * 24;
   } else {
     const lastFlightTime = exitStart - descendStart - 1;
     const startX =
       world.width / 2 + Math.sin(lastFlightTime * 1.35) * world.width * 0.31;
     const startY =
-      INTERMISSION_FLIGHT_Y + Math.sin(lastFlightTime * 2.1) * 24;
+      STAGE_TWO_CONFIG.phaseThreeIntermissionFlightY +
+      Math.sin(lastFlightTime * 2.1) * 24;
     const ratio = easeInOut(
       (time - exitStart) /
         STAGE_TWO_CONFIG.phaseThreeIntermissionExitLeadSeconds,

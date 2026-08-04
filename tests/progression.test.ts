@@ -6,10 +6,12 @@ import {
   createTransitionCheckpoint,
   findTouchedExit,
   parseCheckpoint,
+  recordStageDeathCount,
   restoreCheckpointState,
   serializeCheckpoint,
 } from "../src/game/progression/checkpoint";
 import { createInitialGameState } from "../src/game/simulation/state";
+import { killPlayer } from "../src/game/simulation/systems/combat";
 
 describe("stage progression checkpoints", () => {
   it("detects the tutorial corridor exit with the player hitbox", () => {
@@ -67,6 +69,36 @@ describe("stage progression checkpoints", () => {
     expect(parseCheckpoint(serializeCheckpoint(checkpoint))).toEqual(checkpoint);
     expect(parseCheckpoint('{"version":999}')).toBeNull();
     expect(parseCheckpoint("not-json")).toBeNull();
+  });
+
+  it("persists stage death counts across checkpoint restores", () => {
+    let checkpoint = createInitialCheckpoint(STAGE_ONE);
+    for (let death = 1; death <= 4; death += 1) {
+      const state = restoreCheckpointState(checkpoint, STAGE_ONE);
+      expect(state.stageDeathCount).toBe(death - 1);
+      expect(killPlayer(state)).toBe(true);
+      checkpoint = recordStageDeathCount(
+        checkpoint,
+        STAGE_ONE.id,
+        state.stageDeathCount,
+      );
+    }
+
+    expect(checkpoint.stageDeathCounts[STAGE_ONE.id]).toBe(4);
+    expect(restoreCheckpointState(checkpoint, STAGE_ONE).stageDeathCount).toBe(4);
+  });
+
+  it("loads older version-one checkpoints without death counts", () => {
+    const checkpoint = createInitialCheckpoint(STAGE_ONE);
+    const legacy = JSON.parse(serializeCheckpoint(checkpoint)) as Record<
+      string,
+      unknown
+    >;
+    delete legacy.stageDeathCounts;
+
+    expect(parseCheckpoint(JSON.stringify(legacy))?.stageDeathCounts).toEqual({});
+    legacy.stageDeathCounts = { [STAGE_ONE.id]: -1 };
+    expect(parseCheckpoint(JSON.stringify(legacy))).toBeNull();
   });
 
   it("falls back to the stage entry when an older checkpoint is outside the map", () => {

@@ -246,6 +246,7 @@ export type GameEvent = SoundEvent | ImpactEvent;
 
 export interface GameState {
   elapsedTime: number;
+  stageDeathCount: number;
   player: PlayerState;
   enemies: EnemyState[];
   terrain: TerrainState[];
@@ -267,6 +268,7 @@ export function createInitialGameState(
   );
   return {
     elapsedTime: 0,
+    stageDeathCount: 0,
     player: {
       position: { ...world.playerSpawn },
       velocity: { x: 0, y: 0 },

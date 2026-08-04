@@ -36,6 +36,7 @@ import {
   createBossDeathPieceCells,
   resolveBossDeathShakeOffset,
 } from "../src/phaser/view/bossDeathPresentation";
+import { createHudState } from "../src/ui/hud/mountHud";
 
 function getTerrainState(
   state: ReturnType<typeof createInitialGameState>,
@@ -159,6 +160,27 @@ describe("Stage 2", () => {
     expect(cocoon.maxHealth).toBe(STAGE_TWO_CONFIG.phaseOneHealth);
     expect(state.bossEncounter?.phase).toBe(1);
     expect(state.player.health).toBe(PLAYER_CONFIG.maxHealth);
+  });
+
+  it("hides the boss health bar until the first successful boss hit", () => {
+    const state = createInitialGameState(STAGE_TWO);
+    const cocoon = state.enemies[0];
+
+    expect(createHudState(state).boss).toBeNull();
+
+    expect(damageEnemy(state, cocoon, 1)).toBe(true);
+    expect(createHudState(state).boss).toMatchObject({
+      health: STAGE_TWO_CONFIG.phaseOneHealth - 1,
+      maxHealth: STAGE_TWO_CONFIG.phaseOneHealth,
+      phase: 1,
+    });
+
+    const phaseTwo = enterPhaseTwo();
+    expect(createHudState(phaseTwo.state).boss).toMatchObject({
+      health: STAGE_TWO_CONFIG.phaseTwoHealth,
+      maxHealth: STAGE_TWO_CONFIG.phaseTwoHealth,
+      phase: 2,
+    });
   });
 
   it("ejects a two-health pursuing enemy with a one-second call interval", () => {
@@ -464,7 +486,9 @@ describe("Stage 2", () => {
     state.player.position = { x: 300, y: 390 };
     triggerPhaseThreePattern(state, STAGE_TWO, 2);
     const boss = state.enemies.find((enemy) => enemy.id === encounter.bossId)!;
-    expect(boss.position.y).toBe(78);
+    expect(boss.position.y).toBe(
+      STAGE_TWO_CONFIG.phaseThreeIntermissionFlightY,
+    );
     state.player.position = { x: 700, y: 200 };
     updateBossEncounter(state, STAGE_TWO, 0.51, () => false);
     const aimed = encounter.actors.find(

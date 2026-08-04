@@ -23,6 +23,7 @@ import { getActiveTerrain, pressTerrainButton } from "./stageMechanisms";
 export function killPlayer(state: GameState): boolean {
   const player = state.player;
   if (player.action === "dead") return false;
+  state.stageDeathCount += 1;
   player.health = 0;
   player.action = "dead";
   player.actionTime = 0;

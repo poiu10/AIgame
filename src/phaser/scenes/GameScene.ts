@@ -9,6 +9,7 @@ import {
   createTransitionCheckpoint,
   findTouchedExit,
   parseCheckpoint,
+  recordStageDeathCount,
   restoreCheckpointState,
   serializeCheckpoint,
   type CheckpointSave,
@@ -16,7 +17,11 @@ import {
 import { FIXED_STEP_SECONDS } from "../../game/simulation/rules/config";
 import type { GameState } from "../../game/simulation/state";
 import { drainGameEvents, stepSimulation } from "../../game/simulation/systems/simulation";
-import { GAME_HUD_EVENT, type HudState } from "../../ui/hud/mountHud";
+import {
+  createHudState,
+  GAME_HUD_EVENT,
+  type HudState,
+} from "../../ui/hud/mountHud";
 import { GameViewAdapter } from "../view/GameViewAdapter";
 import { SampleSoundPlayer } from "../view/SampleSoundPlayer";
 
@@ -100,6 +105,7 @@ export class GameScene extends Phaser.Scene {
     let firstStep = true;
     let stageChanged = false;
     while (this.accumulator >= FIXED_STEP_SECONDS) {
+      const wasPlayerDead = this.gameState.player.action === "dead";
       this.gameState = stepSimulation(
         this.gameState,
         this.readInput(firstStep),
@@ -107,6 +113,15 @@ export class GameScene extends Phaser.Scene {
         this.currentStage,
       );
       this.accumulator -= FIXED_STEP_SECONDS;
+
+      if (!wasPlayerDead && this.gameState.player.action === "dead") {
+        this.checkpoint = recordStageDeathCount(
+          this.checkpoint,
+          this.currentStage.id,
+          this.gameState.stageDeathCount,
+        );
+        this.persistCheckpoint();
+      }
 
       const exit = this.gameState.player.action !== "dead"
         ? findTouchedExit(this.gameState, this.currentStage)
@@ -234,22 +249,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private publishHud(): void {
-    const encounter = this.gameState.bossEncounter;
-    const boss = encounter
-      ? this.gameState.enemies.find((enemy) => enemy.id === encounter.bossId)
-      : undefined;
-    const hudState: HudState = {
-      health: this.gameState.player.health,
-      maxHealth: this.gameState.player.maxHealth,
-      boss:
-        boss && encounter && boss.alive
-          ? {
-              health: boss.health,
-              maxHealth: boss.maxHealth,
-              phase: encounter.phase,
-            }
-          : null,
-    };
+    const hudState: HudState = createHudState(this.gameState);
     const signature = JSON.stringify(hudState);
     if (signature === this.lastHudSignature) return;
     this.lastHudSignature = signature;

@@ -17,6 +17,7 @@ export interface CheckpointSave {
   visitedStageIds: string[];
   completedStageIds: string[];
   stageProgress: Record<string, StageProgress>;
+  stageDeathCounts: Record<string, number>;
 }
 
 export interface CheckpointStorage {
@@ -53,6 +54,7 @@ export function createInitialCheckpoint(stage: StageDefinition): CheckpointSave 
     visitedStageIds: [stage.id],
     completedStageIds: [],
     stageProgress: { [stage.id]: emptyProgress() },
+    stageDeathCounts: { [stage.id]: 0 },
   };
 }
 
@@ -100,6 +102,31 @@ export function createTransitionCheckpoint(
       [currentStage.id]: currentProgress,
       [targetStage.id]: previous.stageProgress[targetStage.id] ?? emptyProgress(),
     },
+    stageDeathCounts: {
+      ...previous.stageDeathCounts,
+      [currentStage.id]: Math.max(
+        previous.stageDeathCounts[currentStage.id] ?? 0,
+        state.stageDeathCount,
+      ),
+      [targetStage.id]: previous.stageDeathCounts[targetStage.id] ?? 0,
+    },
+  };
+}
+
+export function recordStageDeathCount(
+  save: CheckpointSave,
+  stageId: string,
+  deathCount: number,
+): CheckpointSave {
+  return {
+    ...save,
+    stageDeathCounts: {
+      ...save.stageDeathCounts,
+      [stageId]: Math.max(
+        save.stageDeathCounts[stageId] ?? 0,
+        Math.max(0, Math.floor(deathCount)),
+      ),
+    },
   };
 }
 
@@ -128,6 +155,7 @@ export function restoreCheckpointState(save: CheckpointSave, stage: StageDefinit
   state.player.facing = save.playerFacing;
   state.player.attackFacing = save.playerFacing;
   state.player.health = PLAYER_CONFIG.maxHealth;
+  state.stageDeathCount = save.stageDeathCounts[stage.id] ?? 0;
   return state;
 }
 
@@ -149,7 +177,9 @@ export function serializeCheckpoint(save: CheckpointSave): string {
 
 export function parseCheckpoint(value: string): CheckpointSave | null {
   try {
-    const parsed = JSON.parse(value) as CheckpointSave;
+    const parsed = JSON.parse(value) as CheckpointSave & {
+      stageDeathCounts?: Record<string, unknown>;
+    };
     if (parsed?.version !== 1 || typeof parsed.currentStageId !== "string") return null;
     if (!Number.isFinite(parsed.playerPosition?.x) || !Number.isFinite(parsed.playerPosition?.y)) return null;
     if (parsed.playerFacing !== -1 && parsed.playerFacing !== 1) return null;
@@ -159,7 +189,21 @@ export function parseCheckpoint(value: string): CheckpointSave | null {
     if (progressEntries.some((entry) =>
       !Array.isArray(entry?.defeatedEnemyIds) || !Array.isArray(entry?.defeatedBossIds)
     )) return null;
-    return parsed;
+    const rawStageDeathCounts = parsed.stageDeathCounts;
+    if (
+      rawStageDeathCounts !== undefined &&
+      (typeof rawStageDeathCounts !== "object" ||
+        rawStageDeathCounts === null ||
+        Array.isArray(rawStageDeathCounts))
+    ) return null;
+    const stageDeathCounts = rawStageDeathCounts ?? {};
+    if (Object.values(stageDeathCounts).some((count) =>
+      !Number.isInteger(count) || (count as number) < 0
+    )) return null;
+    return {
+      ...parsed,
+      stageDeathCounts: stageDeathCounts as Record<string, number>,
+    };
   } catch {
     return null;
   }

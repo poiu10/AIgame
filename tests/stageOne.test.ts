@@ -15,7 +15,10 @@ import {
   STAGE_ONE_CONFIG,
 } from "../src/game/simulation/rules/config";
 import { createInitialGameState } from "../src/game/simulation/state";
-import { updatePlayerCombat } from "../src/game/simulation/systems/combat";
+import {
+  killPlayer,
+  updatePlayerCombat,
+} from "../src/game/simulation/systems/combat";
 import { updateEnemies } from "../src/game/simulation/systems/enemies";
 import {
   getElectricHazardDamageBounds,
@@ -329,6 +332,41 @@ describe("Stage 1", () => {
       width: 40,
       height: 900,
     });
+  });
+
+  it("slows only the post-intro electric speed after the fourth stage death", () => {
+    const state = createInitialGameState(STAGE_ONE);
+    const hazard = state.hazards.find(
+      (candidate) => candidate.kind === HAZARD_KINDS.electric,
+    )!;
+
+    state.stageDeathCount = 4;
+    hazard.activationElapsed =
+      STAGE_ONE_CONFIG.electricHazardInitialSpeedSeconds - 0.001;
+    expect(getElectricHazardSpeed(hazard, state.stageDeathCount)).toBe(
+      STAGE_ONE_CONFIG.electricHazardInitialSpeed,
+    );
+
+    hazard.activationElapsed = STAGE_ONE_CONFIG.electricHazardInitialSpeedSeconds;
+    expect(getElectricHazardSpeed(hazard, 3)).toBe(
+      STAGE_ONE_CONFIG.electricHazardSpeed,
+    );
+    expect(getElectricHazardSpeed(hazard, state.stageDeathCount)).toBe(590);
+    expect(getElectricHazardSpeed(hazard, 8)).toBe(550);
+
+    hazard.activated = true;
+    const xBeforeAdjustedMovement = hazard.bounds.x;
+    state.player.position = { x: 0, y: -100 };
+    updateWorldEnvironment(state, STAGE_ONE, 1);
+    expect(hazard.bounds.x).toBeCloseTo(xBeforeAdjustedMovement - 590);
+
+    state.stageDeathCount = 100;
+    expect(getElectricHazardSpeed(hazard, state.stageDeathCount)).toBe(0);
+
+    expect(killPlayer(state)).toBe(true);
+    expect(state.stageDeathCount).toBe(101);
+    expect(killPlayer(state)).toBe(false);
+    expect(state.stageDeathCount).toBe(101);
   });
 
   it("starts rapid tiny electric waves only after the button is pressed", () => {

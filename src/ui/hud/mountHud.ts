@@ -1,3 +1,5 @@
+import type { GameState } from "../../game/simulation/state";
+
 export const GAME_HUD_EVENT = "aigame:hud";
 
 export interface HudState {
@@ -8,6 +10,28 @@ export interface HudState {
     maxHealth: number;
     phase: number;
   } | null;
+}
+
+export function createHudState(state: GameState): HudState {
+  const encounter = state.bossEncounter;
+  const boss = encounter
+    ? state.enemies.find((enemy) => enemy.id === encounter.bossId)
+    : undefined;
+  const bossHasBeenHit = Boolean(
+    boss && encounter && (encounter.phase !== 1 || boss.health < boss.maxHealth),
+  );
+  return {
+    health: state.player.health,
+    maxHealth: state.player.maxHealth,
+    boss:
+      boss && encounter && boss.alive && bossHasBeenHit
+        ? {
+            health: boss.health,
+            maxHealth: boss.maxHealth,
+            phase: encounter.phase,
+          }
+        : null,
+  };
 }
 
 export function mountHud(container: HTMLDivElement | null): void {
