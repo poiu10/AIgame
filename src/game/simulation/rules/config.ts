@@ -147,6 +147,7 @@ export const STAGE_TWO_CONFIG = {
   phaseThreeDeathPieceLifetimeSeconds: 2.6,
   phaseThreeDeathPieceGravity: 360,
   phaseThreeEndTitleDelaySeconds: 5,
+  phaseThreeEndFadeSeconds: 1,
 } as const;
 
 export function getEnemyBodySize(kind?: string): {

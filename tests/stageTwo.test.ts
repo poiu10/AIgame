@@ -11,7 +11,10 @@ import {
   SOUND_CONFIG,
   STAGE_TWO_CONFIG,
 } from "../src/game/simulation/rules/config";
-import { resolveBossEndingText } from "../src/game/simulation/rules/bossEnding";
+import {
+  resolveBossEndingAlpha,
+  resolveBossEndingText,
+} from "../src/game/simulation/rules/bossEnding";
 import { createInitialGameState } from "../src/game/simulation/state";
 import {
   damagePlayer,
@@ -646,6 +649,12 @@ describe("Stage 2", () => {
     expect(resolveBossEndingText(4.999)).toBe("");
     expect(resolveBossEndingText(5)).toBe("End");
     expect(resolveBossEndingText(20)).toBe("End");
+    expect(resolveBossEndingAlpha(null)).toBe(0);
+    expect(resolveBossEndingAlpha(4.999)).toBe(0);
+    expect(resolveBossEndingAlpha(5)).toBe(0);
+    expect(resolveBossEndingAlpha(5.5)).toBeCloseTo(0.5);
+    expect(resolveBossEndingAlpha(6)).toBe(1);
+    expect(resolveBossEndingAlpha(20)).toBe(1);
 
     updateBossEncounter(
       state,

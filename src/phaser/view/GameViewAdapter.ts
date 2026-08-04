@@ -17,7 +17,10 @@ import type {
   GameState,
   PlayerState,
 } from "../../game/simulation/state";
-import { resolveBossEndingText } from "../../game/simulation/rules/bossEnding";
+import {
+  resolveBossEndingAlpha,
+  resolveBossEndingText,
+} from "../../game/simulation/rules/bossEnding";
 import { resolveTerrainBounds } from "../../game/simulation/systems/stageMechanisms";
 import {
   getPixelThicknessOffsets,
@@ -481,9 +484,9 @@ export class GameViewAdapter {
   }
 
   private drawEndingText(state: GameState): void {
-    const text = resolveBossEndingText(
-      state.bossEncounter?.phaseThree?.endingTime ?? null,
-    );
+    const endingTime = state.bossEncounter?.phaseThree?.endingTime ?? null;
+    const text = resolveBossEndingText(endingTime);
+    this.endingTextGraphics.setAlpha(resolveBossEndingAlpha(endingTime));
     if (text === this.currentEndingText) return;
     this.currentEndingText = text;
     this.endingTextGraphics.clear();
