@@ -64,6 +64,29 @@ function cellKey(x: number, y: number): string {
   return `${x},${y}`;
 }
 
+export function createThreatOuterOutlineCells(
+  sourceCells: readonly ThreatPixelCell[],
+): ThreatPixelCell[] {
+  const sourceKeys = new Set(
+    sourceCells.map((cell) => cellKey(cell.x, cell.y)),
+  );
+  const outline = new Map<string, ThreatPixelCell>();
+
+  for (const cell of sourceCells) {
+    for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+      for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+        if (offsetX === 0 && offsetY === 0) continue;
+        const x = cell.x + offsetX;
+        const y = cell.y + offsetY;
+        const key = cellKey(x, y);
+        if (!sourceKeys.has(key)) outline.set(key, { x, y });
+      }
+    }
+  }
+
+  return [...outline.values()];
+}
+
 function addBoundary(
   cells: Map<string, ThreatPixelCell>,
   start: CellPoint,

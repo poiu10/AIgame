@@ -1,5 +1,6 @@
 import type { SoundKind } from "../../game/simulation/state";
 
+export const GAME_BACKGROUND_COLOR = 0x030608;
 export const PLAYER_FOOTSTEP_WAVE_COLOR = 0x68e8ff;
 export const PLAYER_ATTACK_WAVE_COLOR = 0xff67b1;
 export const TERRAIN_ECHO_COLOR = 0x83f4ff;

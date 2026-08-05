@@ -13,6 +13,7 @@ import {
   createHazardThreatCells,
   createLongFloorHazardThreatCells,
   createShortFloorHazardThreatCells,
+  createThreatOuterOutlineCells,
   LONG_FLOOR_HAZARD_ID,
   resolveEnemyThreatFrame,
   resolveFloorHazardStrikeExtension,
@@ -98,6 +99,21 @@ describe("threat pixel art", () => {
     expect(Math.min(...facingLeft.map((cell) => cell.x))).toBe(
       -Math.max(...idle.map((cell) => cell.x)) - 1,
     );
+  });
+
+  it("builds a one-cell outer outline without covering the enemy", () => {
+    const source = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+    ];
+    const outline = createThreatOuterOutlineCells(source);
+
+    expectUniqueIntegerCells(outline);
+    expect(outline).toHaveLength(10);
+    expect(outline).toContainEqual({ x: -1, y: -1 });
+    expect(outline).toContainEqual({ x: 2, y: 1 });
+    expect(outline).not.toContainEqual({ x: 0, y: 0 });
+    expect(outline).not.toContainEqual({ x: 1, y: 0 });
   });
 
   it("selects four walking frames and three attack phases", () => {

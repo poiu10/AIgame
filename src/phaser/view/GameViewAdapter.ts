@@ -6,7 +6,9 @@ import {
 } from "../../game/assets/manifest";
 import type { WorldDefinition } from "../../game/content/world";
 import { ENEMY_KINDS, HAZARD_KINDS, TERRAIN_KINDS } from "../../game/content/world";
+import { centerRect, rectanglesOverlap } from "../../game/simulation/collision/aabb";
 import {
+  getEnemyBodySize,
   PLAYER_CONFIG,
   SOUND_CONFIG,
   STAGE_TWO_CONFIG,
@@ -52,6 +54,7 @@ import {
   createFloorHazardThreatCells,
   createHazardDamageLightningCells,
   createHazardThreatCells,
+  createThreatOuterOutlineCells,
   resolveEnemyThreatFrame,
   resolveFloorHazardStrikeExtension,
   resolveHazardReactionFrame,
@@ -60,6 +63,7 @@ import {
 } from "./threatPixelArt";
 import {
   ECHO_MARK_COLORS,
+  GAME_BACKGROUND_COLOR,
   SOUND_WAVE_COLORS,
   TERRAIN_ECHO_COLOR,
   THREAT_COLOR,
@@ -270,6 +274,7 @@ export class GameViewAdapter {
     this.waveGraphics.destroy();
     this.echoGraphics.destroy();
     this.hazardGraphics.destroy();
+    this.floorHazardStrikeGraphics.destroy();
     this.bossCocoonGraphics.destroy();
     this.bossDeathGraphics.destroy();
     this.endingTextGraphics.destroy();
@@ -472,7 +477,13 @@ export class GameViewAdapter {
           phaseThree.modeTime / STAGE_TWO_CONFIG.phaseThreeIntroSeconds,
         );
       }
-      this.drawEnemy(view.graphics, enemy, state.elapsedTime, alpha);
+      this.drawEnemy(
+        view.graphics,
+        enemy,
+        state.elapsedTime,
+        alpha,
+        this.overlapsBoss(state, enemy.position, enemy.kind, enemy.id),
+      );
     }
   }
 
@@ -600,15 +611,28 @@ export class GameViewAdapter {
     enemy: EnemyState,
     elapsedSeconds: number,
     alpha: number,
+    drawOuterOutline: boolean,
   ): void {
     graphics.clear();
-    graphics.fillStyle(THREAT_COLOR, alpha);
     const facing =
       enemy.action === "alert" || enemy.action === "attack"
         ? enemy.attackFacing
         : enemy.facing;
     const frame = resolveEnemyThreatFrame(enemy, elapsedSeconds);
-    for (const cell of createEnemyThreatCells(frame, facing, enemy.kind)) {
+    const cells = createEnemyThreatCells(frame, facing, enemy.kind);
+    if (drawOuterOutline) {
+      graphics.fillStyle(GAME_BACKGROUND_COLOR, alpha);
+      for (const cell of createThreatOuterOutlineCells(cells)) {
+        graphics.fillRect(
+          cell.x * THREAT_PIXEL_SIZE,
+          cell.y * THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+        );
+      }
+    }
+    graphics.fillStyle(THREAT_COLOR, alpha);
+    for (const cell of cells) {
       graphics.fillRect(
         cell.x * THREAT_PIXEL_SIZE,
         cell.y * THREAT_PIXEL_SIZE,
@@ -634,7 +658,12 @@ export class GameViewAdapter {
         .setPosition(actor.position.x, actor.position.y)
         .setVisible(visible);
       if (!visible) continue;
-      this.drawBossActor(view.graphics, actor, state.elapsedTime);
+      this.drawBossActor(
+        view.graphics,
+        actor,
+        state.elapsedTime,
+        this.overlapsBoss(state, actor.position, ENEMY_KINDS.waker),
+      );
     }
   }
 
@@ -660,6 +689,7 @@ export class GameViewAdapter {
     graphics: Phaser.GameObjects.Graphics,
     actor: BossActorState,
     elapsedSeconds: number,
+    drawOuterOutline: boolean,
   ): void {
     const warningProgress = actor.launchDelay > 0
       ? actor.age / actor.launchDelay
@@ -673,12 +703,24 @@ export class GameViewAdapter {
             Math.floor(elapsedSeconds * 10) % BOSS_ACTOR_WALK_FRAMES.length
           ];
     graphics.clear();
-    graphics.fillStyle(THREAT_COLOR, 1);
-    for (const cell of createEnemyThreatCells(
+    const cells = createEnemyThreatCells(
       frame,
       actor.facing,
       ENEMY_KINDS.waker,
-    )) {
+    );
+    if (drawOuterOutline) {
+      graphics.fillStyle(GAME_BACKGROUND_COLOR, 1);
+      for (const cell of createThreatOuterOutlineCells(cells)) {
+        graphics.fillRect(
+          cell.x * THREAT_PIXEL_SIZE,
+          cell.y * THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+          THREAT_PIXEL_SIZE,
+        );
+      }
+    }
+    graphics.fillStyle(THREAT_COLOR, 1);
+    for (const cell of cells) {
       graphics.fillRect(
         cell.x * THREAT_PIXEL_SIZE,
         cell.y * THREAT_PIXEL_SIZE,
@@ -686,6 +728,24 @@ export class GameViewAdapter {
         THREAT_PIXEL_SIZE,
       );
     }
+  }
+
+  private overlapsBoss(
+    state: GameState,
+    position: { x: number; y: number },
+    kind: string,
+    threatId?: string,
+  ): boolean {
+    const encounter = state.bossEncounter;
+    if (!encounter || encounter.bossId === threatId) return false;
+    const boss = state.enemies.find((enemy) => enemy.id === encounter.bossId);
+    if (!boss || !boss.alive) return false;
+    const threatBody = getEnemyBodySize(kind);
+    const bossBody = getEnemyBodySize(boss.kind);
+    return rectanglesOverlap(
+      centerRect(position, threatBody.width, threatBody.height),
+      centerRect(boss.position, bossBody.width, bossBody.height),
+    );
   }
 
   private drawEchoes(state: GameState): void {
